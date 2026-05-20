@@ -1,0 +1,32 @@
+<!--
+    HTML Integration Guide for Modular Dashboard
+    Update your existing HTML file with these script includes
+-->
+
+<!--
+    IMPORTANT: Script loading order matters!
+    Load dependencies first, then dependents
+-->
+
+<!-- ==================== Services Layer ==================== -->
+<!-- Data fetching service -->
+<script src="./build/services/data-service.js"></script>
+
+<!-- Scoring and allocation services -->
+<script src="./build/services/scoring-service.js"></script>
+<script src="./build/services/allocation-service.js"></script>
+
+<!-- ==================== UI Layer ==================== -->
+<!-- Rendering and filtering modules -->
+<script src="./build/ui/table-renderer.js"></script>
+<script src="./build/ui/filter-module.js"></script>
+
+<!-- ==================== Main App ==================== -->
+<!-- Main dashboard initialization (must be last) -->
+<script src="./build/script_update.js"></script>
+
+<!-- ==================== Alternative: Using Single File (No Modules) ==================== -->
+<!-- If you prefer not to use modules, keep using the old script_update.js
+     but update your existing script tag to point to the old backup:
+-->
+<!-- <script src="./build/script_update.js"></script> -->

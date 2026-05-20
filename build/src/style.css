@@ -1,0 +1,351 @@
+/* --- 1. Core Variables & Base Styles --- */
+:root {
+    --primary-color: #0d6efd;
+    --font-main: 'Sarabun', sans-serif;
+    --bg-light: #f8fafc;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+}
+
+body {
+    font-family: var(--font-main);
+    color: #334155;
+    background-color: var(--bg-light);
+}
+
+h1, h2, h3, h4, h5 {
+    font-weight: 700;
+}
+
+/* --- 2. Card UI --- */
+.card {
+    border-radius: 12px;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+    border: none;
+}
+
+.card:hover {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.card-header {
+    border-bottom: 1px solid #f1f5f9;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+/* ล้างค่าเดิมของ DataTables เพื่อให้ f และ l มาอยู่ติดกัน */
+    .dataTables_wrapper .dataTables_filter {
+        float: none !important;
+        text-align: left !important;
+        margin: 0 !important;
+    }
+
+    .dataTables_wrapper .dataTables_length {
+        float: none !important;
+        margin: 0 !important;
+    }
+
+    /* ปรับแต่งช่อง Search ให้ดูทันสมัย */
+ /* ปรับแต่งช่อง Search ให้เท่ากับช่อง Select */
+.dataTables_filter input {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    /* ปรับ padding ให้เท่ากับตัว select (บน-ล่าง 4px, ซ้าย-ขวา 10px) */
+    padding: 4px 10px !important; 
+    margin-left: 5px;
+    font-size: 0.875rem !important; /* ขนาดเท่ากัน */
+    color: #67748E;
+    background-color: #fff;
+    /* กำหนดความสูงขั้นต่ำให้เท่ากับมาตรฐาน select */
+    height: 31px; /* ค่าเฉลี่ยที่ทำให้ดูเท่ากับช่อง select ที่มี padding 4px */
+    box-sizing: border-box;
+    outline: none;
+}
+
+/* เพิ่มเติม: ปรับให้ตัว label ของ Search มีขนาดตัวหนังสือเท่ากันด้วย */
+.dataTables_filter label {
+    font-size: 0.875rem !important;
+    color: #67748E;
+    display: flex;
+    align-items: center;
+}
+
+.dataTables_length label {
+    color: #67748E !important;
+    font-size: 0.875rem !important; /* ปรับขนาดให้เท่ากับ Search */
+    font-weight: normal; /* ปรับความหนาให้เท่ากัน */
+}
+
+    /* ปรับแต่ง Dropdown Show entries */
+.dataTables_length select {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 4px 24px 4px 8px !important; /* เพิ่มพื้นที่ด้านขวา (24px) ให้ลูกศร */
+    font-size: 0.875rem !important;
+    color: #67748E;
+    background-color: #fff;
+    
+    /* เพิ่มลูกศรแบบสะอาดๆ (ถ้าของเดิมหาย หรือทับ) */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    
+    /* ปิดตัวเลือกดั้งเดิมของเบราว์เซอร์ที่หน้าตาไม่สวย */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    
+    min-width: 60px; /* ป้องกันช่องแคบเกินไปจนตัวเลขโดนเบียด */
+    cursor: pointer;
+}
+    
+    /* ลดขนาดตัวหนังสือ Showing 1 to 10... */
+    .dataTables_info {
+        font-size: 0.75rem !important; /* ขนาดเล็กเท่ากับ text-xs ของ Tailwind */
+        color: #6c757d !important;    /* ปรับสีเป็นสีเทาหม่น */
+         font-size: 0.875rem !important;
+        padding-top: 15px !important;
+        opacity: 0.8;                 /* ทำให้ดูจางลงเล็กน้อย */
+    }
+
+    /* ถ้าต้องการให้ตัวเลข (1, 10, 909) เป็นตัวหนาแต่ตัวหนังสือยังเล็กอยู่ */
+    .dataTables_info b, 
+    .dataTables_info strong {
+        font-weight: 600;
+        color: #495057;
+    }
+
+/* --- ส่วนของ Pagination (ปุ่มเปลี่ยนหน้า) --- */
+
+/* 1. จัดการตัวครอบใหญ่ */
+.dataTables_wrapper .dataTables_paginate {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    margin-top: 15px !important;
+    float: none !important;
+}
+
+/* 2. หัวใจสำคัญ: ต้องสั่งให้ span ที่ครอบตัวเลขเรียงเป็นแนวนอนด้วย */
+.dataTables_wrapper .dataTables_paginate span {
+    display: flex !important;
+    gap: 4px !important;
+}
+
+/* 3. ปรับขนาดปุ่มทั้งหมด (ทั้งตัวเลข และ Prev/Next) */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    height: 31px !important;
+    min-width: 31px !important;
+    display: flex !important; /* เปลี่ยนเป็น flex เพื่อจัดตัวหนังสือให้อยู่กลาง */
+    align-items: center !important;
+    justify-content: center !important;
+    
+    padding: 0 10px !important;
+    margin: 0 !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 6px !important;
+    background: white !important;
+    
+    color: #67748E !important;
+    font-size: 0.875rem !important;
+    cursor: pointer !important;
+    text-decoration: none !important; /* ลบเส้นใต้ถ้ามี */
+}
+
+/* 4. ปุ่ม Active */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background-color: #9333ea !important;
+    color: white !important;
+    border-color: #9333ea !important;
+}
+
+/* 5. ปุ่ม Hover */
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.current) {
+    background-color: #f1f5f9 !important;
+    color: #9333ea !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* 6. จัดการปุ่ม Previous/Next ให้กว้างขึ้นหน่อยถ้ามีตัวหนังสือ */
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next {
+    min-width: 70px !important;
+}
+
+/* --- บังคับให้ทุกตารางมี Style เดียวกันทั้งหมด --- */
+
+/* --- บังคับขนาดตัวหนังสือให้เท่ากันทั้งตาราง (จิ๋วพิเศษ) --- */
+
+/* 1. คุมขนาดตัวหนังสือทุกจุดในตาราง Stock ให้เท่ากับหัวตาราง */
+#tableStockMatch_wrapper,
+#tableStockMatch thead th,
+#tableStockMatch tbody td,
+#tableStockMatch_wrapper .dataTables_filter label,
+#tableStockMatch_wrapper .dataTables_info {
+    font-size: 13px !important; /* ปรับขนาดที่ต้องการตรงนี้ (เช่น 10px หรือ 11px) */
+    /* font-family: 'Sarabun', sans-serif !important; */
+}
+
+/* --- บังคับให้ตาราง Stock จิ๋วที่สุด (วางแทนที่ของเดิม) --- */
+
+/* 1. คุมขนาดฟอนต์ทุกอย่างให้เหลือ 9px - 10px */
+#tableStockMatch_wrapper,
+#tableStockMatch_wrapper * {
+    font-size: 14px !important;
+    color: #67748E !important;
+    line-height: 1.2 !important;
+}
+
+/* 2. จัดการส่วนหัว (Search & Length) ให้เล็กและอยู่บรรทัดเดียวกัน */
+.mini-dt-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 2px 0 !important;
+    margin-bottom: 5px !important;
+    font-size: 14px !important;
+}
+
+/* บีบช่อง Input ให้สั้นลงเพื่อไม่ให้เบียดกับตัวเลือกหน้า */
+/* ปรับช่อง Search ให้สมดุลขึ้น */
+#tableStockMatch_wrapper .dataTables_filter input {
+    width: 180px !important;    /* เพิ่มความกว้างนิดนึงให้พิมพ์ถนัด */
+    height: 28px !important;    /* ปรับความสูงจาก 18px เป็น 28px (กำลังดี) */
+    padding: 4px 8px !important; /* เพิ่มพื้นที่ข้างในช่อง */
+    font-size: 12px !important;  /* ขยายตัวหนังสือขึ้นมานิดนึง */
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    margin-left: 5px !important;
+}
+
+/* ปรับตัวเลือกจำนวนแถว (Length Menu) */
+#tableStockMatch_wrapper .dataTables_length select {
+    height: 28px !important;    /* สูงเท่ากับช่อง Search */
+    padding: 0 4px !important;
+    width: 55px !important;     /* กว้างพอให้เห็นตัวเลขชัดๆ */
+    font-size: 13px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+}
+
+/* ปรับระยะห่างระหว่างปุ่มเปลี่ยนหน้า ให้กดง่ายขึ้น */
+#tableStockMatch_wrapper .dataTables_paginate .paginate_button {
+    min-width: 26px !important; /* กว้างขึ้นนิดนึงไม่ให้เป็นแท่งผอมๆ */
+    height: 24px !important;
+    font-size: 13px !important;
+    margin: 0 2px !important;
+}
+
+/* 3. จัดการตัวตารางให้แน่น (Padding น้อยที่สุด) */
+#tableStockMatch thead th {
+    padding: 4px 6px !important;
+    background-color: #f8fafc !important;
+     font-size: 13px !important;
+    font-weight: 600 !important;
+}
+
+#tableStockMatch tbody td {
+    padding: 3px 6px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+/* 4. จัดการส่วนท้าย (Info & Pagination) ให้จิ๋วและอยู่บรรทัดเดียวกัน */
+.mini-dt-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 5px !important;
+}
+
+/* 5. ปรับปุ่มเปลี่ยนหน้าให้เป็นสี่เหลี่ยมจิ๋ว */
+#tableStockMatch_wrapper .dataTables_paginate .paginate_button {
+    min-width: 18px !important;
+    height: 18px !important;
+    padding: 0 !important;
+    margin: 0 1px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 3px !important;
+    background: white !important;
+}
+
+/* สีปุ่มหน้าที่เลือกอยู่ */
+#tableStockMatch_wrapper .dataTables_paginate .paginate_button.current {
+    background-color: #9333ea !important;
+    color: white !important;
+    border-color: #9333ea !important;
+}
+
+
+/* ==========================================================================
+   🎯 ดึงสไตล์ความจิ๋วพิเศษมาใส่ให้ตารางพัสดุไม่มีของ (#tableNoStock)
+   ========================================================================== */
+
+/* 1. คุมขนาดฟอนต์และสีข้อความพื้นฐานรอบตาราง */
+#tableNoStock_wrapper,
+#tableNoStock_wrapper * {
+    font-size: 14px !important;
+    color: #67748E !important;
+    line-height: 1.2 !important;
+}
+
+/* 2. บีบช่องค้นหา (Search Input) ให้สูง 28px เท่ากัน */
+#tableNoStock_wrapper .dataTables_filter input {
+    width: 180px !important;    
+    height: 28px !important;    
+    padding: 4px 8px !important; 
+    font-size: 14px !important;  
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    margin-left: 5px !important;
+    background-color: #fff !important;
+}
+
+/* 3. ปรับช่องตัวเลือกจำนวนแถว (Length Menu) */
+#tableNoStock_wrapper .dataTables_length select {
+    height: 28px !important;    
+    padding: 0 4px !important;
+    width: 55px !important;     
+    font-size: 14px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+}
+
+/* 4. จัดระยะความแน่นของแถวและล็อคฟอนต์เนื้อตาราง/หัวตาราง */
+#tableNoStock thead th {
+    padding: 4px 6px !important;
+    font-size: 13px !important; /* ดึงหัวตารางกลับมาใหญ่ 14px เท่าตารางหลัก */
+    font-weight: 600 !important;
+}
+
+#tableNoStock tbody td {
+    padding: 3px 6px !important;
+    font-size: 13px !important; /* บังคับเนื้อหาในแถวเป็น 10px เป๊ะๆ */
+}
+
+/* 5. กล่องปุ่มเปลี่ยนหน้า (Pagination) สี่เหลี่ยมจิ๋ว */
+#tableNoStock_wrapper .dataTables_paginate .paginate_button {
+    min-width: 20px !important;
+    height: 20px !important;
+    padding: 0 4px !important;
+    margin: 0 1px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 3px !important;
+    background: white !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+}
+
+/* ไฮไลต์สีปุ่มเปลี่ยนหน้าที่เลือกอยู่ของตารางไม่มีของ */
+#tableNoStock_wrapper .dataTables_paginate .paginate_button.current {
+    background-color: #9333ea !important;
+    color: white !important;
+    border-color: #9333ea !important;
+}
