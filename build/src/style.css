@@ -156,15 +156,15 @@ h1, h2, h3, h4, h5 {
 
 /* 4. ปุ่ม Active */
 .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-    background-color: #9333ea !important;
+    background-color: #8454b1 !important;
     color: white !important;
-    border-color: #9333ea !important;
+    border-color: #8454b1 !important;
 }
 
 /* 5. ปุ่ม Hover */
 .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.current) {
     background-color: #f1f5f9 !important;
-    color: #9333ea !important;
+    color: #8454b1 !important;
     border-color: #cbd5e1 !important;
 }
 
@@ -275,9 +275,9 @@ h1, h2, h3, h4, h5 {
 
 /* สีปุ่มหน้าที่เลือกอยู่ */
 #tableStockMatch_wrapper .dataTables_paginate .paginate_button.current {
-    background-color: #9333ea !important;
+    background-color: #8454b1 !important;
     color: white !important;
-    border-color: #9333ea !important;
+    border-color: #8454b1 !important;
 }
 
 
@@ -345,7 +345,7 @@ h1, h2, h3, h4, h5 {
 
 /* ไฮไลต์สีปุ่มเปลี่ยนหน้าที่เลือกอยู่ของตารางไม่มีของ */
 #tableNoStock_wrapper .dataTables_paginate .paginate_button.current {
-    background-color: #9333ea !important;
+    background-color: #8454b1 !important;
     color: white !important;
-    border-color: #9333ea !important;
+    border-color: #8454b1 !important;
 }

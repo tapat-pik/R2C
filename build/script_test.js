@@ -660,10 +660,15 @@ const AllocationService = {
     tableApi.rows({ search: 'applied' }).nodes().to$().each(function() {
         const $row = $(this);
         
-        const tokenSpan = $row.find('td:first-child span').text();
+        // 🎯 จุดที่ 1: เดิมเล็ง td:first-child (ช่องอันดับอันใหม่) ขยับมาดึงสัญญาณไฟที่ช่องที่สองแทน (Index 1)
+        const tokenSpan = $row.find('td:eq(1) span').text();
         const currentStatus = tokenSpan.replace('status-', '').toLowerCase().trim();
-        const peaName = $row.find('td:eq(3)').text().trim() || "ไม่ระบุการไฟฟ้า";
-        const rawMoney = parseFloat($row.find('td:eq(5)').attr('data-order')) || 0;
+        
+        // 🎯 จุดที่ 2: เดิมเล็งการไฟฟ้าที่ช่อง 4 (eq(3)) โดนเบียดขยับไปอยู่ช่องที่ 5 (eq(4))
+        const peaName = $row.find('td:eq(4)').text().trim() || "ไม่ระบุการไฟฟ้า";
+        
+        // 🎯 จุดที่ 3: เดิมเล็งมูลค่างานที่ช่อง 6 (eq(5)) โดนเบียดขยับไปอยู่ช่องที่ 7 (eq(6))
+        const rawMoney = parseFloat($row.find('td:eq(6)').attr('data-order')) || 0;
 
         allRowsData.push({ status: currentStatus, pea: peaName, money: rawMoney });
     });
@@ -671,10 +676,10 @@ const AllocationService = {
     // 🚀 ส่งข้อมูลก้อนเดียวกันนี้ แยกไปให้ฟังก์ชันย่อยของกราฟแต่ละตัวจัดการต่อ
     this.updatePieChart(allRowsData);
     this.updateBarChart(allRowsData);
-  },
+},
 
-  // 🍕 2. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟวงกลม (ใช้ชื่อเดิมของคุณบิ๊ก)
-  updatePieChart: function(cleanData) {
+// 🍕 2. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟวงกลม (คงเดิม)
+updatePieChart: function(cleanData) {
     let countGreen = 0; let countBlueYellow = 0; let countRed = 0;
     let sumGreenMoney = 0; let sumBlueYellowMoney = 0; let sumRedMoney = 0;
 
@@ -693,10 +698,10 @@ const AllocationService = {
         GraphRender.myPieChart.data.datasets[0].customMoney = [sumGreenMoney, sumBlueYellowMoney, sumRedMoney];
         GraphRender.myPieChart.update();
     }
-  },
+},
 
-  // 📊 3. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟแท่ง (แยกชื่อใหม่ตามที่คุณบิ๊กต้องการ)
- updateBarChart: function(cleanData) {
+// 📊 3. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟแท่ง (คงเดิม)
+updateBarChart: function(cleanData) {
     let peaGroup = {};
 
     cleanData.forEach(item => {
@@ -705,11 +710,10 @@ const AllocationService = {
                 greenCount: 0, greenMoney: 0,
                 yellowCount: 0, yellowMoney: 0,
                 redCount: 0, redMoney: 0,
-                totalCount: 0 // 🎯 [เพิ่ม] ตัวนับงานรวมทุกสีของการไฟฟ้านี้
+                totalCount: 0 
             };
         }
 
-        // ทุกครั้งที่มีงานหลุดเข้ามา ไม่ว่าสีอะไร ให้บวกยอดรวมของการไฟฟ้านี้เพิ่ม 1 เสมอ
         peaGroup[item.pea].totalCount += 1;
 
         if (item.status === 'green' || item.status === 'match') { 
@@ -726,18 +730,16 @@ const AllocationService = {
         let barDataGreen = []; let barMoneyGreen = [];
         let barDataYellow = []; let barMoneyYellow = [];
         let barDataRed = []; let barMoneyRed = [];
-        let barTotalCounts = []; // 🎯 [เพิ่ม] อาเรย์เก็บยอดรวมเพื่อส่งให้กราฟ
+        let barTotalCounts = []; 
 
         peaLabels.forEach(name => {
             barDataGreen.push(peaGroup[name].greenCount); barMoneyGreen.push(peaGroup[name].greenMoney);
             barDataYellow.push(peaGroup[name].yellowCount); barMoneyYellow.push(peaGroup[name].yellowMoney);
             barDataRed.push(peaGroup[name].redCount); barMoneyRed.push(peaGroup[name].redMoney);
-            barTotalCounts.push(peaGroup[name].totalCount); // 🎯 ดึงยอดรวมยัดใส่สระเก็บข้อมูล
+            barTotalCounts.push(peaGroup[name].totalCount); 
         });
 
         GraphRender.myBarChart.data.labels = peaLabels;
-        
-        // 🎯 ฝังตัวแปร barTotalCounts ซ่อนเอาไว้ในตัวกราฟแท่ง เพื่อเอาไว้เรียกใช้ตอนเมาส์ชี้
         GraphRender.myBarChart.data.customTotalCounts = barTotalCounts;
 
         GraphRender.myBarChart.data.datasets[0].data = barDataGreen;
@@ -748,10 +750,8 @@ const AllocationService = {
         GraphRender.myBarChart.data.datasets[2].customMoney = barMoneyRed;
         GraphRender.myBarChart.update();
     }
-  }
+}
 };
-
-
 const GraphRender = {
   myPieChart: null,
   myBarChart: null,
@@ -1010,7 +1010,7 @@ return matchTable;
 const RequirementTable = $el.DataTable({
     "pageLength": 10,
     "responsive": true,
-    "order": [[7, "desc"]], 
+    "order": [[0, "asc"]],
     "buttons": [
         {
             extend: 'excel',
@@ -1087,6 +1087,8 @@ return RequirementTable;
         const textBoldStyle = `class="mb-0 font-bold text-m leading-tight" style="${TABLE_STYLES.textBoldStyle}"`;
 
         let html = '<thead class="table-light"><tr>';
+        // 🔢 เพิ่มหัวตาราง "อันดับ" เข้าไปที่คอลัมน์แรกสุด
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">อันดับ</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สัญญาณไฟ</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">หมายเลขงาน</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">ชื่องาน</th>`;
@@ -1118,39 +1120,65 @@ return RequirementTable;
                 uniqueMap.set(valA, row);
             }
         });
+
+        // ================================================================================================
+        // 🏆 [ขั้นตอนเพิ่มเพื่อการเรียงลำดับ] ดึงข้อมูลมาคำนวณและเก็บลง Array เพื่อเตรียม Sort ตามเกณฑ์ 3 ชั้น
+        // ================================================================================================
+        const sortedWBSList = [];
+        uniqueMap.forEach((row, valA) => {
+            let valX = getCellValue(row.c[23]);
+            let valY = getCellValue(row.c[24]);
+            let rowCount = countMap.get(valA) || 0;
+            let valOpenDate = getCellValue(row.c[26]);
+            let rawBudget = budgetMapping[valA] || 0;
+
+            let result = ScoringService.calculateScoreDetails(
+                valA, valY, valX, rowCount, vvipData, false, valOpenDate, false
+            );
+
+            let totalScore = (finalScores && finalScores.has(valA))
+                ? finalScores.get(valA)
+                : result.totalScore;
+
+            sortedWBSList.push({
+                valA: valA,
+                row: row,
+                rowCount: rowCount,
+                totalScore: totalScore,
+                budget: rawBudget,
+                result: result
+            });
+        });
+
+        // 🎯 จัดเรียงลำดับ 3 ชั้น: 1. คะแนนรวมสูงสุด -> 2. พัสดุน้อยสุด -> 3. มูลค่างานสูงสุด
+        sortedWBSList.sort((a, b) => {
+            if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+            if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
+            return b.budget - a.budget;
+        });
+
         // 🎯 ส่วนที่เพิ่ม 1: ตัวแปรเก็บสถิติส่งหากราฟ
-         const activeRowsDataForChart = [];
-        // สร้างแถว
-        Array.from(uniqueMap.values()).forEach(row => {
-            let valA = getCellValue(row.c[0]).toString().trim();
+        const activeRowsDataForChart = [];
+
+        // ================================================================================================
+        // 🎯 เปลี่ยนมาวิ่งลูปผ่านข้อมูลที่ผ่านการจัดอันดับถูกต้องแล้ว (โค้ดดึงค่าและโครงสร้างตารางด้านในคงเดิม)
+        // ================================================================================================
+        sortedWBSList.forEach((item, index) => {
+            const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
+            const valA = item.valA;
+            const row = item.row;
+            const rowCount = item.rowCount;
+            const totalScore = item.totalScore;
+            const result = item.result;
+
             let valT = getCellValue(row.c[19]);
             let valW = getCellValue(row.c[22]) || "";
             let valX = getCellValue(row.c[23]);
             let valY = getCellValue(row.c[24]);
 
             let peaName = peaNameMapping[valW] || valW || "-";
-            let rowCount = countMap.get(valA) || 0;
-
-            // 🎯 แก้ไขจากจุดเดิม ให้ดึงและส่งค่า OpenDate (วันที่เปิดงาน) เข้าไปด้วย
-            let valOpenDate = getCellValue(row.c[26]); // ดึงวันที่เปิดงานที่ Index 26 มารอก่อน
-
-            let result = ScoringService.calculateScoreDetails(
-                valA,          // valA
-                valY,          // valY
-                valX,          // valX
-                rowCount,      // rowCount
-                vvipData,      // vvipData
-                false,         // isFullyAllocated (รอบแสดงผลตารางเริ่มต้นให้เป็น false)
-                valOpenDate,   // valOpenDate (🎯 ส่งเข้าพารามิเตอร์ตัวที่ 7 เพื่อให้คำนวณ Aging ตรงกับใน Log)
-                false          // isFinalCalc
-            );
-            // 1. ดึงคะแนนดิบที่มีทศนิยม 4 ตำแหน่งมาใช้ (ตัวแปรนี้จะถูก DataTable นำไปใช้จัดเรียงคิวหลังบ้าน)
-            let totalScore = (finalScores && finalScores.has(valA))
-                ? finalScores.get(valA)
-                : result.totalScore;
 
             // 2. 🎯 สำหรับแสดงผลหน้าจอ: ปัดเศษตัวเลขให้เป็นเลขถ้วน ไม่มีทศนิยม
-            // เช่น 7025.1420 จะโชว์เป็น 7025 | 1000.8500 จะโชว์เป็น 1001
             let displayScore = typeof totalScore === 'number' ? Math.round(totalScore).toLocaleString() : totalScore;
             
             let dayDisplay = "-";
@@ -1165,15 +1193,17 @@ return RequirementTable;
 
             const status = wbsStatusMap.get(valA);
             const lightHTML = createStatusCircle(status || 'yellow');
-            const searchToken = status ? `status-${status}` : 'status-yellow'; // จะได้เป็น status-green, status-red ฯลฯ
+            const searchToken = status ? `status-${status}` : 'status-yellow';
             let rawBudget = budgetMapping[valA];
             let budgetDisplay = (rawBudget !== undefined) ? rawBudget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
             let budgetOrderValue = (rawBudget !== undefined) ? rawBudget : 0;
+            
             // 🎯 ส่วนที่เพิ่ม 2: ยัดข้อมูลแถวนี้ลงถังเก็บ
-             activeRowsDataForChart.push({ status: status, qty: rowCount });
+            activeRowsDataForChart.push({ status: status, qty: rowCount });
 
-
+            // พ่น HTML พร้อมทั้งใส่ช่องอันดับ `${rank}` เพิ่มไว้ที่คอลัมน์แรกสุด
             html += `<tr class="clickable-requirement" data-wbs="${valA}" style="cursor: pointer;">
+                <td class="${TABLE_STYLES.cellClass} text-center fw-bold" style="background-color: #f8f9fa;">${rank}</td>
                 <td class="${TABLE_STYLES.cellClass} text-center "><span style="display: none;">${searchToken}</span>${lightHTML}</td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><div class="px-3 py-1"><h6 class="mb-0 text-sm leading-normal" ${headerStyle}>${valA}</h6></div></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><p ${textStyle}>${valT}</p></td>
@@ -1191,8 +1221,6 @@ return RequirementTable;
         AllocationService.updatePieChart(activeRowsDataForChart);
         return html;
     },
-
-
 
     //=========== ตาราง NoStock พัสดุที่ไม่ได้รับการจัดสรร ===========//
 /**
@@ -1334,40 +1362,40 @@ const FilterModule = {
 
         $filter.on('change', function () {
             const val = $(this).val();
-            table.column(1).search(val ? '^' + val + '$' : '', true, false).draw();
+            table.column(2).search(val ? '^' + val + '$' : '', true, false).draw();
         });
     },
+setupFilterType_WBS(table, data) {
+    const $filter = $('#FilterType_WBS');
+    $filter.empty().append('<option value="">ทั้งหมด (สถานะงาน)</option>');
 
-    setupFilterType_WBS(table, data) {
-        const $filter = $('#FilterType_WBS');
-        $filter.empty().append('<option value="">ทั้งหมด (สถานะงาน)</option>');
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        let val = getCellValue(row.c[24]);
+        if (val && !list.includes(val)) {
+            list.push(val);
+        }
+    });
 
-        let list = [];
-        data.rows.forEach(row => {
-            if (!row || !row.c) return;
-            let val = getCellValue(row.c[24]);
-            if (val && !list.includes(val)) {
-                list.push(val);
-            }
-        });
+    list.sort().forEach(item => {
+        $filter.append(`<option value="${item}">${item}</option>`);
+    });
 
-        list.sort().forEach(item => {
-            $filter.append(`<option value="${item}">${item}</option>`);
-        });
+    $filter.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: false,
+        placeholder: 'ค้นหาสถานะงาน...',
+        allowClear: true
+    });
 
-        $filter.select2({
-            theme: 'bootstrap-5',
-            width: '100%',
-            closeOnSelect: false,
-            placeholder: 'ค้นหาสถานะงาน...',
-            allowClear: true
-        });
-
-        $filter.on('change', function () {
-            const val = $(this).val();
-            table.column(4).search(val ? '^' + val + '$' : '', true, false).draw();
-        });
-    },
+    $filter.on('change', function () {
+        const val = $(this).val();
+        // 🎯 แก้ไขตรงนี้: ปรับมาใช้คำสั่งค้นหาข้อความปกติ (ไม่ต้องใช้ ^ และ $) ในคอลัมน์ Index 5
+        table.column(5).search(val ? val : '').draw();
+    });
+},
 
     setupFilterPEA_WBS(table, peaNameMapping) {
         const $filter = $('#FilterPEA_WBS');
@@ -1398,7 +1426,7 @@ const FilterModule = {
 
         $filter.on('change', function () {
             const val = $(this).val();
-            table.column(3).search(val ? '^' + val + '$' : '', true, false).draw();
+            table.column(4).search(val ? '^' + val + '$' : '', true, false).draw();
         });
     },
 
@@ -1442,7 +1470,7 @@ setupFilterLight(tableInstance, rawData) {
             const selectedSearchToken = $(this).val() || ''; // ดึงค่าสี (ถ้ากดกากบาทจะได้ความว่างเปล่า)
 
             // ค้นหาเฉพาะในคอลัมน์ที่ 0 (คอลัมน์สัญญาณไฟ)
-            tableInstance.column(0).search(selectedSearchToken, false, false).draw();
+            tableInstance.column(1).search(selectedSearchToken, false, false).draw();
         });
     }
 };
