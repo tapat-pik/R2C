@@ -22,6 +22,7 @@ let peaNameMapping = {};
 let totalStockSummary = {};
 // ประกาศเพิ่มคู่กับพวก parcelTable, stockMatchTableInstance
 let noStockTableInstance = null;
+let obsoleteTableInstance = null;
 let myPieChart = null;
 // ==================== Constants ====================
 const TABLE_STYLES = {
@@ -69,6 +70,20 @@ function getCellValue(cell) {
  */
 function createStatusCircle(status) {
     const color = STATUS_COLORS[status] || STATUS_COLORS.yellow;
+    
+    // 🔒 ถ้าสถานะเป็น lock ให้แสดงผลเป็นไอคอนกุญแจแทนวงกลม
+    if (status === "lock") {
+        return `
+            <span class="ml-2 mr-1" style="
+                display: inline-block;
+                font-size: 14px;
+                vertical-align: middle;
+                line-height: 1;
+            " title="${color.title}">🔒</span>
+        `;
+    }
+
+    // 🟢 🔵 🟡 🔴 ถ้าเป็นสถานะอื่น วาดวงกลมตามเดิม
     return `
         <span class="ml-2 mr-1" style="
             display: inline-block;
@@ -77,10 +92,10 @@ function createStatusCircle(status) {
             background: ${color.gradient};
             border-radius: 50%;
             box-shadow: 0 3px 5px ${color.shadow};
+            vertical-align: middle;
         " title="${color.title}"></span>
     `;
 }
-
 // ==================== Data Service ====================
 const DataService = {
     
@@ -491,7 +506,9 @@ const AllocationService = {
         );
         const uniqueWBS = Array.from(uniqueWBSSet);
 
+        // ================================================================================================
         // STEP 1: เตรียมคิวงานรอบแรก (ใช้คะแนนตั้งต้นก่อนแจกของเพื่อจัดลำดับความสำคัญ)
+        // ================================================================================================
         const queue = rawDatabase.rows.map(row => {
             const wbs = getCellValue(row.c[0]).toString().trim();
             const rowsOfWbs = rawDatabase.rows.filter(
@@ -503,7 +520,7 @@ const AllocationService = {
 
             const info = ScoringService.calculateScoreDetails(
                 wbs, getCellValue(row.c[24]), getCellValue(row.c[23]),
-                rowsOfWbs.length, vvipData, false, openDateValue, false // ยังไม่เปิด Log
+                rowsOfWbs.length, vvipData, false, openDateValue, false
             );
 
             return {
@@ -530,7 +547,9 @@ const AllocationService = {
             return b.budget - a.budget;
         });
 
+        // ================================================================================================
         // STEP 2: ดำเนินการจัดสรรพัสดุตามคิวจริง
+        // ================================================================================================
         let allocatedResults = queue.map(item => {
             const available = currentStock[item.partID] || 0;
             const assigned = Math.min(available, item.pending);
@@ -547,37 +566,92 @@ const AllocationService = {
             };
         });
 
+        // ================================================================================================
         // STEP 3: สรุปผลลัพธ์และบันทึกข้อมูลเพื่อเตรียมจัดอันดับสุดท้าย
+        // ================================================================================================
         const finalRankPrepList = [];
 
         uniqueWBS.forEach(wbs => {
             const items = allocatedResults.filter(r => r.wbs === wbs);
-            const isGreen = items.length > 0 && items.every(i => i.pending > 0 && i.assigned >= i.pending);
-            const isRed = items.length > 0 && items.every(i => i.assigned === 0);
-
-            const mainItems = items.filter(i => {
+            
+            // 1. แยกกลุ่มตรวจสอบพัสดุตามประเภทก่อนคิดไฟจราจร
+            let hasLockedMaterial = false;
+            
+            // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
+            const normalItems = items.filter(i => {
                 const currentID = i.partID?.toString().trim();
                 const type = materialTypeMap[currentID];
-                return type === "พัสดุหลัก";
+                
+                if (type === "พัสดุล้าสมัย" || type === "เปลี่ยนรหัสพัสดุ") {
+                    hasLockedMaterial = true;
+                }
+                return type !== "พัสดุล้าสมัย" && type !== "เปลี่ยนรหัสพัสดุ";
             });
-            const isBlue = mainItems.length > 0 && mainItems.every(i => i.assigned >= i.pending);
+
+            let status = "yellow"; // ค่าเริ่มต้นกรณีไม่เข้าเงื่อนไขอื่น (ไฟเหลือง)
+            let isGreen = false;
+
+            // 🔒 ชั้นที่ 1: ตรวจสอบเงื่อนไขล็อกขั้นสูงสุด (ถ้าเจอล้าสมัย/เปลี่ยนรหัส ต้องเป็นกุญแจเท่านั้น)
+            if (hasLockedMaterial) {
+                status = "lock";
+            } else if (normalItems.length > 0) {
+                // 🔵 🟢 🔴 🟡 ชั้นที่ 2: งานปกติที่ไม่มีพัสดุล้าสมัย/เปลี่ยนรหัสพัสดุ
+
+                // กรองเฉพาะกลุ่มพัสดุหลัก
+                const mainItems = normalItems.filter(i => {
+                    const currentID = i.partID?.toString().trim();
+                    const type = materialTypeMap[currentID];
+                    return type === "พัสดุหลัก";
+                });
+                
+                // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
+                const isMainCompleted = mainItems.length > 0 && mainItems.every(i => i.assigned >= i.pending);
+
+                // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
+                const isAllCompleted = normalItems.every(i => {
+                    const currentID = i.partID?.toString().trim();
+                    const type = materialTypeMap[currentID];
+                    if (type === "พัสดุไม่เบิกจากคลัง") {
+                        return true; 
+                    }
+                    return i.pending > 0 && i.assigned >= i.pending;
+                });
+
+                // 🔴 เช็คเงื่อนไขไฟสีแดง: ทุกรายการปกติได้ของรวมเป็น 0
+                const isRed = normalItems.every(i => i.assigned === 0);
+
+                // 🎯 ตัดสินสัญญาณไฟตามเกณฑ์ความสำคัญของพัสดุ
+                if (isMainCompleted) {
+                    status = "blue"; // พัสดุหลักครบ ยืนพื้นด้วยไฟน้ำเงินก่อน
+                    
+                    // 🟢 แต่ถ้าตรวจสอบแล้ว พัสดุประเภทอื่นๆ ครบหมดด้วย (หรือไม่มีประเภทอื่นอยู่เลย) ให้ปรับเป็นไฟเขียว
+                    if (isAllCompleted) {
+                        status = "green";
+                        isGreen = true; // เปิด Flag ไปรับโบนัส +2000 แต้ม
+                    }
+                } else if (isAllCompleted) {
+                    // เคสยกเว้น: งานนั้นไม่มีพัสดุหลักเลย แต่รายการประเภทอื่นๆ ที่มี ดันได้ครบทั้งหมด
+                    status = "green";
+                    isGreen = true;
+                } else if (isRed) {
+                    status = "red";
+                } else {
+                    status = "yellow"; // พัสดุหลักไม่ครบ และยอดไม่เป็น 0 ทั้งหมด (ได้ของบางส่วน)
+                }
+            }
 
             const firstItem = items[0];
             if (firstItem) {
                 // คำนวณคะแนนสุทธิสุดท้ายหลังแจกของ (ใส่ค่า isGreen เพื่อลุ้นโบนัส +2000)
                 const final = ScoringService.calculateScoreDetails(
                     firstItem.raw.valA, firstItem.raw.valY, firstItem.raw.valX,
-                    firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false // ยังไม่เปิด Log ตรงนี้
+                    firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false
                 );
 
                 finalWbsScores.set(wbs, final.totalScore);
-
-                let status = "yellow";
-                if (isGreen) status = "green";
-                else if (isBlue) status = "blue";
-                else if (isRed) status = "red";
-                
                 wbsStatusMap.set(wbs, status);
+                
+                // อัปเดตคะแนนกลับไปที่รายการพัสดุ
                 items.forEach(it => it.score = final.totalScore);
 
                 // เก็บลงอาร์เรย์ชั่วคราวเพื่อนำไปเรียงลำดับพิมพ์ออกรายงาน
@@ -593,20 +667,12 @@ const AllocationService = {
             }
         });
 
-       // ================================================================================================
+        // ================================================================================================
         // 🏆 🧾 [FINAL RANKING REPORT] พ่นตัวเลขคะแนนสุทธิเรียงตามอันดับ 1 ถึงสุดท้าย
         // ================================================================================================
-        // 🎯 ตรรกะการจัดเรียงลำดับ 3 ชั้น (เบื้องหลังยังใช้คะแนนดิบ 4 ตำแหน่งเพื่อความแม่นยำ)
         finalRankPrepList.sort((a, b) => {
-            // 🥇 ชั้นที่ 1: คะแนนรวมสูงสุดมาก่อน
-            if (b.finalScore !== a.finalScore) {
-                return b.finalScore - a.finalScore;
-            }
-            // 🥈 ชั้นที่ 2: ถ้าคะแนนเท่ากันเป๊ะ ➔ เอาจำนวนรายการพัสดุน้อยที่สุดขึ้นก่อน
-            if (a.rowCount !== b.rowCount) {
-                return a.rowCount - b.rowCount;
-            }
-            // 🥉 ชั้นที่ 3: ถ้าคะแนนเท่ากัน และพัสดุเท่ากันอีก ➔ เอามูลค่างาน (Budget) มากที่สุดขึ้นก่อน
+            if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+            if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
             return b.budget - a.budget;
         });
 
@@ -617,10 +683,13 @@ const AllocationService = {
 
         finalRankPrepList.forEach((item, index) => {
             const rank = index + 1;
-            const statusLabel = item.status === "green" ? "🟢 FULLY" : (item.status === "blue" ? "🔵 MAIN" : (item.status === "yellow" ? "🟡 PARTIAL" : "🔴 NONE"));
+            const statusLabel = item.status === "lock" ? "🔒 LOCKED " : 
+                                item.status === "green" ? "🟢 FULLY  " : 
+                                (item.status === "blue" ? "🔵 MAIN   " : 
+                                (item.status === "yellow" ? "🟡 PARTIAL" : "🔴 NONE   "));
+                                
             const budgetStr = item.budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
-            // แสดงผลคะแนนดิบ 4 ตำแหน่งใน Log เพื่อให้ผู้ใช้งานเห็นเหตุผลการตัดอันดับเวลาเกิด Case ที่คะแนนหรือพัสดุเท่ากัน
             console.log(
                 `อันดับที่ ${rank.toString().padEnd(2)} | ` +
                 `WBS: ${item.wbs.padEnd(15)} | ` +
@@ -630,7 +699,7 @@ const AllocationService = {
                 `มูลค่างาน: ${budgetStr.padStart(14)} บาท`
             );
 
-            // ส่งไปดึงรายละเอียด Breakdown ใต้บรรทัดตัวเอง
+            // แสดงรายละเอียด Breakdown รายบรรทัด
             ScoringService.calculateScoreDetails(
                 item.raw.valA, item.raw.valY, item.raw.valX,
                 item.rowCount, vvipData, item.isFullyAllocated, item.raw.valOpenDate, true
@@ -640,6 +709,15 @@ const AllocationService = {
         console.log("================================================================================================================================================");
         return { allocatedResults, finalWbsScores, wbsStatusMap };
     },
+
+    // 🎯 ฟังก์ชันอัปเดตกราฟวงกลม (Pie Chart) ที่ผูกไว้ท้ายตาราง
+    updatePieChart(activeRowsDataForChart) {
+        // ตรวจสอบว่ามีฟังก์ชันแสดงผลกราฟอยู่จริงค่อยประมวลผลต่อ
+        if (typeof renderPieChartFn === 'function') {
+            renderPieChartFn(activeRowsDataForChart);
+        }
+    },
+
 
 
     updatePieChart(data) {
@@ -660,10 +738,15 @@ const AllocationService = {
     tableApi.rows({ search: 'applied' }).nodes().to$().each(function() {
         const $row = $(this);
         
-        const tokenSpan = $row.find('td:first-child span').text();
+        // 🎯 จุดที่ 1: เดิมเล็ง td:first-child (ช่องอันดับอันใหม่) ขยับมาดึงสัญญาณไฟที่ช่องที่สองแทน (Index 1)
+        const tokenSpan = $row.find('td:eq(1) span').text();
         const currentStatus = tokenSpan.replace('status-', '').toLowerCase().trim();
-        const peaName = $row.find('td:eq(3)').text().trim() || "ไม่ระบุการไฟฟ้า";
-        const rawMoney = parseFloat($row.find('td:eq(5)').attr('data-order')) || 0;
+        
+        // 🎯 จุดที่ 2: เดิมเล็งการไฟฟ้าที่ช่อง 4 (eq(3)) โดนเบียดขยับไปอยู่ช่องที่ 5 (eq(4))
+        const peaName = $row.find('td:eq(4)').text().trim() || "ไม่ระบุการไฟฟ้า";
+        
+        // 🎯 จุดที่ 3: เดิมเล็งมูลค่างานที่ช่อง 6 (eq(5)) โดนเบียดขยับไปอยู่ช่องที่ 7 (eq(6))
+        const rawMoney = parseFloat($row.find('td:eq(6)').attr('data-order')) || 0;
 
         allRowsData.push({ status: currentStatus, pea: peaName, money: rawMoney });
     });
@@ -671,10 +754,10 @@ const AllocationService = {
     // 🚀 ส่งข้อมูลก้อนเดียวกันนี้ แยกไปให้ฟังก์ชันย่อยของกราฟแต่ละตัวจัดการต่อ
     this.updatePieChart(allRowsData);
     this.updateBarChart(allRowsData);
-  },
+},
 
-  // 🍕 2. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟวงกลม (ใช้ชื่อเดิมของคุณบิ๊ก)
-  updatePieChart: function(cleanData) {
+// 🍕 2. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟวงกลม (คงเดิม)
+updatePieChart: function(cleanData) {
     let countGreen = 0; let countBlueYellow = 0; let countRed = 0;
     let sumGreenMoney = 0; let sumBlueYellowMoney = 0; let sumRedMoney = 0;
 
@@ -693,10 +776,10 @@ const AllocationService = {
         GraphRender.myPieChart.data.datasets[0].customMoney = [sumGreenMoney, sumBlueYellowMoney, sumRedMoney];
         GraphRender.myPieChart.update();
     }
-  },
+},
 
-  // 📊 3. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟแท่ง (แยกชื่อใหม่ตามที่คุณบิ๊กต้องการ)
- updateBarChart: function(cleanData) {
+// 📊 3. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟแท่ง (คงเดิม)
+updateBarChart: function(cleanData) {
     let peaGroup = {};
 
     cleanData.forEach(item => {
@@ -705,11 +788,10 @@ const AllocationService = {
                 greenCount: 0, greenMoney: 0,
                 yellowCount: 0, yellowMoney: 0,
                 redCount: 0, redMoney: 0,
-                totalCount: 0 // 🎯 [เพิ่ม] ตัวนับงานรวมทุกสีของการไฟฟ้านี้
+                totalCount: 0 
             };
         }
 
-        // ทุกครั้งที่มีงานหลุดเข้ามา ไม่ว่าสีอะไร ให้บวกยอดรวมของการไฟฟ้านี้เพิ่ม 1 เสมอ
         peaGroup[item.pea].totalCount += 1;
 
         if (item.status === 'green' || item.status === 'match') { 
@@ -726,18 +808,16 @@ const AllocationService = {
         let barDataGreen = []; let barMoneyGreen = [];
         let barDataYellow = []; let barMoneyYellow = [];
         let barDataRed = []; let barMoneyRed = [];
-        let barTotalCounts = []; // 🎯 [เพิ่ม] อาเรย์เก็บยอดรวมเพื่อส่งให้กราฟ
+        let barTotalCounts = []; 
 
         peaLabels.forEach(name => {
             barDataGreen.push(peaGroup[name].greenCount); barMoneyGreen.push(peaGroup[name].greenMoney);
             barDataYellow.push(peaGroup[name].yellowCount); barMoneyYellow.push(peaGroup[name].yellowMoney);
             barDataRed.push(peaGroup[name].redCount); barMoneyRed.push(peaGroup[name].redMoney);
-            barTotalCounts.push(peaGroup[name].totalCount); // 🎯 ดึงยอดรวมยัดใส่สระเก็บข้อมูล
+            barTotalCounts.push(peaGroup[name].totalCount); 
         });
 
         GraphRender.myBarChart.data.labels = peaLabels;
-        
-        // 🎯 ฝังตัวแปร barTotalCounts ซ่อนเอาไว้ในตัวกราฟแท่ง เพื่อเอาไว้เรียกใช้ตอนเมาส์ชี้
         GraphRender.myBarChart.data.customTotalCounts = barTotalCounts;
 
         GraphRender.myBarChart.data.datasets[0].data = barDataGreen;
@@ -748,10 +828,8 @@ const AllocationService = {
         GraphRender.myBarChart.data.datasets[2].customMoney = barMoneyRed;
         GraphRender.myBarChart.update();
     }
-  }
+}
 };
-
-
 const GraphRender = {
   myPieChart: null,
   myBarChart: null,
@@ -902,6 +980,50 @@ const GraphRender = {
     });
   }
 };
+
+// ==================== Event Handlers ====================
+function renderInitialStockMatch(allocatedData, materialTypeMap) {
+    if (!allocatedData || !Array.isArray(allocatedData)) {
+        console.warn("⚠️ No allocated data provided");
+        return;
+    }
+
+    // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
+    const filteredAllocatedData = allocatedData.filter(res => {
+        const assignedValue = parseFloat(res.assigned) || 0;
+        return assignedValue > 0;
+    });
+    const tableContent = {
+        cols: [
+            { label: "หมายเลขงาน" },
+            { label: "รหัสพัสดุ" },
+            { label: "ชื่อพัสดุ" },
+            { label: "ประเภท" },
+            { label: "ค้างเบิก" },
+            { label: "จำนวนที่ได้" },
+            { label: "คงเหลือ" },
+            { label: "ทั้งหมด" }
+        ],
+        rows: allocatedData.map(res => {
+            const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
+            const safeTotal = (isNaN(res.totalStock) || res.totalStock === null) ? 0 : res.totalStock;
+            return {
+                c: [
+                    { v: res.wbs },
+                    { v: res.partID },
+                    { v: res.partName },
+                    { v: 0 },
+                    { v: res.pending || 0 },
+                    { v: res.assigned || 0 },
+                    { v: safeRemaining },
+                    { v: safeTotal }
+                ]
+            };
+        })
+    };
+
+    stockMatchTableInstance = TableRenderer.renderStockTable('#tableStockMatch', tableContent, materialTypeMap, "match");
+}
 // ==================== Table Renderer ====================
 const TableRenderer = {
 
@@ -964,9 +1086,10 @@ const TableRenderer = {
 const matchTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
-    "pageLength": 10,
+    "pageLength": 25,
     "responsive": true,
     "autoWidth": false,
+    "order": [[0, "asc"]],
     "buttons": [
         {
             extend: 'excel',
@@ -1010,7 +1133,7 @@ return matchTable;
 const RequirementTable = $el.DataTable({
     "pageLength": 10,
     "responsive": true,
-    "order": [[7, "desc"]], 
+    "order": [[0, "asc"]],
     "buttons": [
         {
             extend: 'excel',
@@ -1087,6 +1210,8 @@ return RequirementTable;
         const textBoldStyle = `class="mb-0 font-bold text-m leading-tight" style="${TABLE_STYLES.textBoldStyle}"`;
 
         let html = '<thead class="table-light"><tr>';
+        // 🔢 เพิ่มหัวตาราง "อันดับ" เข้าไปที่คอลัมน์แรกสุด
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">อันดับ</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สัญญาณไฟ</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">หมายเลขงาน</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">ชื่องาน</th>`;
@@ -1118,39 +1243,65 @@ return RequirementTable;
                 uniqueMap.set(valA, row);
             }
         });
+
+        // ================================================================================================
+        // 🏆 [ขั้นตอนเพิ่มเพื่อการเรียงลำดับ] ดึงข้อมูลมาคำนวณและเก็บลง Array เพื่อเตรียม Sort ตามเกณฑ์ 3 ชั้น
+        // ================================================================================================
+        const sortedWBSList = [];
+        uniqueMap.forEach((row, valA) => {
+            let valX = getCellValue(row.c[23]);
+            let valY = getCellValue(row.c[24]);
+            let rowCount = countMap.get(valA) || 0;
+            let valOpenDate = getCellValue(row.c[26]);
+            let rawBudget = budgetMapping[valA] || 0;
+
+            let result = ScoringService.calculateScoreDetails(
+                valA, valY, valX, rowCount, vvipData, false, valOpenDate, false
+            );
+
+            let totalScore = (finalScores && finalScores.has(valA))
+                ? finalScores.get(valA)
+                : result.totalScore;
+
+            sortedWBSList.push({
+                valA: valA,
+                row: row,
+                rowCount: rowCount,
+                totalScore: totalScore,
+                budget: rawBudget,
+                result: result
+            });
+        });
+
+        // 🎯 จัดเรียงลำดับ 3 ชั้น: 1. คะแนนรวมสูงสุด -> 2. พัสดุน้อยสุด -> 3. มูลค่างานสูงสุด
+        sortedWBSList.sort((a, b) => {
+            if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+            if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
+            return b.budget - a.budget;
+        });
+
         // 🎯 ส่วนที่เพิ่ม 1: ตัวแปรเก็บสถิติส่งหากราฟ
-         const activeRowsDataForChart = [];
-        // สร้างแถว
-        Array.from(uniqueMap.values()).forEach(row => {
-            let valA = getCellValue(row.c[0]).toString().trim();
+        const activeRowsDataForChart = [];
+
+        // ================================================================================================
+        // 🎯 เปลี่ยนมาวิ่งลูปผ่านข้อมูลที่ผ่านการจัดอันดับถูกต้องแล้ว (โค้ดดึงค่าและโครงสร้างตารางด้านในคงเดิม)
+        // ================================================================================================
+        sortedWBSList.forEach((item, index) => {
+            const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
+            const valA = item.valA;
+            const row = item.row;
+            const rowCount = item.rowCount;
+            const totalScore = item.totalScore;
+            const result = item.result;
+
             let valT = getCellValue(row.c[19]);
             let valW = getCellValue(row.c[22]) || "";
             let valX = getCellValue(row.c[23]);
             let valY = getCellValue(row.c[24]);
 
             let peaName = peaNameMapping[valW] || valW || "-";
-            let rowCount = countMap.get(valA) || 0;
-
-            // 🎯 แก้ไขจากจุดเดิม ให้ดึงและส่งค่า OpenDate (วันที่เปิดงาน) เข้าไปด้วย
-            let valOpenDate = getCellValue(row.c[26]); // ดึงวันที่เปิดงานที่ Index 26 มารอก่อน
-
-            let result = ScoringService.calculateScoreDetails(
-                valA,          // valA
-                valY,          // valY
-                valX,          // valX
-                rowCount,      // rowCount
-                vvipData,      // vvipData
-                false,         // isFullyAllocated (รอบแสดงผลตารางเริ่มต้นให้เป็น false)
-                valOpenDate,   // valOpenDate (🎯 ส่งเข้าพารามิเตอร์ตัวที่ 7 เพื่อให้คำนวณ Aging ตรงกับใน Log)
-                false          // isFinalCalc
-            );
-            // 1. ดึงคะแนนดิบที่มีทศนิยม 4 ตำแหน่งมาใช้ (ตัวแปรนี้จะถูก DataTable นำไปใช้จัดเรียงคิวหลังบ้าน)
-            let totalScore = (finalScores && finalScores.has(valA))
-                ? finalScores.get(valA)
-                : result.totalScore;
 
             // 2. 🎯 สำหรับแสดงผลหน้าจอ: ปัดเศษตัวเลขให้เป็นเลขถ้วน ไม่มีทศนิยม
-            // เช่น 7025.1420 จะโชว์เป็น 7025 | 1000.8500 จะโชว์เป็น 1001
             let displayScore = typeof totalScore === 'number' ? Math.round(totalScore).toLocaleString() : totalScore;
             
             let dayDisplay = "-";
@@ -1165,15 +1316,17 @@ return RequirementTable;
 
             const status = wbsStatusMap.get(valA);
             const lightHTML = createStatusCircle(status || 'yellow');
-            const searchToken = status ? `status-${status}` : 'status-yellow'; // จะได้เป็น status-green, status-red ฯลฯ
+            const searchToken = status ? `status-${status}` : 'status-yellow';
             let rawBudget = budgetMapping[valA];
             let budgetDisplay = (rawBudget !== undefined) ? rawBudget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
             let budgetOrderValue = (rawBudget !== undefined) ? rawBudget : 0;
+            
             // 🎯 ส่วนที่เพิ่ม 2: ยัดข้อมูลแถวนี้ลงถังเก็บ
-             activeRowsDataForChart.push({ status: status, qty: rowCount });
+            activeRowsDataForChart.push({ status: status, qty: rowCount });
 
-
+            // พ่น HTML พร้อมทั้งใส่ช่องอันดับ `${rank}` เพิ่มไว้ที่คอลัมน์แรกสุด
             html += `<tr class="clickable-requirement" data-wbs="${valA}" style="cursor: pointer;">
+                <td class="${TABLE_STYLES.cellClass} text-center fw-bold" style="background-color: #f8f9fa;">${rank}</td>
                 <td class="${TABLE_STYLES.cellClass} text-center "><span style="display: none;">${searchToken}</span>${lightHTML}</td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><div class="px-3 py-1"><h6 class="mb-0 text-sm leading-normal" ${headerStyle}>${valA}</h6></div></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><p ${textStyle}>${valT}</p></td>
@@ -1192,49 +1345,59 @@ return RequirementTable;
         return html;
     },
 
-
-
     //=========== ตาราง NoStock พัสดุที่ไม่ได้รับการจัดสรร ===========//
 /**
  * แสดงตารางพัสดุที่ไม่ได้รับการจัดสรร (assigned = 0)
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
- renderNoStockTable(allocatedData, materialTypeMap) {
+renderNoStockTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
     
-    const noStockData = allocatedData.filter(res => res.assigned === 0);
-    if (noStockData.length === 0) return null;
+    // ประเภทพัสดุที่ไม่ต้องการแสดงในตาราง
+    const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+ 
+    const noStockData = allocatedData.filter(res => {
+        if (res.assigned !== 0) return false;
+        const partType = materialTypeMap[res.partID?.toString().trim()] || "";
+        return !EXCLUDED_TYPES.includes(partType);
+    });
 
+    if (noStockData.length === 0) return null;
+ 
     const $el = $('#tableNoStock');
     if ($.fn.DataTable.isDataTable('#tableNoStock')) {
         $el.DataTable().destroy();
         $el.empty();
     }
-
+ 
     const colHeaders = [
-        { title: "หมายเลขงาน" }, 
-        { title: "รหัสพัสดุ" }, 
-        { title: "ชื่อพัสดุ" },
-    
-        { title: "ค้างเบิก" }, 
-        { title: "จำนวนที่ได้" }
+        { title: "หมายเลขงาน" },   // index 0
+        { title: "รหัสพัสดุ" },     // index 1
+        { title: "ชื่อพัสดุ" },     // index 2
+        { title: "ประเภท" },        // index 3 (เพิ่มใหม่ ก่อนค้างเบิก)
+        { title: "ค้างเบิก" },      // index 4
+        { title: "จำนวนที่ได้" }    // index 5
     ];
-
-    const dataSet = noStockData.map(res => [
-        res.wbs || "-",
-         res.partID || "-",
-          res.partName || "-",
-
-         res.pending || 0,
-          res.assigned || 0
-    ]);
-
+ 
+    const dataSet = noStockData.map(res => {
+        const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
+        return [
+            res.wbs     || "-",   // 0
+            res.partID  || "-",   // 1
+            res.partName|| "-",   // 2
+            partType,             // 3 ประเภท
+            res.pending || 0,     // 4
+            res.assigned|| 0      // 5
+        ];
+    });
+ 
 const NoStockTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "pageLength": 10,
     "responsive": true,
+    "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
     
     "buttons": [
         {
@@ -1248,28 +1411,40 @@ const NoStockTable = $el.DataTable({
     "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
           
     "columnDefs": [
-        // 🎯 1. ดักทุบคอลัมน์ 0, 1 บังคับแถวเดียวตรงๆ ไม่สลับบรรทัดเด็ดขาด
-        { 
-            "targets": [0, 1], 
+        // col 0, 1: หมายเลขงาน, รหัสพัสดุ - บังคับแถวเดียว ไม่ตัดบรรทัด
+        {
+            "targets": [0, 1],
             "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
             "createdCell": function (td) {
-                $(td).css({
-                    'white-space': 'nowrap',
-                    'word-break': 'keep-all'
-                });
+                $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
             }
         },
         { "targets": 0, "className": "font-bold text-blue-700" },
-        
-        // 🎯 2. เอาเลข 5 ออก (เหลือแค่ 2, 3, 4 เพื่อแก้ปัญหา Error ทันที)
-        { "targets": [2, 3, 4], "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
+ 
+        // col 2: ชื่อพัสดุ
+        { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
+ 
+        // col 3: ประเภท (เพิ่มใหม่) - badge สีเทาเหมือนตาราง StockMatch
         {
             "targets": 3,
+            "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
+            "render": function(data) {
+                if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                const color = data === "พัสดุหลัก" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600";
+                return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${color}">${data}</span>`;
+            }
+        },
+ 
+        // col 4: ค้างเบิก
+        {
+            "targets": 4,
             "className": "text-red-600 text-base",
             "render": $.fn.dataTable.render.number(',', '.', 0)
         },
+ 
+        // col 5: จำนวนที่ได้
         {
-            "targets": 4,
+            "targets": 5,
             "className": "text-red-600 font-bold text-base",
             "render": $.fn.dataTable.render.number(',', '.', 0)
         }
@@ -1291,15 +1466,127 @@ const NoStockTable = $el.DataTable({
         `).appendTo('head');
     }
 });
-
-
-
+ 
+ 
+ 
 // 🎯 4. [บรรทัดเด็ด] สั่งย้ายปุ่มวาร์ปไปที่กล่อง ID ขวาสุดบนแถวหัวข้อสีเขียวทันที
 NoStockTable.buttons().container().appendTo('#export-NoStock');
-
+ 
 // 🎯 5. รีเทิร์นตัวแปรตารางออกไปใช้งานต่อตามปกติ
 return NoStockTable;
 }, // 👈 เช็กดูว่ามีปีกกาปิดตัวนี้ครบถ้วนไหม
+
+
+
+    //=========== ตาราง Obsolete พัสดุล้าสมัย/เปลี่ยนแปลงรหัส ===========//
+    renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
+        if (!allocatedData || !Array.isArray(allocatedData)) return null;
+
+        const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ"];
+
+        // กรองเฉพาะ assigned === 0 และประเภทที่ต้องการ
+        const obsoleteData = allocatedData.filter(res => {
+            if (res.assigned !== 0) return false;
+            const partType = materialTypeMap[res.partID?.toString().trim()] || "";
+            return OBSOLETE_TYPES.includes(partType);
+        });
+
+        if (obsoleteData.length === 0) return null;
+
+        const $el = $('#tableObsolete');
+        if ($.fn.DataTable.isDataTable('#tableObsolete')) {
+            $el.DataTable().destroy();
+            $el.empty();
+        }
+
+        const colHeaders = [
+            { title: "หมายเลขงาน" },  // 0
+            { title: "รหัสพัสดุ" },    // 1
+            { title: "ชื่อพัสดุ" },    // 2
+            { title: "ประเภท" },       // 3
+            { title: "ค้างเบิก" },     // 4
+            { title: "Note" }          // 5
+        ];
+
+        const dataSet = obsoleteData.map(res => {
+            const partID = res.partID?.toString().trim();
+            const partType = materialTypeMap[partID] || "-";
+            const partNote = materialNoteMap[partID] || "-";
+            return [
+                res.wbs      || "-",  // 0
+                res.partID   || "-",  // 1
+                res.partName || "-",  // 2
+                partType,             // 3
+                res.pending  || 0,    // 4
+                partNote              // 5
+            ];
+        });
+
+        const ObsoleteTable = $el.DataTable({
+            "data": dataSet,
+            "columns": colHeaders,
+            "pageLength": 10,
+            "responsive": true,
+            "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
+            "buttons": [
+                {
+                    extend: 'excel',
+                    text: '<i class="fas fa-file-excel mr-1"></i> Export',
+                    filename: 'R2C_Obsolete_report',
+                    className: 'px-3 py-2 mb-0 text-center text-green-600 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+                }
+            ],
+            "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+            "columnDefs": [
+                // col 0, 1: บังคับแถวเดียว
+                {
+                    "targets": [0, 1],
+                    "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
+                    "createdCell": function(td) {
+                        $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
+                    }
+                },
+                { "targets": 0, "className": "font-bold text-blue-700" },
+
+                // col 2: ชื่อพัสดุ
+                { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
+
+                // col 3: ประเภท - badge สีแดงเสมอ (เพราะเป็นล้าสมัย/เปลี่ยนแปลงรหัสทั้งนั้น)
+                {
+                    "targets": 3,
+                    "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
+                    "render": function(data) {
+                        if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                        return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">${data}</span>`;
+                    }
+                },
+
+                // col 4: ค้างเบิก
+                {
+                    "targets": 4,
+                    "className": "text-red-600 text-base",
+                    "render": $.fn.dataTable.render.number(',', '.', 0)
+                },
+
+                // col 5: Note
+                { "targets": 5, "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm" }
+            ],
+            "headerCallback": function(thead) {
+                $(thead).find('th').addClass('bg-orange-50 text-orange-700 font-bold py-3 px-4 text-left border-b-2 border-orange-200').css('white-space', 'nowrap');
+            },
+            "initComplete": function() {
+                this.api().columns.adjust();
+                const $wrapper = $('#tableObsolete').parent().css({ 'overflow-x': 'auto' });
+                $('<style>').text(`
+                    #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
+                    #${$wrapper.attr('id')} { scrollbar-width: none !important; }
+                `).appendTo('head');
+            }
+        });
+
+        ObsoleteTable.buttons().container().appendTo('#export-Obsolete');
+        return ObsoleteTable;
+    },
 
 
 
@@ -1334,40 +1621,40 @@ const FilterModule = {
 
         $filter.on('change', function () {
             const val = $(this).val();
-            table.column(1).search(val ? '^' + val + '$' : '', true, false).draw();
+            table.column(2).search(val ? '^' + val + '$' : '', true, false).draw();
         });
     },
+setupFilterType_WBS(table, data) {
+    const $filter = $('#FilterType_WBS');
+    $filter.empty().append('<option value="">ทั้งหมด (สถานะงาน)</option>');
 
-    setupFilterType_WBS(table, data) {
-        const $filter = $('#FilterType_WBS');
-        $filter.empty().append('<option value="">ทั้งหมด (สถานะงาน)</option>');
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        let val = getCellValue(row.c[24]);
+        if (val && !list.includes(val)) {
+            list.push(val);
+        }
+    });
 
-        let list = [];
-        data.rows.forEach(row => {
-            if (!row || !row.c) return;
-            let val = getCellValue(row.c[24]);
-            if (val && !list.includes(val)) {
-                list.push(val);
-            }
-        });
+    list.sort().forEach(item => {
+        $filter.append(`<option value="${item}">${item}</option>`);
+    });
 
-        list.sort().forEach(item => {
-            $filter.append(`<option value="${item}">${item}</option>`);
-        });
+    $filter.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: false,
+        placeholder: 'ค้นหาสถานะงาน...',
+        allowClear: true
+    });
 
-        $filter.select2({
-            theme: 'bootstrap-5',
-            width: '100%',
-            closeOnSelect: false,
-            placeholder: 'ค้นหาสถานะงาน...',
-            allowClear: true
-        });
-
-        $filter.on('change', function () {
-            const val = $(this).val();
-            table.column(4).search(val ? '^' + val + '$' : '', true, false).draw();
-        });
-    },
+    $filter.on('change', function () {
+        const val = $(this).val();
+        // 🎯 แก้ไขตรงนี้: ปรับมาใช้คำสั่งค้นหาข้อความปกติ (ไม่ต้องใช้ ^ และ $) ในคอลัมน์ Index 5
+        table.column(5).search(val ? val : '').draw();
+    });
+},
 
     setupFilterPEA_WBS(table, peaNameMapping) {
         const $filter = $('#FilterPEA_WBS');
@@ -1398,7 +1685,7 @@ const FilterModule = {
 
         $filter.on('change', function () {
             const val = $(this).val();
-            table.column(3).search(val ? '^' + val + '$' : '', true, false).draw();
+            table.column(4).search(val ? '^' + val + '$' : '', true, false).draw();
         });
     },
 
@@ -1442,54 +1729,12 @@ setupFilterLight(tableInstance, rawData) {
             const selectedSearchToken = $(this).val() || ''; // ดึงค่าสี (ถ้ากดกากบาทจะได้ความว่างเปล่า)
 
             // ค้นหาเฉพาะในคอลัมน์ที่ 0 (คอลัมน์สัญญาณไฟ)
-            tableInstance.column(0).search(selectedSearchToken, false, false).draw();
+            tableInstance.column(1).search(selectedSearchToken, false, false).draw();
         });
     }
 };
 
-// ==================== Event Handlers ====================
-function renderInitialStockMatch(allocatedData, materialTypeMap) {
-    if (!allocatedData || !Array.isArray(allocatedData)) {
-        console.warn("⚠️ No allocated data provided");
-        return;
-    }
 
-    // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
-    const filteredAllocatedData = allocatedData.filter(res => {
-        const assignedValue = parseFloat(res.assigned) || 0;
-        return assignedValue > 0;
-    });
-    const tableContent = {
-        cols: [
-            { label: "หมายเลขงาน" },
-            { label: "รหัสพัสดุ" },
-            { label: "ชื่อพัสดุ" },
-            { label: "ประเภท" },
-            { label: "ค้างเบิก" },
-            { label: "จำนวนที่ได้" },
-            { label: "คงเหลือ" },
-            { label: "ทั้งหมด" }
-        ],
-        rows: allocatedData.map(res => {
-            const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
-            const safeTotal = (isNaN(res.totalStock) || res.totalStock === null) ? 0 : res.totalStock;
-            return {
-                c: [
-                    { v: res.wbs },
-                    { v: res.partID },
-                    { v: res.partName },
-                    { v: 0 },
-                    { v: res.pending || 0 },
-                    { v: res.assigned || 0 },
-                    { v: safeRemaining },
-                    { v: safeTotal }
-                ]
-            };
-        })
-    };
-
-    stockMatchTableInstance = TableRenderer.renderStockTable('#tableStockMatch', tableContent, materialTypeMap, "match");
-}
 
 
 
@@ -1516,6 +1761,10 @@ function setupRowClickEvent() {
         if (noStockTableInstance) {
             noStockTableInstance.column(0).search('^' + selectedWBS + '$', true, false).draw();
         }
+
+        if (obsoleteTableInstance) {
+            obsoleteTableInstance.column(0).search('^' + selectedWBS + '$', true, false).draw();
+        }
     });
 }
 
@@ -1525,6 +1774,7 @@ function setupGlobalEvents() {
         if (stockMatchTableInstance) stockMatchTableInstance.search('').columns().search('').draw();
         // 🎯 3. ล้างค่าการค้นหาของตารางพัสดุไม่มีของเมื่อกดปุ่ม Reset
         if (noStockTableInstance) noStockTableInstance.search('').columns().search('').draw();
+        if (obsoleteTableInstance) obsoleteTableInstance.search('').columns().search('').draw();
         if (mb52Table) mb52Table.search('').draw();
         $('#tableRequirement_Data tbody tr').removeClass('table-primary selected-row');
         $('.filter-select').val('');
@@ -1586,19 +1836,24 @@ async function initDashboard() {
         const masterKey = Object.keys(dataMap).find(key => key.toLowerCase().includes('material_master'));
         const masterData = dataMap[masterKey];
 
+        let materialNoteMap = {};
         if (masterData && masterData.rows) {
             const idIdx = masterData.cols.findIndex(c => c.label.includes("รหัสพัสดุ") || c.label.includes("Part"));
-            const typeIdx = masterData.cols.findIndex(c => c.label.includes("ประเภทพัสดุ") || c.label.includes("Type"));
+            const typeIdx = masterData.cols.findIndex(c => c.label.includes("ประเภทพัสดุ") );
+            const noteIdx = masterData.cols.findIndex(c => c.label === "Not");
 
             const finalIdIdx = idIdx !== -1 ? idIdx : 0;
             const finalTypeIdx = typeIdx !== -1 ? typeIdx : 2;
+            const finalNoteIdx = noteIdx !== -1 ? noteIdx : 7;
 
             masterData.rows.forEach(row => {
                 const partID = getCellValue(row.c[finalIdIdx])?.toString().trim();
                 const matType = getCellValue(row.c[finalTypeIdx])?.toString().trim();
+                const matNote = getCellValue(row.c[finalNoteIdx])?.toString().trim();
 
                 if (partID) {
                     materialTypeMap[partID] = matType;
+                    materialNoteMap[partID] = matNote || "";
                 }
             });
         }
@@ -1638,6 +1893,7 @@ async function initDashboard() {
                 renderInitialStockMatch(alloc.allocatedResults, materialTypeMap);
                                 // หลังจาก renderInitialStockMatch เพิ่มบรรทัด
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
+                obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
                 FilterModule.setupFilterID_WBS(parcelTable, data);
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);

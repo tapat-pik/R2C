@@ -22,6 +22,7 @@ let peaNameMapping = {};
 let totalStockSummary = {};
 // ประกาศเพิ่มคู่กับพวก parcelTable, stockMatchTableInstance
 let noStockTableInstance = null;
+let obsoleteTableInstance = null;
 let myPieChart = null;
 // ==================== Constants ====================
 const TABLE_STYLES = {
@@ -52,6 +53,12 @@ const STATUS_COLORS = {
         gradient: 'linear-gradient(310deg, #f7d02c 0%, #fde08d 100%)',
         shadow: 'rgba(247, 208, 44, 0.3)',
         title: 'ได้ของบางส่วน'
+    },
+    // 🔒 เพิ่มเฉดสีและสไตล์สำหรับสถานะกุญแจล็อค (ใช้โทนเทา-เข้มหรูๆ สไตล์กุญแจเมทัลลิก)
+    lock: {
+        gradient: 'linear-gradient(310deg, #343a40 0%, #6c757d 100%)',
+        shadow: 'rgba(52, 58, 64, 0.3)',
+        title: 'ล็อค (พัสดุล้าสมัย/เปลี่ยนรหัส)'
     }
 };
 
@@ -69,6 +76,20 @@ function getCellValue(cell) {
  */
 function createStatusCircle(status) {
     const color = STATUS_COLORS[status] || STATUS_COLORS.yellow;
+    
+    // 🔒 ถ้าสถานะเป็น lock ให้แสดงผลเป็นไอคอนกุญแจแทนวงกลม
+    if (status === "lock") {
+        return `
+            <span class="ml-2 mr-1" style="
+                display: inline-block;
+                font-size: 20px;
+                vertical-align: middle;
+                line-height: 1;
+            " title="${color.title}">🔒</span>
+        `;
+    }
+
+    // 🟢 🔵 🟡 🔴 ถ้าเป็นสถานะอื่น วาดวงกลมตามเดิม
     return `
         <span class="ml-2 mr-1" style="
             display: inline-block;
@@ -77,10 +98,10 @@ function createStatusCircle(status) {
             background: ${color.gradient};
             border-radius: 50%;
             box-shadow: 0 3px 5px ${color.shadow};
+            vertical-align: middle;
         " title="${color.title}"></span>
     `;
 }
-
 // ==================== Data Service ====================
 const DataService = {
     
@@ -309,10 +330,90 @@ function renderUpcomingTable(data) {
             
             // คอลัมน์ 1 (ข้อความสั้น)
             { "targets": 1, "className": "font-medium" },
-
+            // 🎯 คอลัมน์ 2 (กลุ่มการจัดซื้อ) - แยกประเภทตามข้อความแล้วใส่ไอคอนข้างหน้า
+// 🎯 คอลัมน์ 2 (กลุ่มการจัดซื้อ) - เปลี่ยนไอคอน "ขอโอน" เป็นลูกศรโค้งครึ่งวงกลม
+// 🎯 คอลัมน์ 2 (กลุ่มการจัดซื้อ) - ใส่ !important ล็อกสีพื้นหลังและสีตัวหนังสือ ไม่ให้ CSS อื่นมากลบ
+{ 
+    "targets": 2, 
+    "className": "py-3 px-3 border-b border-gray-100 text-center align-middle font-medium",
+    "render": function(data) {
+        if (!data || data === "-") return "-";
+        
+        const text = data.toString().trim();
+        
+        // 1. ตระกูล กฟส. / กฟจ. -> เถิบขอบข้างออกเป็น px-4 และระยะไอคอน me-2
+        if (text.includes("กฟส.") || text.includes("กฟจ.")) {
+            return `<span class="inline-flex items-center px-4 py-2 " 
+                          style="font-size: 13px !important; border-radius: 50px !important; background-color: #d1fae5 !important; color: #047857 !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                        <i class="fas fa-shopping-cart me-2" style="color: #047857 !important;"></i>${data}
+                    </span>`;
+        }
+        
+        // 2. กจล. -> เถิบขอบข้างออกเป็น px-4 และระยะไอคอน me-2
+        if (text.includes("กจล.")) {
+            return `<span class="inline-flex items-center px-4 py-2 " 
+                          style="font-size: 13px !important; border-radius: 50px !important; background-color: #dbeafe !important; color: #1d4ed8 !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                        <i class="fas fa-truck me-2" style="color: #1d4ed8 !important;"></i>${data}
+                    </span>`;
+        }
+        
+        // 3. ขอโอน -> เถิบขอบข้างออกเป็น px-4 และระยะไอคอน me-2
+        if (text.includes("ขอโอน")) {
+            return `<span class="inline-flex items-center px-4 py-2 " 
+                          style="font-size: 13px !important; border-radius: 50px !important; background-color: #ffedd5 !important; color: #c2410c !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                        <i class="fas fa-sync-alt me-2" style="color: #c2410c !important;"></i>${data}
+                    </span>`;
+        }
+        
+        return `<span style="font-size: inherit !important;">${data}</span>`;
+    }
+},
             // คอลัมน์ 3 (เอกสารการจัดซื้อ)
             { "targets": 3, "className": "font-bold font-mono text-sm" },
-            
+            // 🎯 คอลัมน์ 4 (วันที่เอกสาร) - แกะฟอร์แมต Date(Y,M,D) มาแปลงเป็น วัน เดือน ปี พร้อมใส่ไอคอนปฏิทิน
+{
+    "targets": 4,
+    "className": "py-3 px-3 border-b border-gray-100 font-normal align-middle whitespace-nowrap text-slate-600",
+    "render": function(data) {
+        if (!data || data === "-") return "-";
+
+        let dateStr = data.toString().trim();
+        
+        // 🔎 ตรวจสอบว่าถ้าเจอข้อความรูปแบบ Date(2026,1,4) หรือใกล้เคียง
+        if (dateStr.includes("Date(") || dateStr.startsWith("Date")) {
+            // ดึงเฉพาะตัวเลขข้างในวงเล็บออกมา เช่น "2026,1,4"
+            const matches = dateStr.match(/\(([^)]+)\)/);
+            if (matches && matches[1]) {
+                const parts = matches[1].split(',');
+                if (parts.length >= 3) {
+                    const year = parseInt(parts[0].trim());
+                    // ⚠️ สำคัญมาก: เดือนของ JavaScript ในคำสั่งแบบนี้มักเริ่มจาก 0 (0 = ม.ค., 1 = ก.พ.) 
+                    // แต่ถ้าในข้อมูลดิบพี่ตั้งใจให้ 1 = ม.ค. เลย ให้ใช้ตามเดิม
+                    const monthNum = parseInt(parts[1].trim()); 
+                    const day = parseInt(parts[2].trim());
+
+                    // รายชื่อเดือนภาษาไทยย่อ
+                    const monthsTh = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+                    
+                    // ปรับค่า Index ของเดือน (สมมติระบบเป็นแบบ 0-11: เดือน 1 คือ ก.พ.)
+                    // แต่ถ้าในรูป "Date(2026,1,4)" แปลว่าวันที่ 1 เม.ย. ตามตารางบน แสดงว่า Index คลาดเคลื่อน
+                    // จากรูปตารางบนโชว์ "1 เม.ย. 2026" แต่ Raw Data คือ Date(2026,1,4) 
+                    // เพื่อความแม่นยำดึงชื่อเดือนตรงๆ: ถ้า 1 แปลว่า เม.ย. เราจะดึงตามสัดส่วน หรือถ้าเทียบตามตารางบน พี่สามารถแมปคำได้เลยครับ
+                    
+                    // สรุปเพื่อให้ตรงตามตารางด้านบนเป๊ะๆ (แปลงปีเป็น พ.ศ. หรือใช้ ค.ศ. ตามแบรนดิ้ง)
+                    // ในที่นี้สมมติแปลงเป็น ค.ศ. ตามรูปบน: "1 เม.ย. 2026"
+                    let displayMonth = monthsTh[monthNum] || "เม.ย."; // ค่า Default กันเหนียวถ้าหลุดสเปก
+                    
+                    // ถ้าแกะสำเร็จ จัดรูปแบบกลับไป: "วัน เดือน ปี"
+                    dateStr = `${day} ${displayMonth} ${year}`;
+                }
+            }
+        }
+
+        // 🌟 พ่นผลลัพธ์พร้อมยัดไอคอนปฏิทินสีเทาเข้มขอบสวยหน้าข้อความเด็ดๆ
+        return `<span style="font-size: inherit !important;"><i class="far fa-calendar-alt text-slate-500 me-2"></i>${dateStr}</span>`;
+    }
+},
             // คอลัมน์ 5 (องค์ประกอบ WBS) - แก้ไขจุดเสี่ยงใช้ == null แทน !
             { 
                 "targets": 5, 
@@ -337,12 +438,18 @@ function renderUpcomingTable(data) {
             { "targets": 8, "className": "text-center font-medium text-xs" }
         ],
         // บังคับสีข้อความหัวคอลัมน์เป็น #344767 ตัวหนาจัดปั้ก
-        "headerCallback": function (thead) {
-            $(thead).find('th')
-                .removeClass() 
-                .addClass('bg-slate-50/80 font-extrabold text-sm py-3 px-3 text-left border-b border-gray-200 uppercase tracking-wider whitespace-nowrap')
-                .css('color', '#344767');
-        }
+     "headerCallback": function (thead) {
+    $(thead).find('th')
+        .removeClass() 
+        .addClass('bg-slate-50/80 font-extrabold text-sm py-3 px-3 border-b border-gray-200 uppercase tracking-wider whitespace-nowrap')
+        .css('color', '#344767');
+
+    // 🌟 ดักดึงเฉพาะคอลัมน์ที่ 2 (กลุ่มการจัดซื้อ) ให้ข้อความหัวข้ออยู่ตรงกลางเป๊ะๆ
+    $(thead).find('th').eq(2).removeClass('text-left').addClass('text-center');
+    
+    // (แถม) ถ้าตารางมีคอลัมน์หน่วยที่สั่ง (Index 8) ที่ข้อมูลอยู่ตรงกลางเหมือนกัน ก็จัดหัวข้อให้กลางด้วยครับพี่
+    $(thead).find('th').eq(8).removeClass('text-left').addClass('text-center');
+}
     });
 }
 
@@ -491,7 +598,9 @@ const AllocationService = {
         );
         const uniqueWBS = Array.from(uniqueWBSSet);
 
+        // ================================================================================================
         // STEP 1: เตรียมคิวงานรอบแรก (ใช้คะแนนตั้งต้นก่อนแจกของเพื่อจัดลำดับความสำคัญ)
+        // ================================================================================================
         const queue = rawDatabase.rows.map(row => {
             const wbs = getCellValue(row.c[0]).toString().trim();
             const rowsOfWbs = rawDatabase.rows.filter(
@@ -503,7 +612,7 @@ const AllocationService = {
 
             const info = ScoringService.calculateScoreDetails(
                 wbs, getCellValue(row.c[24]), getCellValue(row.c[23]),
-                rowsOfWbs.length, vvipData, false, openDateValue, false // ยังไม่เปิด Log
+                rowsOfWbs.length, vvipData, false, openDateValue, false
             );
 
             return {
@@ -530,7 +639,9 @@ const AllocationService = {
             return b.budget - a.budget;
         });
 
+        // ================================================================================================
         // STEP 2: ดำเนินการจัดสรรพัสดุตามคิวจริง
+        // ================================================================================================
         let allocatedResults = queue.map(item => {
             const available = currentStock[item.partID] || 0;
             const assigned = Math.min(available, item.pending);
@@ -547,37 +658,92 @@ const AllocationService = {
             };
         });
 
+        // ================================================================================================
         // STEP 3: สรุปผลลัพธ์และบันทึกข้อมูลเพื่อเตรียมจัดอันดับสุดท้าย
+        // ================================================================================================
         const finalRankPrepList = [];
 
         uniqueWBS.forEach(wbs => {
             const items = allocatedResults.filter(r => r.wbs === wbs);
-            const isGreen = items.length > 0 && items.every(i => i.pending > 0 && i.assigned >= i.pending);
-            const isRed = items.length > 0 && items.every(i => i.assigned === 0);
-
-            const mainItems = items.filter(i => {
+            
+            // 1. แยกกลุ่มตรวจสอบพัสดุตามประเภทก่อนคิดไฟจราจร
+            let hasLockedMaterial = false;
+            
+            // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
+            const normalItems = items.filter(i => {
                 const currentID = i.partID?.toString().trim();
                 const type = materialTypeMap[currentID];
-                return type === "พัสดุหลัก";
+                
+                if (type === "พัสดุล้าสมัย" || type === "เปลี่ยนรหัสพัสดุ") {
+                    hasLockedMaterial = true;
+                }
+                return type !== "พัสดุล้าสมัย" && type !== "เปลี่ยนรหัสพัสดุ";
             });
-            const isBlue = mainItems.length > 0 && mainItems.every(i => i.assigned >= i.pending);
+
+            let status = "yellow"; // ค่าเริ่มต้นกรณีไม่เข้าเงื่อนไขอื่น (ไฟเหลือง)
+            let isGreen = false;
+
+            // 🔒 ชั้นที่ 1: ตรวจสอบเงื่อนไขล็อกขั้นสูงสุด (ถ้าเจอล้าสมัย/เปลี่ยนรหัส ต้องเป็นกุญแจเท่านั้น)
+            if (hasLockedMaterial) {
+                status = "lock";
+            } else if (normalItems.length > 0) {
+                // 🔵 🟢 🔴 🟡 ชั้นที่ 2: งานปกติที่ไม่มีพัสดุล้าสมัย/เปลี่ยนรหัสพัสดุ
+
+                // กรองเฉพาะกลุ่มพัสดุหลัก
+                const mainItems = normalItems.filter(i => {
+                    const currentID = i.partID?.toString().trim();
+                    const type = materialTypeMap[currentID];
+                    return type === "พัสดุหลัก";
+                });
+                
+                // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
+                const isMainCompleted = mainItems.length > 0 && mainItems.every(i => i.assigned >= i.pending);
+
+                // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
+                const isAllCompleted = normalItems.every(i => {
+                    const currentID = i.partID?.toString().trim();
+                    const type = materialTypeMap[currentID];
+                    if (type === "พัสดุไม่เบิกจากคลัง") {
+                        return true; 
+                    }
+                    return i.pending > 0 && i.assigned >= i.pending;
+                });
+
+                // 🔴 เช็คเงื่อนไขไฟสีแดง: ทุกรายการปกติได้ของรวมเป็น 0
+                const isRed = normalItems.every(i => i.assigned === 0);
+
+                // 🎯 ตัดสินสัญญาณไฟตามเกณฑ์ความสำคัญของพัสดุ
+                if (isMainCompleted) {
+                    status = "blue"; // พัสดุหลักครบ ยืนพื้นด้วยไฟน้ำเงินก่อน
+                    
+                    // 🟢 แต่ถ้าตรวจสอบแล้ว พัสดุประเภทอื่นๆ ครบหมดด้วย (หรือไม่มีประเภทอื่นอยู่เลย) ให้ปรับเป็นไฟเขียว
+                    if (isAllCompleted) {
+                        status = "green";
+                        isGreen = true; // เปิด Flag ไปรับโบนัส +2000 แต้ม
+                    }
+                } else if (isAllCompleted) {
+                    // เคสยกเว้น: งานนั้นไม่มีพัสดุหลักเลย แต่รายการประเภทอื่นๆ ที่มี ดันได้ครบทั้งหมด
+                    status = "green";
+                    isGreen = true;
+                } else if (isRed) {
+                    status = "red";
+                } else {
+                    status = "yellow"; // พัสดุหลักไม่ครบ และยอดไม่เป็น 0 ทั้งหมด (ได้ของบางส่วน)
+                }
+            }
 
             const firstItem = items[0];
             if (firstItem) {
                 // คำนวณคะแนนสุทธิสุดท้ายหลังแจกของ (ใส่ค่า isGreen เพื่อลุ้นโบนัส +2000)
                 const final = ScoringService.calculateScoreDetails(
                     firstItem.raw.valA, firstItem.raw.valY, firstItem.raw.valX,
-                    firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false // ยังไม่เปิด Log ตรงนี้
+                    firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false
                 );
 
                 finalWbsScores.set(wbs, final.totalScore);
-
-                let status = "yellow";
-                if (isGreen) status = "green";
-                else if (isBlue) status = "blue";
-                else if (isRed) status = "red";
-                
                 wbsStatusMap.set(wbs, status);
+                
+                // อัปเดตคะแนนกลับไปที่รายการพัสดุ
                 items.forEach(it => it.score = final.totalScore);
 
                 // เก็บลงอาร์เรย์ชั่วคราวเพื่อนำไปเรียงลำดับพิมพ์ออกรายงาน
@@ -593,20 +759,12 @@ const AllocationService = {
             }
         });
 
-       // ================================================================================================
+        // ================================================================================================
         // 🏆 🧾 [FINAL RANKING REPORT] พ่นตัวเลขคะแนนสุทธิเรียงตามอันดับ 1 ถึงสุดท้าย
         // ================================================================================================
-        // 🎯 ตรรกะการจัดเรียงลำดับ 3 ชั้น (เบื้องหลังยังใช้คะแนนดิบ 4 ตำแหน่งเพื่อความแม่นยำ)
         finalRankPrepList.sort((a, b) => {
-            // 🥇 ชั้นที่ 1: คะแนนรวมสูงสุดมาก่อน
-            if (b.finalScore !== a.finalScore) {
-                return b.finalScore - a.finalScore;
-            }
-            // 🥈 ชั้นที่ 2: ถ้าคะแนนเท่ากันเป๊ะ ➔ เอาจำนวนรายการพัสดุน้อยที่สุดขึ้นก่อน
-            if (a.rowCount !== b.rowCount) {
-                return a.rowCount - b.rowCount;
-            }
-            // 🥉 ชั้นที่ 3: ถ้าคะแนนเท่ากัน และพัสดุเท่ากันอีก ➔ เอามูลค่างาน (Budget) มากที่สุดขึ้นก่อน
+            if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+            if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
             return b.budget - a.budget;
         });
 
@@ -617,10 +775,13 @@ const AllocationService = {
 
         finalRankPrepList.forEach((item, index) => {
             const rank = index + 1;
-            const statusLabel = item.status === "green" ? "🟢 FULLY" : (item.status === "blue" ? "🔵 MAIN" : (item.status === "yellow" ? "🟡 PARTIAL" : "🔴 NONE"));
+            const statusLabel = item.status === "lock" ? "🔒 LOCKED " : 
+                                item.status === "green" ? "🟢 FULLY  " : 
+                                (item.status === "blue" ? "🔵 MAIN   " : 
+                                (item.status === "yellow" ? "🟡 PARTIAL" : "🔴 NONE   "));
+                                
             const budgetStr = item.budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
-            // แสดงผลคะแนนดิบ 4 ตำแหน่งใน Log เพื่อให้ผู้ใช้งานเห็นเหตุผลการตัดอันดับเวลาเกิด Case ที่คะแนนหรือพัสดุเท่ากัน
             console.log(
                 `อันดับที่ ${rank.toString().padEnd(2)} | ` +
                 `WBS: ${item.wbs.padEnd(15)} | ` +
@@ -630,7 +791,7 @@ const AllocationService = {
                 `มูลค่างาน: ${budgetStr.padStart(14)} บาท`
             );
 
-            // ส่งไปดึงรายละเอียด Breakdown ใต้บรรทัดตัวเอง
+            // แสดงรายละเอียด Breakdown รายบรรทัด
             ScoringService.calculateScoreDetails(
                 item.raw.valA, item.raw.valY, item.raw.valX,
                 item.rowCount, vvipData, item.isFullyAllocated, item.raw.valOpenDate, true
@@ -649,129 +810,199 @@ const AllocationService = {
     },
 
 
-// 🎯 1. ฟังก์ชันหลัก: สแกนตารางรอบเดียวจบ แล้วกระจายงานให้กราฟแต่ละตัว
-  updateDashboardCharts: function(tableSelector) {
-    if (!$.fn.DataTable.isDataTable(tableSelector)) return;
-    
-    const tableApi = $(tableSelector).DataTable();
-    const allRowsData = [];
-
-    // วนลูปสแกนตารางรอบเดียว เพื่อเก็บ "ข้อมูลดิบที่จำเป็น" ออกมาทั้งหมด
-    tableApi.rows({ search: 'applied' }).nodes().to$().each(function() {
-        const $row = $(this);
+updateDashboardCharts: function(tableSelector) {
+        // ตรวจสอบความปลอดภัย: หาก Element นั้นไม่ได้เป็นตาราง DataTables ให้เด้งออกทันที
+        if (!$.fn.DataTable.isDataTable(tableSelector)) return;
         
-        // 🎯 จุดที่ 1: เดิมเล็ง td:first-child (ช่องอันดับอันใหม่) ขยับมาดึงสัญญาณไฟที่ช่องที่สองแทน (Index 1)
-        const tokenSpan = $row.find('td:eq(1) span').text();
-        const currentStatus = tokenSpan.replace('status-', '').toLowerCase().trim();
-        
-        // 🎯 จุดที่ 2: เดิมเล็งการไฟฟ้าที่ช่อง 4 (eq(3)) โดนเบียดขยับไปอยู่ช่องที่ 5 (eq(4))
-        const peaName = $row.find('td:eq(4)').text().trim() || "ไม่ระบุการไฟฟ้า";
-        
-        // 🎯 จุดที่ 3: เดิมเล็งมูลค่างานที่ช่อง 6 (eq(5)) โดนเบียดขยับไปอยู่ช่องที่ 7 (eq(6))
-        const rawMoney = parseFloat($row.find('td:eq(6)').attr('data-order')) || 0;
+        const tableApi = $(tableSelector).DataTable();
+        const allRowsData = [];
 
-        allRowsData.push({ status: currentStatus, pea: peaName, money: rawMoney });
-    });
+        // วนลูปสแกนข้อมูลแถวในตารางรอบเดียว (เอาเฉพาะหน้าจอที่กำลังแสดงผล 'applied')
+        tableApi.rows({ search: 'applied' }).nodes().to$().each(function() {
+            const $row = $(this);
+            
+            // 📌 ดึงสถานะไฟสัญญาณจากคอลัมน์ที่ 2 (Index 1) และแปลงตัวอักษรให้เป็นพิมพ์เล็กทั้งหมด
+            const tokenSpan = $row.find('td:eq(1) span').text();
+            const currentStatus = tokenSpan.replace('status-', '').toLowerCase().trim();
+            
+            // 📌 ดึงชื่อการไฟฟ้าจากคอลัมน์ที่ 5 (Index 4) หากไม่มีให้ใส่ค่าตั้งต้น
+            const peaName = $row.find('td:eq(4)').text().trim() || "ไม่ระบุการไฟฟ้า";
+            
+            // 📌 ดึงมูลค่างานดิบจากคอลัมน์ที่ 7 (Index 6) โดยอิงตาม data-order เพื่อความแม่นยำทางคณิตศาสตร์
+            const rawMoney = parseFloat($row.find('td:eq(6)').attr('data-order')) || 0;
 
-    // 🚀 ส่งข้อมูลก้อนเดียวกันนี้ แยกไปให้ฟังก์ชันย่อยของกราฟแต่ละตัวจัดการต่อ
-    this.updatePieChart(allRowsData);
-    this.updateBarChart(allRowsData);
-},
+            // ยัดอ็อบเจกต์ที่สกัดเสร็จแล้วลงสู่อาเรย์หลัก
+            allRowsData.push({ status: currentStatus, pea: peaName, money: rawMoney });
+        });
+// ====================================================================
+    // 🔥 [จุดที่ต้องแปะเพิ่ม] ปล่อยพลัง Console Check ส่องข้อมูลก่อนวิ่งเข้ากราฟ
+    // ====================================================================
+    console.log("=== 📊 ตรวจสอบข้อมูลดิบที่กวาดได้จากตาราง ===");
+    console.log("จำนวนแถวทั้งหมดที่กวาดเจอ:", allRowsData.length);
+    console.log("รายการสถานะทั้งหมดในตาราง ณ ตอนนี้:", allRowsData.map(d => d.status));
+    console.log("มีคำว่า lock ปรากฏในระบบบ้างไหม?:", allRowsData.some(d => d.status === 'lock'));
+    console.log("=================================================");
+        // 🚀 ส่งกองทัพข้อมูลก้อนเดียวกันนี้ แยกไปให้ฟังก์ชันย่อยของกราฟแต่ละตัวทำงานต่อ
+        this.updatePieChart(allRowsData);
+        this.updateBarChart(allRowsData);
+    },
 
-// 🍕 2. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟวงกลม (คงเดิม)
-updatePieChart: function(cleanData) {
-    let countGreen = 0; let countBlueYellow = 0; let countRed = 0;
-    let sumGreenMoney = 0; let sumBlueYellowMoney = 0; let sumRedMoney = 0;
+    /**
+     * ==================================================================================
+     * 🍕 [หัวข้อ 1.2] ฟังก์ชันย่อย: คำนวณสะสมและพ่นข้อมูลใส่กราฟวงกลม (Pie/Doughnut Chart)
+     * ==================================================================================
+     * ทำหน้าที่แยกนับจำนวนงาน (Count) และรวมเม็ดเงิน (Money) ของแต่ละสถานะแยกขาดจากกันเป็น 5 สาย
+     */
+    updatePieChart: function(cleanData) {
+        // ประกาศตัวแปรนับจำนวนงานแยก 5 สถานะ
+        let countGreen = 0; let countBlue = 0; let countYellow = 0; let countRed = 0; let countLock = 0;
+        // ประกาศตัวแปรรวมมูลค่าเงินสะสมแยก 5 สถานะ
+        let sumGreenMoney = 0; let sumBlueMoney = 0; let sumYellowMoney = 0; let sumRedMoney = 0; let sumLockMoney = 0;
 
-    cleanData.forEach(item => {
-        if (item.status === 'green' || item.status === 'match') { 
-            countGreen += 1; sumGreenMoney += item.money;
-        } else if (item.status === 'blue' || item.status === 'yellow') { 
-            countBlueYellow += 1; sumBlueYellowMoney += item.money;
-        } else if (item.status === 'red' || item.status === 'shortage') { 
-            countRed += 1; sumRedMoney += item.money;
-        }
-    });
-
-    if (GraphRender.myPieChart) {
-        GraphRender.myPieChart.data.datasets[0].data = [countGreen, countBlueYellow, countRed];
-        GraphRender.myPieChart.data.datasets[0].customMoney = [sumGreenMoney, sumBlueYellowMoney, sumRedMoney];
-        GraphRender.myPieChart.update();
-    }
-},
-
-// 📊 3. ฟังก์ชันย่อย: คำนวณและพ่นข้อมูลใส่กราฟแท่ง (คงเดิม)
-updateBarChart: function(cleanData) {
-    let peaGroup = {};
-
-    cleanData.forEach(item => {
-        if (!peaGroup[item.pea]) {
-            peaGroup[item.pea] = {
-                greenCount: 0, greenMoney: 0,
-                yellowCount: 0, yellowMoney: 0,
-                redCount: 0, redMoney: 0,
-                totalCount: 0 
-            };
-        }
-
-        peaGroup[item.pea].totalCount += 1;
-
-        if (item.status === 'green' || item.status === 'match') { 
-            peaGroup[item.pea].greenCount += 1; peaGroup[item.pea].greenMoney += item.money;
-        } else if (item.status === 'blue' || item.status === 'yellow') { 
-            peaGroup[item.pea].yellowCount += 1; peaGroup[item.pea].yellowMoney += item.money;
-        } else if (item.status === 'red' || item.status === 'shortage') { 
-            peaGroup[item.pea].redCount += 1; peaGroup[item.pea].redMoney += item.money;
-        }
-    });
-
-    if (GraphRender.myBarChart) {
-        const peaLabels = Object.keys(peaGroup).sort();
-        let barDataGreen = []; let barMoneyGreen = [];
-        let barDataYellow = []; let barMoneyYellow = [];
-        let barDataRed = []; let barMoneyRed = [];
-        let barTotalCounts = []; 
-
-        peaLabels.forEach(name => {
-            barDataGreen.push(peaGroup[name].greenCount); barMoneyGreen.push(peaGroup[name].greenMoney);
-            barDataYellow.push(peaGroup[name].yellowCount); barMoneyYellow.push(peaGroup[name].yellowMoney);
-            barDataRed.push(peaGroup[name].redCount); barMoneyRed.push(peaGroup[name].redMoney);
-            barTotalCounts.push(peaGroup[name].totalCount); 
+        // วนลูปเช็คสถานะพัสดุรายชิ้นเพื่อสะสมค่าตัวเลข
+        cleanData.forEach(item => {
+            if (item.status === 'green' || item.status === 'match') { 
+                countGreen += 1; sumGreenMoney += item.money;       // 🟢 กลุ่มของครบ
+            } else if (item.status === 'blue') { 
+                countBlue += 1; sumBlueMoney += item.money;         // 🔵 กลุ่มพัสดุหลักครบ
+            } else if (item.status === 'yellow') { 
+                countYellow += 1; sumYellowMoney += item.money;     // 🟡 กลุ่มได้ของบางส่วน
+            } else if (item.status === 'red' || item.status === 'shortage') { 
+                countRed += 1; sumRedMoney += item.money;           // 🔴 กลุ่มไม่ได้ของเลย
+            } else if (item.status === 'lock'|| item.status.includes('lock')) {
+                countLock += 1; sumLockMoney += item.money;         // 🔒 กลุ่มงานโดนล็อก (ล้าสมัย/เปลี่ยนรหัส)
+            }
         });
 
-        GraphRender.myBarChart.data.labels = peaLabels;
-        GraphRender.myBarChart.data.customTotalCounts = barTotalCounts;
+        // หากตัวอินสแตนซ์ของกราฟวงกลมพร้อมใช้งาน ให้ทำการอัปเดตข้อมูลพิกัดภายในทันที
+        if (GraphRender.myPieChart) {
+            // อัปเดตอาเรย์จำนวนงาน เรียงลำดับตาม Index ของป้ายชื่อ (Labels) ที่ตั้งไว้
+            GraphRender.myPieChart.data.datasets[0].data = [countGreen, countBlue, countYellow, countRed, countLock];
+            // อัปเดตอาเรย์เงินสะสมเพื่อซ่อนไว้ดึงใช้งานตอนเมาส์ชี้ (Tooltip)
+            GraphRender.myPieChart.data.datasets[0].customMoney = [sumGreenMoney, sumBlueMoney, sumYellowMoney, sumRedMoney, sumLockMoney];
+            
+            // สั่งให้กราฟวาดและเรนเดอร์ตัวเองใหม่แบบอนิเมชันเสี้ยววินาที
+            GraphRender.myPieChart.update();
+        }
+    },
 
-        GraphRender.myBarChart.data.datasets[0].data = barDataGreen;
-        GraphRender.myBarChart.data.datasets[0].customMoney = barMoneyGreen;
-        GraphRender.myBarChart.data.datasets[1].data = barDataYellow;
-        GraphRender.myBarChart.data.datasets[1].customMoney = barMoneyYellow;
-        GraphRender.myBarChart.data.datasets[2].data = barDataRed;
-        GraphRender.myBarChart.data.datasets[2].customMoney = barMoneyRed;
-        GraphRender.myBarChart.update();
+    /**
+     * ==================================================================================
+     * 📊 [หัวข้อ 1.3] ฟังก์ชันย่อย: คำนวณสะสมและพ่นข้อมูลใส่กราฟแท่ง (Bar Chart)
+     * ==================================================================================
+     * ทำหน้าที่จัดกลุ่มงานแยกตาม "รายชื่อการไฟฟ้า" ก่อน แล้วจึงแตกแขนงจำนวนชิ้นและเงินทุนในแต่ละสังกัด
+     */
+    updateBarChart: function(cleanData) {
+        let peaGroup = {};
+
+        // 📦 ขั้นตอนที่ 1: วนลูปจัดระเบียบข้อมูลดิบให้ไปกองอยู่ภายใต้ Key ของแต่ละการไฟฟ้า
+        cleanData.forEach(item => {
+            // ถ้าเป็นการไฟฟ้าใหม่ที่ระบบยังไม่เคยเจอ ให้สร้างโครงสร้างตรรกะว่างขึ้นมารองรับก่อน
+            if (!peaGroup[item.pea]) {
+                peaGroup[item.pea] = {
+                    greenCount: 0, greenMoney: 0,
+                    blueCount: 0, blueMoney: 0,
+                    yellowCount: 0, yellowMoney: 0,
+                    redCount: 0, redMoney: 0,
+                    lockCount: 0, lockMoney: 0,
+                    totalCount: 0 // เก็บลำดับยอดงานรวมทุกสีในสังกัดนั้นๆ
+                };
+            }
+
+            // บวกรวมยอดงานรวมทั้งหมดของกฟฟ. นี้
+            peaGroup[item.pea].totalCount += 1;
+
+            // คัดแยกประเภทเพื่อสะสมจำนวนและเงินทุนลงสังกัดการไฟฟ้านั้น
+            if (item.status === 'green' || item.status === 'match') { 
+                peaGroup[item.pea].greenCount += 1; peaGroup[item.pea].greenMoney += item.money;
+            } else if (item.status === 'blue') { 
+                peaGroup[item.pea].blueCount += 1; peaGroup[item.pea].blueMoney += item.money;
+            } else if (item.status === 'yellow') { 
+                peaGroup[item.pea].yellowCount += 1; peaGroup[item.pea].yellowMoney += item.money;
+            } else if (item.status === 'red' || item.status === 'shortage') { 
+                peaGroup[item.pea].redCount += 1; peaGroup[item.pea].redMoney += item.money;
+            } else if (item.status === 'lock'|| item.status.includes('lock')) {
+                peaGroup[item.pea].lockCount += 1; peaGroup[item.pea].lockMoney += item.money;
+            }
+        });
+
+        // 📦 ขั้นตอนที่ 2: แปลงโครงสร้างแบบกลุ่ม ยัดกลับเข้าสู่อาเรย์แนวดิ่ง เพื่อป้อนให้ Chart.js
+        if (GraphRender.myBarChart) {
+            // ดึงชื่อการไฟฟ้าทั้งหมดออกมาทำแกน X พร้อมเรียงตัวอักษร ก-ฮ จากน้อยไปมาก
+            const peaLabels = Object.keys(peaGroup).sort();
+            
+            // เตรียมถังสำหรับสวมข้อมูล 5 สถานะ
+            let barDataGreen = []; let barMoneyGreen = [];
+            let barDataBlue = []; let barMoneyBlue = [];
+            let barDataYellow = []; let barMoneyYellow = [];
+            let barDataRed = []; let barMoneyRed = [];
+            let barDataLock = []; let barMoneyLock = [];
+            let barTotalCounts = []; // สำหรับโชว์ยอดรวมที่หัว Tooltip
+
+            // แตกข้อมูลรายชื่อออกมาผลักลงอาเรย์ทีละตัว
+            peaLabels.forEach(name => {
+                barDataGreen.push(peaGroup[name].greenCount); barMoneyGreen.push(peaGroup[name].greenMoney);
+                barDataBlue.push(peaGroup[name].blueCount); barMoneyBlue.push(peaGroup[name].blueMoney);
+                barDataYellow.push(peaGroup[name].yellowCount); barMoneyYellow.push(peaGroup[name].yellowMoney);
+                barDataRed.push(peaGroup[name].redCount); barMoneyRed.push(peaGroup[name].redMoney);
+                barDataLock.push(peaGroup[name].lockCount); barMoneyLock.push(peaGroup[name].lockMoney);
+                barTotalCounts.push(peaGroup[name].totalCount); 
+            });
+
+            // ดันป้ายแกน X และ ข้อมูลฝังซ่อนส่วนรวมเข้าสู่ชุด Config กราฟแท่ง
+            GraphRender.myBarChart.data.labels = peaLabels;
+            GraphRender.myBarChart.data.customTotalCounts = barTotalCounts;
+
+            // ดันข้อมูลจำนวนและเงินทุนกลับสู่ตำแหน่ง Datasets แต่ละแท่ง (Index 0 ถึง 4)
+            GraphRender.myBarChart.data.datasets[0].data = barDataGreen;
+            GraphRender.myBarChart.data.datasets[0].customMoney = barMoneyGreen;
+            
+            GraphRender.myBarChart.data.datasets[1].data = barDataBlue;
+            GraphRender.myBarChart.data.datasets[1].customMoney = barMoneyBlue;
+            
+            GraphRender.myBarChart.data.datasets[2].data = barDataYellow;
+            GraphRender.myBarChart.data.datasets[2].customMoney = barMoneyYellow;
+            
+            GraphRender.myBarChart.data.datasets[3].data = barDataRed;
+            GraphRender.myBarChart.data.datasets[3].customMoney = barMoneyRed;
+            
+            GraphRender.myBarChart.data.datasets[4].data = barDataLock;
+            GraphRender.myBarChart.data.datasets[4].customMoney = barMoneyLock;
+            
+            // สั่งคำนวณและวาดกราฟแท่งใหม่บนหน้าจอ
+            GraphRender.myBarChart.update();
+        }
     }
-}
 };
 const GraphRender = {
+  // สแตนบายตัวแปรสำหรับเก็บสถานะอินสแตนซ์กราฟ ป้องกันขยะหน่วยความจำ (Memory Leak)
   myPieChart: null,
   myBarChart: null,
 
- Piegraph: function() {
+  /**
+   * ==================================================================================
+   * 🍕 [หัวข้อ 2.1] ฟังก์ชันขึ้นรูปโครงสร้างกราฟวงกลม (Doughnut Chart - 5 Segments)
+   * ==================================================================================
+   */
+  Piegraph: function() {
     const canvasEl = document.getElementById('chartPieStatus');
     if (!canvasEl) return;
     
+    // เคลียร์ขยะ Canvas เก่าด้วยการเขียนทับแท็ก HTML ใหม่ ป้องกันปัญหากราฟซ้อนทับเวลาเอาเมาส์ชี้
     const container = canvasEl.parentElement;
     container.innerHTML = '<canvas id="chartPieStatus"></canvas>';
     
     const ctxPie = document.getElementById('chartPieStatus').getContext('2d');
     this.myPieChart = new Chart(ctxPie, {
-      type: 'doughnut',
+      type: 'doughnut', // กำหนดรูปแบบเป็นวงโดนัททรงกลม
       data: {
-        labels: ['งานที่มีไฟเขียว', 'งานที่มีไฟน้ำเงิน/เหลือง', 'งานที่มีไฟแดง'],
+        // ป้ายชื่อกำกับสีกราฟทั้ง 5 ส่วนท้ายแผนภูมิ
+        labels: ['งานที่มีพัสดุครบ', 'งานที่มีพัสดุหลักครบ', 'งานที่มีได้ของบางส่วน', 'งานที่ไม่ได้ของ', 'งานที่โดนล็อค 🔒'],
         datasets: [{
-          data: [0, 0, 0], // จำนวนงาน
-          customMoney: [0, 0, 0], // [เพิ่มเข้ามา] ยอดเงินรวมสะสม
-          backgroundColor: ['#2ed573', '#8454b1', '#eb4856'],
+          data: [0, 0, 0, 0, 0],         // จำนวนชิ้นงานรอรับค่าจาก Controller
+          customMoney: [0, 0, 0, 0, 0],  // ยอดงบสะสมรอรับค่าจาก Controller
+          // รหัสสีประจำตัวสถานะ: [เขียว, น้ำเงิน, เหลืองทอง, แดงส้ม, เทากุญแจล็อก]
+          backgroundColor: ['#2ed573', '#2152ff', '#f7d02c', '#eb4856', '#6c757d'],
           borderWidth: 2,
           borderColor: '#ffffff'
         }]
@@ -780,24 +1011,23 @@ const GraphRender = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { 
+          // จัดแต่งตำแหน่งกล่องป้ายชื่อสถานะด้านล่างกราฟ
           legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
           
-          // 🎯 [ไฮไลท์จุดสำคัญ] ปรับแต่ง Tooltip ตอนเมาส์ชี้กราฟวงกลม
+          // 🎯 ออกแบบตัว Tooltip ตอนผู้ใช้งานเลื่อนเมาส์ผ่านกราฟวงกลม
           tooltip: {
             callbacks: {
-              // 1. บรรทัดแรก: โชว์จำนวนงานปกติ
+              // บรรทัดที่ 1: แสดงชื่อสีและจำนวนงานที่คำนวณได้
               label: function(context) {
                 let label = context.label || '';
                 let value = context.raw || 0;
                 return `${label}: ${value} งาน`;
               },
-              // 2. บรรทัดที่สอง: ดึงค่าเงินที่ฝังไว้มาจัดฟอร์แมตโชว์ต่อท้าย
+              // บรรทัดที่ 2: ดึงจำนวนเงินรวมสะสมในตระกูลอาร์เรย์ customMoney ออกมาฟอร์แมตคอมมาคั่น
               afterLabel: function(context) {
-                // ดึงค่าอาเรย์เงินที่เราฝังซ่อนไว้ตามตำแหน่ง Index ที่เมาส์ชี้
                 let moneyDataset = context.dataset.customMoney;
                 let moneyValue = moneyDataset ? moneyDataset[context.dataIndex] : 0;
                 
-                // แปลงตัวเลขให้มีคอมมาคั่น และทศนิยม 2 ตำแหน่ง
                 let formattedMoney = moneyValue.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2
@@ -807,44 +1037,50 @@ const GraphRender = {
             }
           }
         },
-        cutout: '70%'
+        cutout: '70%' // เจาะรูตรงกลางโดนัทให้กว้าง 70% ดูสบายตาโมเดิร์น
       }
     });
   },
 
-
+  /**
+   * ==================================================================================
+   * 📊 [หัวข้อ 2.2] ฟังก์ชันขึ้นรูปโครงสร้างกราฟแท่งแยกประเภท (Grouped Bar Chart - 5 Bars)
+   * ==================================================================================
+   */
   BarGraph: function() {
     const canvasEl = document.getElementById('chartBarPEA');
     if (!canvasEl) return;
     
-    // ล้างพิกัด ID กราฟเก่าถอนรากถอนโคน ป้องกัน Error Canvas ตัวเดิมซ้ำซ้อน
+    // ถอนรากถอนโคน Canvas เก่าเพื่อเคลียร์สิทธิ์ครอบครองก่อนเขียนซ้ำป้องกันหน้าเว็บบั๊ก
     const container = canvasEl.parentElement;
     container.innerHTML = '<canvas id="chartBarPEA"></canvas>';
     
     const ctxBar = document.getElementById('chartBarPEA').getContext('2d');
     
     this.myBarChart = new Chart(ctxBar, {
-      type: 'bar',
+      type: 'bar', // กำหนดรูปแบบเป็นแผนภูมิแท่งแนวตั้ง
       data: {
-        labels: [], // แกน X: ชื่อการไฟฟ้า (จะถูกยัดเข้ามาทีหลังแบบไดนามิก)
+        labels: [], // แกน X: ชื่อของแต่ละการไฟฟ้า (จะถูกยัดเข้ามาไดนามิกเมื่อรันคำสั่งสรุปผล)
         datasets: [
           {
-            label: 'งานที่มีไฟเขียว',
-            data: [], // จำนวนงานไฟเขียว
-            customMoney: [], // ยอดเงินรวมไฟเขียว
-            backgroundColor: '#2ed573'
+            label: 'งานที่มีพัสดุครบ',
+            data: [], customMoney: [], backgroundColor: '#2ed573'
           },
           {
-            label: 'งานที่มีไฟน้ำเงิน/เหลือง',
-            data: [], // จำนวนงานไฟเหลือง
-            customMoney: [], // ยอดเงินรวมไฟเหลือง
-            backgroundColor: '#8454b1'
+            label: 'งานที่มีพัสดุหลักครบ',
+            data: [], customMoney: [], backgroundColor: '#2152ff' // 🔵 แท่งสีน้ำเงินอิสระ
           },
           {
-            label: 'งานที่มีไฟแดง',
-            data: [], // จำนวนงานไฟแดง
-            customMoney: [], // ยอดเงินรวมไฟแดง
-            backgroundColor: '#eb4856'
+            label: 'งานที่มีได้ของบางส่วน',
+            data: [], customMoney: [], backgroundColor: '#f7d02c' // 🟡 แท่งสีเหลืองอิสระ
+          },
+          {
+            label: 'งานที่ไม่ได้ของ',
+            data: [], customMoney: [], backgroundColor: '#eb4856'
+          },
+          {
+            label: 'งานที่โดนล็อค 🔒',
+            data: [], customMoney: [], backgroundColor: '#6c757d' // 🔒 แท่งสีกุญแจล็อกโลหะเพิ่มใหม่
           }
         ]
       },
@@ -852,41 +1088,39 @@ const GraphRender = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { grid: { display: false } },
-       y: { 
-            beginAtZero: true,
+          x: { grid: { display: false } }, // ปิดเส้นตารางแนวดิ่งแกน X เพื่อความคลีนของกราฟ
+          y: { 
+            beginAtZero: true, // บังคับให้แกน Y สตาร์ทนับจากเลข 0 เสมอ
             title: { display: true, text: 'จำนวนงาน (งาน)', font: { size: 11 } }
           }
         },
-       plugins: {
+        plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
           
-          // 🎯 [แก้ไขจุดนี้] เพื่อโมดิฟายหน้าตาตอนเมาส์ชี้กราฟแท่ง
+          // 🎯 ออกแบบตัว Tooltip ตอนผู้ใช้งานเลื่อนเมาส์ผ่านเสากราฟแท่ง
           tooltip: {
             callbacks: {
-              // 1. หัวข้อด้านบนสุด: เอาชื่อการไฟฟ้ามาพ่น พร้อมส่องหายอดงานรวมทั้งหมดมาใส่ข้างๆ
+              // บรรทัดส่วนหัว (Header): แสดงชื่อกฟฟ. และส่องหาค่าผลรวมทั้งหมดของสถานีนั้นมาแสดงพ่วงท้าย
               title: function(context) {
-                // context[0].label คือชื่อการไฟฟ้า (เช่น กฟฟ.เชียงใหม่)
                 let peaName = context[0].label || ''; 
                 let dataIndex = context[0].dataIndex;
                 
-                // ดึงอาเรย์ยอดรวมที่เราฝังแอบไว้ในขั้นตอนคำนวณออกมาตามดัชนีของการไฟฟ้านั้น
+                // เอื้อมไปหยิบอาร์เรย์สรุปยอดรวมแอบซ่อน (customTotalCounts) ออกมาส่องดูค่าตาม Index การไฟฟ้า
                 let chartConfig = context[0].chart;
                 let totalCountsArray = chartConfig.data.customTotalCounts;
                 let totalJobs = totalCountsArray ? totalCountsArray[dataIndex] : 0;
                 
-                // 🎯 คืนค่ากลับไปพ่นบนหน้าจอ "ชื่อการไฟฟ้า (รวม XX งาน)" ตามบรีฟคุณบิ๊กเป๊ะๆ!
                 return `${peaName} (รวม ${totalJobs} งาน)`;
               },
               
-              // 2. บรรทัดแสดงจำนวนงานแยกสี (เหมือนเดิม)
+              // บรรทัดที่ 2: พ่นประเภทแท่งไฟที่เรากำลังชี้อยู่และแสดงจำนวนงานย่อยในกลุ่มสีนั้น
               label: function(context) {
                 let datasetLabel = context.dataset.label || '';
                 let value = context.raw || 0;
                 return `${datasetLabel}: ${value} งาน`;
               },
               
-              // 3. บรรทัดแสดงมูลค่าเงินรวมแยกสี (เหมือนเดิม)
+              // บรรทัดที่ 3: แสวงหาค่าเงินดิบสะสมของสีนั้นจัดรูปแบบทศนิยม 2 ตำแหน่งให้สวยงาม
               afterLabel: function(context) {
                 let moneyDataset = context.dataset.customMoney;
                 let moneyValue = moneyDataset ? moneyDataset[context.dataIndex] : 0;
@@ -902,6 +1136,50 @@ const GraphRender = {
     });
   }
 };
+
+// ==================== Event Handlers ====================
+function renderInitialStockMatch(allocatedData, materialTypeMap) {
+    if (!allocatedData || !Array.isArray(allocatedData)) {
+        console.warn("⚠️ No allocated data provided");
+        return;
+    }
+
+    // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
+    const filteredAllocatedData = allocatedData.filter(res => {
+        const assignedValue = parseFloat(res.assigned) || 0;
+        return assignedValue > 0;
+    });
+    const tableContent = {
+        cols: [
+            { label: "หมายเลขงาน" },
+            { label: "รหัสพัสดุ" },
+            { label: "ชื่อพัสดุ" },
+            { label: "ประเภท" },
+            { label: "ค้างเบิก" },
+            { label: "จำนวนที่ได้" },
+            { label: "คงเหลือ" },
+            { label: "ทั้งหมด" }
+        ],
+        rows: allocatedData.map(res => {
+            const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
+            const safeTotal = (isNaN(res.totalStock) || res.totalStock === null) ? 0 : res.totalStock;
+            return {
+                c: [
+                    { v: res.wbs },
+                    { v: res.partID },
+                    { v: res.partName },
+                    { v: 0 },
+                    { v: res.pending || 0 },
+                    { v: res.assigned || 0 },
+                    { v: safeRemaining },
+                    { v: safeTotal }
+                ]
+            };
+        })
+    };
+
+    stockMatchTableInstance = TableRenderer.renderStockTable('#tableStockMatch', tableContent, materialTypeMap, "match");
+}
 // ==================== Table Renderer ====================
 const TableRenderer = {
 
@@ -964,30 +1242,28 @@ const TableRenderer = {
 const matchTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
-    "pageLength": 10,
+    "pageLength": 25,
     "responsive": true,
     "autoWidth": false,
-    "buttons": [
-        {
-            extend: 'excel',
-            text: '<i class="fas fa-file-excel mr-1"></i> Export',
-            filename: 'R2C_InStock_report',
-            className: 'px-3 py-2 mb-0  text-center text-green-600 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
-        }
-    ],
-    // 🚀 ล็อก B ไว้ใน dom เพื่อให้ตารางปั้นปุ่มขึ้นมาให้ก่อน
+    "order": [[0, "asc"]],
+    "buttons": [ /* ... เก็บค่าเดิมไว้ ... */ ],
     "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+    
+    // 🌟 1. เพิ่ม Class เข้าไปในคอลัมน์เพื่อให้ CSS เส้นขอบทำงาน
     "columnDefs": [
-        { "targets": "_all", "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
-        { "targets": [0, 1], "className": "font-bold text-blue-700 whitespace-nowrap" },
-        { "targets": [-1, -2, -3, -4], "className": "text-right whitespace-nowrap", "style": { "width": "max-content" } }
+        { "targets": "_all", "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal" },
+        { "targets": [0, 1], "className": "font-bold text-violet-800 whitespace-nowrap border-l border-gray-200" },
+        { "targets": [-1], "className": "text-right whitespace-nowrap border-r border-gray-200" } 
     ],
+    
+    // 🌟 2. ปรับหัวตารางให้เป็นโทนม่วงหรูหรา
     "headerCallback": function (thead) {
-        $(thead).find('th').addClass('bg-gray-50 text-gray-700 font-bold text-base py-3 px-4 text-left border-b-2 border-gray-200');
-        $(thead).find('th').slice(-4).removeClass('text-left').addClass('text-right whitespace-nowrap').css('width', 'max-content');
+        $(thead).find('th')
+            .removeClass()
+            .addClass('bg-violet-50 text-violet-900 font-extrabold text-sm py-3 px-4 text-left border-b-2 border-violet-200 uppercase tracking-wider')
+            .css('border-right', '1px solid #e2e8f0'); // เส้นแบ่งหัวตาราง
     }
 });
-
 // 🎯 [โค้ดบรรทัดสำคัญ] เขียนต่อท้ายคำสั่งสร้างตารางเสร็จ สั่งวาร์ปย้ายปุ่มไปโผล่ที่ id ข้างบนทันที!
 matchTable.buttons().container().appendTo('#my-export-space');
 return matchTable;
@@ -1228,41 +1504,53 @@ return RequirementTable;
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
- renderNoStockTable(allocatedData, materialTypeMap) {
+renderNoStockTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
     
-    const noStockData = allocatedData.filter(res => res.assigned === 0);
-    if (noStockData.length === 0) return null;
+    // ประเภทพัสดุที่ไม่ต้องการแสดงในตาราง
+    const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+ 
+    const noStockData = allocatedData.filter(res => {
+        if (res.assigned !== 0) return false;
+        const partType = materialTypeMap[res.partID?.toString().trim()] || "";
+        return !EXCLUDED_TYPES.includes(partType);
+    });
 
+    if (noStockData.length === 0) return null;
+ 
     const $el = $('#tableNoStock');
     if ($.fn.DataTable.isDataTable('#tableNoStock')) {
         $el.DataTable().destroy();
         $el.empty();
     }
-
+ 
     const colHeaders = [
-        { title: "หมายเลขงาน" }, 
-        { title: "รหัสพัสดุ" }, 
-        { title: "ชื่อพัสดุ" },
-    
-        { title: "ค้างเบิก" }, 
-        { title: "จำนวนที่ได้" }
+        { title: "หมายเลขงาน" },   // index 0
+        { title: "รหัสพัสดุ" },     // index 1
+        { title: "ชื่อพัสดุ" },     // index 2
+        { title: "ประเภท" },        // index 3 (เพิ่มใหม่ ก่อนค้างเบิก)
+        { title: "ค้างเบิก" },      // index 4
+        { title: "จำนวนที่ได้" }    // index 5
     ];
-
-    const dataSet = noStockData.map(res => [
-        res.wbs || "-",
-         res.partID || "-",
-          res.partName || "-",
-
-         res.pending || 0,
-          res.assigned || 0
-    ]);
-
+ 
+    const dataSet = noStockData.map(res => {
+        const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
+        return [
+            res.wbs     || "-",   // 0
+            res.partID  || "-",   // 1
+            res.partName|| "-",   // 2
+            partType,             // 3 ประเภท
+            res.pending || 0,     // 4
+            res.assigned|| 0      // 5
+        ];
+    });
+ 
 const NoStockTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "pageLength": 10,
     "responsive": true,
+    "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
     
     "buttons": [
         {
@@ -1276,28 +1564,40 @@ const NoStockTable = $el.DataTable({
     "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
           
     "columnDefs": [
-        // 🎯 1. ดักทุบคอลัมน์ 0, 1 บังคับแถวเดียวตรงๆ ไม่สลับบรรทัดเด็ดขาด
-        { 
-            "targets": [0, 1], 
+        // col 0, 1: หมายเลขงาน, รหัสพัสดุ - บังคับแถวเดียว ไม่ตัดบรรทัด
+        {
+            "targets": [0, 1],
             "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
             "createdCell": function (td) {
-                $(td).css({
-                    'white-space': 'nowrap',
-                    'word-break': 'keep-all'
-                });
+                $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
             }
         },
         { "targets": 0, "className": "font-bold text-blue-700" },
-        
-        // 🎯 2. เอาเลข 5 ออก (เหลือแค่ 2, 3, 4 เพื่อแก้ปัญหา Error ทันที)
-        { "targets": [2, 3, 4], "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
+ 
+        // col 2: ชื่อพัสดุ
+        { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
+ 
+        // col 3: ประเภท (เพิ่มใหม่) - badge สีเทาเหมือนตาราง StockMatch
         {
             "targets": 3,
+            "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
+            "render": function(data) {
+                if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                const color = data === "พัสดุหลัก" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600";
+                return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${color}">${data}</span>`;
+            }
+        },
+ 
+        // col 4: ค้างเบิก
+        {
+            "targets": 4,
             "className": "text-red-600 text-base",
             "render": $.fn.dataTable.render.number(',', '.', 0)
         },
+ 
+        // col 5: จำนวนที่ได้
         {
-            "targets": 4,
+            "targets": 5,
             "className": "text-red-600 font-bold text-base",
             "render": $.fn.dataTable.render.number(',', '.', 0)
         }
@@ -1319,15 +1619,154 @@ const NoStockTable = $el.DataTable({
         `).appendTo('head');
     }
 });
-
-
-
+ 
+ 
+ 
 // 🎯 4. [บรรทัดเด็ด] สั่งย้ายปุ่มวาร์ปไปที่กล่อง ID ขวาสุดบนแถวหัวข้อสีเขียวทันที
 NoStockTable.buttons().container().appendTo('#export-NoStock');
-
+ 
 // 🎯 5. รีเทิร์นตัวแปรตารางออกไปใช้งานต่อตามปกติ
 return NoStockTable;
 }, // 👈 เช็กดูว่ามีปีกกาปิดตัวนี้ครบถ้วนไหม
+
+
+
+    //=========== ตาราง Obsolete พัสดุล้าสมัย/เปลี่ยนแปลงรหัส ===========//
+    //=========== ตาราง Obsolete พัสดุล้าสมัย/เปลี่ยนแปลงรหัส ===========//
+renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
+    if (!allocatedData || !Array.isArray(allocatedData)) return null;
+
+    const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ"];
+
+    // กรองเฉพาะ assigned === 0 และประเภทที่ต้องการ
+    const obsoleteData = allocatedData.filter(res => {
+        if (res.assigned !== 0) return false;
+        const partType = materialTypeMap[res.partID?.toString().trim()] || "";
+        return OBSOLETE_TYPES.includes(partType);
+    });
+
+    if (obsoleteData.length === 0) return null;
+
+    const $el = $('#tableObsolete');
+    if ($.fn.DataTable.isDataTable('#tableObsolete')) {
+        $el.DataTable().destroy();
+        $el.empty();
+    }
+
+    // 🎯 กำหนดความกว้างคอลัมน์ล่วงหน้า คอลัมน์ไหนต้องการให้ชิด ใส่ 1% ไว้เลย
+    const colHeaders = [
+        { title: "หมายเลขงาน", width: "1%" },  
+        { title: "รหัสพัสดุ", width: "1%" },   
+        { title: "ชื่อพัสดุ", width: "52%" },  
+        { title: "ประเภท", width: "1%" },      
+        { title: "ค้างเบิก", width: "1%" },    
+        { title: "Note", width: "44%" }       
+    ];
+
+    const dataSet = obsoleteData.map(res => {
+        const partID = res.partID?.toString().trim();
+        const partType = materialTypeMap[partID] || "-";
+        const partNote = materialNoteMap[partID] || "-";
+        return [
+            res.wbs      || "-",  
+            res.partID   || "-",  
+            res.partName || "-",  
+            partType,             
+            res.pending  || 0,    
+            partNote              
+        ];
+    });
+
+    const ObsoleteTable = $el.DataTable({
+        "data": dataSet,
+        "columns": colHeaders,
+        "pageLength": 10,
+        "responsive": true,
+        "autoWidth": false, 
+        "order": [[0, "asc"]], 
+        "buttons": [
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel mr-1"></i> Export',
+                filename: 'R2C_Obsolete_report',
+                className: 'px-3 py-2 mb-0 text-center text-green-600 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+            }
+        ],
+        "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+        "columnDefs": [
+            // col 0, 1: หมายเลขงาน และ รหัสพัสดุ
+            {
+                "targets": [0, 1],
+                "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal whitespace-nowrap",
+                "createdCell": function(td) {
+                    $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
+                }
+            },
+            { "targets": 0, "className": "font-bold text-blue-700 whitespace-nowrap" },
+
+// 🎯 col 2: ชื่อพัสดุ -> ตัดเอาแค่ 60 ตัวอักษรดื้อๆ (เท่ากับ 2 บรรทัดพอดี) ห้ามงอกบรรทัด 3
+{ 
+    "targets": 2, 
+    "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
+    "render": function(data) {
+        if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+        
+        // ✂️ นับตัวอักษรรวม ถ้าเกิน 25 ตัว ค่อยสั่งหักข้อความลงบรรทัดที่สอง
+        if (data.length > 25) {
+            const firstLine = data.substring(0, 25);
+            const secondLine = data.substring(25);
+            
+            // 🌟 บังคับใส่ font-size: inherit !important เพื่อให้ขนาดตัวหนังสือเท่าตัวอื่นเป๊ะๆ
+            return `<span style="font-size: inherit !important; white-space: nowrap !important; word-break: keep-all !important;">${firstLine}</span><br><span style="font-size: inherit !important; display: inline-block; max-width: 100%; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;" title="${data}">${secondLine}</span>`;
+        }
+        
+        // 🌟 บังคับใส่ font-size: inherit !important ตรงนี้ด้วย
+        return `<span style="font-size: inherit !important; white-space: nowrap !important; word-break: keep-all !important;">${data}</span>`;
+    }
+},
+            // col 3: ประเภท - badge สีแดงเสมอ
+            {
+                "targets": 3,
+                "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
+                "render": function(data) {
+                    if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                    return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">${data}</span>`;
+                }
+            },
+
+            // col 4: ค้างเบิก
+            {
+                "targets": 4,
+                "className": "text-red-600 text-base text-end whitespace-nowrap",
+                "render": $.fn.dataTable.render.number(',', '.', 0)
+            },
+
+            // 🎯 col 5: Note -> ล็อกความสูงไว้ไม่เกิน 2 บรรทัดด้วย line-clamp-2
+            { 
+                "targets": 5, 
+                "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm",
+                "render": function(data) {
+                    if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                    return `<div class="line-clamp-2" style="max-width: 320px; min-width: 200px; word-break: break-word; white-space: normal;" title="${data}">${data}</div>`;
+                }
+            }
+        ],
+        "headerCallback": function(thead) {
+            $(thead).find('th').addClass('bg-orange-50 text-orange-700 font-bold py-3 px-4 text-left border-b-2 border-orange-200').css('white-space', 'nowrap');
+        },
+        "initComplete": function() {
+            this.api().columns.adjust();
+            const $wrapper = $('#tableObsolete').parent().css({ 'overflow-x': 'auto' });
+            $('<style>').text(`
+                #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
+                #${$wrapper.attr('id')} { scrollbar-width: none !important; }
+            `).appendTo('head');
+        }
+    });
+
+    ObsoleteTable.buttons().container().appendTo('#export-Obsolete');
+    return ObsoleteTable;
+} // <--- จบฟังก์ชันพอดีเป๊ะ โครงสร้างไม่พังแน่นอนครับ,
 
 
 
@@ -1435,13 +1874,14 @@ setupFilterLight(tableInstance, rawData) {
         const $filter = $('#setupFilterLight');
         if ($filter.length === 0) return;
 
-        // 2. ยัด Option แบบที่ Select2 ชอบ (ตัวแรกสุดต้องว่างโล่ง 100%)
+        // 2. ยัด Option แบบที่ Select2 ชอบ (เพิ่มตัวกุญแจล็อค status-lock เข้าไป)
         const optionsHTML = `
             <option value=""></option>
             <option value="status-green">🟢 ของครบ</option>
             <option value="status-blue">🔵 พัสดุหลักครบ </option>
             <option value="status-yellow">🟡 ได้ของบางส่วน </option>
             <option value="status-red">🔴 ไม่ได้ของเลย </option>
+            <option value="status-lock">🔒 ล็อค (พัสดุล้าสมัย/เปลี่ยนรหัส)</option>
         `;
         $filter.html(optionsHTML);
 
@@ -1455,7 +1895,7 @@ setupFilterLight(tableInstance, rawData) {
                 theme: 'bootstrap-5',
                 width: '100%',
                 closeOnSelect: true,
-                placeholder: 'ทั้งหมด (ไฟสัญญาณ)', // ข้อความจะโชว์ตรงนี้แทนตัวเลือกแรก
+                placeholder: 'ทั้งหมด (ไฟสัญญาณ/สถานะ)', // ข้อความจะโชว์ตรงนี้แทนตัวเลือกแรก
                 allowClear: true // เปิดปุ่มกากบาทล้างค่า
             });
         }, 100);
@@ -1469,55 +1909,13 @@ setupFilterLight(tableInstance, rawData) {
         $filter.off('change').on('change', function () {
             const selectedSearchToken = $(this).val() || ''; // ดึงค่าสี (ถ้ากดกากบาทจะได้ความว่างเปล่า)
 
-            // ค้นหาเฉพาะในคอลัมน์ที่ 0 (คอลัมน์สัญญาณไฟ)
+            // ค้นหาเฉพาะในคอลัมน์ที่ 1 (คอลัมน์สัญญาณไฟ)
             tableInstance.column(1).search(selectedSearchToken, false, false).draw();
         });
     }
 };
 
-// ==================== Event Handlers ====================
-function renderInitialStockMatch(allocatedData, materialTypeMap) {
-    if (!allocatedData || !Array.isArray(allocatedData)) {
-        console.warn("⚠️ No allocated data provided");
-        return;
-    }
 
-    // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
-    const filteredAllocatedData = allocatedData.filter(res => {
-        const assignedValue = parseFloat(res.assigned) || 0;
-        return assignedValue > 0;
-    });
-    const tableContent = {
-        cols: [
-            { label: "หมายเลขงาน" },
-            { label: "รหัสพัสดุ" },
-            { label: "ชื่อพัสดุ" },
-            { label: "ประเภท" },
-            { label: "ค้างเบิก" },
-            { label: "จำนวนที่ได้" },
-            { label: "คงเหลือ" },
-            { label: "ทั้งหมด" }
-        ],
-        rows: allocatedData.map(res => {
-            const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
-            const safeTotal = (isNaN(res.totalStock) || res.totalStock === null) ? 0 : res.totalStock;
-            return {
-                c: [
-                    { v: res.wbs },
-                    { v: res.partID },
-                    { v: res.partName },
-                    { v: 0 },
-                    { v: res.pending || 0 },
-                    { v: res.assigned || 0 },
-                    { v: safeRemaining },
-                    { v: safeTotal }
-                ]
-            };
-        })
-    };
-
-    stockMatchTableInstance = TableRenderer.renderStockTable('#tableStockMatch', tableContent, materialTypeMap, "match");
-}
 
 
 
@@ -1544,6 +1942,10 @@ function setupRowClickEvent() {
         if (noStockTableInstance) {
             noStockTableInstance.column(0).search('^' + selectedWBS + '$', true, false).draw();
         }
+
+        if (obsoleteTableInstance) {
+            obsoleteTableInstance.column(0).search('^' + selectedWBS + '$', true, false).draw();
+        }
     });
 }
 
@@ -1553,6 +1955,7 @@ function setupGlobalEvents() {
         if (stockMatchTableInstance) stockMatchTableInstance.search('').columns().search('').draw();
         // 🎯 3. ล้างค่าการค้นหาของตารางพัสดุไม่มีของเมื่อกดปุ่ม Reset
         if (noStockTableInstance) noStockTableInstance.search('').columns().search('').draw();
+        if (obsoleteTableInstance) obsoleteTableInstance.search('').columns().search('').draw();
         if (mb52Table) mb52Table.search('').draw();
         $('#tableRequirement_Data tbody tr').removeClass('table-primary selected-row');
         $('.filter-select').val('');
@@ -1614,19 +2017,24 @@ async function initDashboard() {
         const masterKey = Object.keys(dataMap).find(key => key.toLowerCase().includes('material_master'));
         const masterData = dataMap[masterKey];
 
+        let materialNoteMap = {};
         if (masterData && masterData.rows) {
             const idIdx = masterData.cols.findIndex(c => c.label.includes("รหัสพัสดุ") || c.label.includes("Part"));
-            const typeIdx = masterData.cols.findIndex(c => c.label.includes("ประเภทพัสดุ") || c.label.includes("Type"));
+            const typeIdx = masterData.cols.findIndex(c => c.label.includes("ประเภทพัสดุ") );
+            const noteIdx = masterData.cols.findIndex(c => c.label === "Not");
 
             const finalIdIdx = idIdx !== -1 ? idIdx : 0;
             const finalTypeIdx = typeIdx !== -1 ? typeIdx : 2;
+            const finalNoteIdx = noteIdx !== -1 ? noteIdx : 7;
 
             masterData.rows.forEach(row => {
                 const partID = getCellValue(row.c[finalIdIdx])?.toString().trim();
                 const matType = getCellValue(row.c[finalTypeIdx])?.toString().trim();
+                const matNote = getCellValue(row.c[finalNoteIdx])?.toString().trim();
 
                 if (partID) {
                     materialTypeMap[partID] = matType;
+                    materialNoteMap[partID] = matNote || "";
                 }
             });
         }
@@ -1666,6 +2074,7 @@ async function initDashboard() {
                 renderInitialStockMatch(alloc.allocatedResults, materialTypeMap);
                                 // หลังจาก renderInitialStockMatch เพิ่มบรรทัด
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
+                obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
                 FilterModule.setupFilterID_WBS(parcelTable, data);
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);

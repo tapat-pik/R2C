@@ -83,18 +83,97 @@ function createStatusCircle(status) {
 
 // ==================== Data Service ====================
 const DataService = {
-    async fetchSheetData(sheetName) {
-        const url = `api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
+    
+    //============== ดึงจาก mysql ======================//
+//    async fetchSheetData(sheetName) {
+//         const url = `api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
+
+//         // 🔗 log บอกเมื่อระบบฝั่ง JavaScript เริ่มทำการเชื่อมต่อไปยัง API เพื่อดึงข้อมูลจาก MySQL
+//         console.log(`🌐 [MySQL DB] Connecting to API for table: "${sheetName}"...`);
+
+//         try {
+//             const response = await fetch(url);
+//             if (!response.ok) throw new Error(`Network response was not ok (Status: ${response.status})`);
+
+//             const jsonData = await response.json();
+            
+//             // ✅ log บอกเมื่อดึงข้อมูลสำเร็จจาก MySQL พร้อมบอกจำนวนแถวข้อมูลที่ได้กลับมา
+//             const rowCount = (jsonData.table && jsonData.table.rows) ? jsonData.table.rows.length : 0;
+//             console.log(`✅ [MySQL DB] Successfully connected to "${sheetName}". Fetched ${rowCount} rows.`);
+            
+//             return jsonData.table;
+
+//         } catch (err) {
+//             // ❌ log แจ้งเตือนกรณีที่ระบบเกิด Error หรือติดต่อ API ของ MySQL ไม่สำเร็จ
+//             console.error(`❌ [MySQL DB] Failed to connect or fetch table "${sheetName}":`, err);
+//             return { cols: [], rows: [] };
+//         }
+//     },
+
+    //============== ดึงจาก google sheet ======================//
+        async fetchSheetData(sheetName) {
+        const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
+        
+        // ดึงข้อมูลผ่าน Google Endpoint ที่ให้โครงสร้างข้อมูลแบบตารางมาประมวลผลต่อได้ง่าย
+        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
+
+        // 🔗 log บอกเมื่อระบบเริ่มทำการยิงไปเชื่อมต่อกับ Google Sheet
+        console.log(`🌐 [Google Sheet DB] Connecting to table: "${sheetName}"...`);
 
         try {
             const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error(`Network response was not ok (Status: ${response.status})`);
 
-            const jsonData = await response.json();
-            return jsonData.table;
+            const textData = await response.text();
+            
+            // ตัดเอาเฉพาะก้อนเนื้อหาข้อมูล JSON ที่อยู่ระหว่างวงเล็บ { ... }
+            const jsonStart = textData.indexOf('{');
+            const jsonEnd = textData.lastIndexOf('}');
+            if (jsonStart === -1 || jsonEnd === -1) {
+                throw new Error('Invalid JSONP response format from Google Sheets');
+            }
+            
+            const rawJsonStr = textData.substring(jsonStart, jsonEnd + 1);
+            const parsedData = JSON.parse(rawJsonStr);
+            
+            const rawTable = parsedData.table;
+            if (!rawTable) return { cols: [], rows: [] };
+
+            // 🎯 จัดฟอร์แมตหัวคอลัมน์ (cols) ให้เหมือนกับของเดิมที่มาจาก MySQL
+            const formattedCols = (rawTable.cols || []).map(col => ({
+                label: col.label || ""
+            }));
+
+            // 🎯 จัดฟอร์แมตข้อมูลในตาราง (rows) ให้คงโครงสร้าง "c" -> "v" เอาไว้เหมือนเดิมเป๊ะ
+            const formattedRows = (rawTable.rows || []).map(row => {
+                if (!row || !row.c) return { c: [] };
+                
+                const formattedCells = row.c.map(cell => {
+                    if (!cell) return { v: "" };
+                    // ดึงค่า v จากเซลล์ออกมา หากค่าเป็น null หรือ undefined ให้เซ็ตเป็นสตริงว่าง
+                    return { v: cell.v !== null && cell.v !== undefined ? cell.v : "" };
+                });
+
+                // ตรวจเช็กและเติมเซลล์ว่างให้ครบตามจำนวนคอลัมน์ ป้องกันระบบ JavaScript ประมวลผลพลาด
+                while (formattedCells.length < formattedCols.length) {
+                    formattedCells.push({ v: "" });
+                }
+
+                return { c: formattedCells };
+            });
+
+            // ✅ log บอกเมื่อเชื่อมต่อสำเร็จและแปลงข้อมูลเสร็จเรียบร้อย พร้อมบอกจำนวนแถวที่ได้มา
+            console.log(`✅ [Google Sheet DB] Successfully connected to "${sheetName}". Fetched ${formattedRows.length} rows.`);
+
+            // ส่งข้อมูลกลับไปในโครงสร้างแบบเดิมที่โค้ดเก่าต้องการ
+            return {
+                cols: formattedCols,
+                rows: formattedRows
+            };
 
         } catch (err) {
-            console.error(`❌ Error fetching table ${sheetName}:`, err);
+            // ❌ log แจ้งเตือนกรณีที่การเชื่อมต่อเกิดการพังหรือดึงข้อมูลไม่ได้
+            console.error(`❌ [Google Sheet DB] Failed to connect or parse table "${sheetName}":`, err);
             return { cols: [], rows: [] };
         }
     },
@@ -150,6 +229,7 @@ const DataService = {
             }
         });
     }
+    console.log(`💰 [Budget Data] Mapped ${Object.keys(mapping).length} WBS codes. Sample:`, Object.entries(mapping).slice(0, 3));
     return mapping;
 }
     
@@ -212,7 +292,7 @@ function renderUpcomingTable(data) {
             // บังคับสีฟอนต์เนื้อหาทุกคอลัมน์เป็น #67748E ผ่าน CSS inline style
             { 
                 "targets": "_all", 
-                "className": "py-3 px-3 border-b border-gray-100 font-normal align-middle",
+                "className": "py-3 px-3 border-b border-gray-100 font-normal align-middle ",
                 "createdCell": function (td) {
                     $(td).css('color', '#67748E');
                 }
@@ -221,9 +301,9 @@ function renderUpcomingTable(data) {
             // คอลัมน์ 0 (วัสดุ) - ใช้สี #67748E ตัวหนา และทำไฮไลท์พื้นหลังอ่อน ๆ 
             { 
                 "targets": 0, 
-                "className": "font-bold font-mono",
+                "className": "font-bold font-mono text-left",
                 "render": function(data) {
-                    return `<span class="bg-slate-50 px-2 py-1 rounded font-semibold" style="color: #67748E;">${data}</span>`;
+                    return `<span class="bg-slate-50 px-2 py-1 rounded font-semibold " style="color: #67748E;">${data}</span>`;
                 }
             },
             
@@ -278,78 +358,114 @@ const ScoringService = {
         if (wbs) this.matchedWBSCache.add(wbs.toString().trim());
     },
 
-    calculateScoreDetails(valA, valY, valX, rowCount, vvipData, isFullyAllocated = false) {
+    // ⚙️ เรียงลำดับพารามิเตอร์ให้ชัดเจน: ตัวที่ 6 = isFullyAllocated, ตัวที่ 7 = valOpenDate, ตัวที่ 8 = isFinalCalc
+    calculateScoreDetails(valA, valY, valX, rowCount, vvipData, isFullyAllocated = false, valOpenDate = "", isFinalCalc = false) {
         let score = 0;
         let diffDays = null;
 
         const currentWBS = valA ? valA.toString().trim() : "";
         const strY = valY ? valY.toString().trim() : "";
         const strX = valX ? valX.toString().trim() : "";
+        const strOpenDate = valOpenDate ? valOpenDate.toString().trim() : "";
 
+        // คำนวณคะแนนแต่ละส่วน
         diffDays = this._calculateDaysRemaining(strX);
-        score += this._calculateStrategicPoints(currentWBS, vvipData);
-        score += this._calculateTimingPoints(strY, diffDays, strX);
+        const strategicPoints = this._calculateStrategicPoints(currentWBS, vvipData);
+        const timingPoints = this._calculateTimingPoints(strY, diffDays, strX);
+        const agingDays = this._calculateAgingDays(strOpenDate);
+        const agingPoints = agingDays > 0 ? (agingDays / 10000) : 0;
 
-        if (isFullyAllocated === true) {
-            score += 2000;
-        } else {
-            score += this._calculateReadinessPoints(rowCount);
+        // 🎯 เช็กเงื่อนไข +2000 แต้มตรงนี้: ถ้าได้ของครบ (isFullyAllocated = true) ปรับเป็น 2000 แต้มเต็มทันที
+        const readinessPoints = isFullyAllocated ? 2000 : this._calculateReadinessPoints(rowCount);
+
+        // รวมคะแนนสุทธิ
+        score = strategicPoints + timingPoints + agingPoints + readinessPoints;
+
+        // 📢 [CONSOLE LOG] จะแสดงผลที่นี่ที่เดียวเมื่อมีการสั่งเปิดระบบ Log (isFinalCalc = true)
+      if (isFinalCalc) {
+            let timingDetail = '';
+            if (strY === "งาน 02.2") timingDetail = 'งาน 02.2 (Fix 3,000)';
+            else if (strY === "เกินกำหนด") timingDetail = `เกินกำหนด (${Math.abs(diffDays)} วัน)`;
+            else if (diffDays !== null && diffDays >= 0 && diffDays <= 30) timingDetail = `ใกล้กำหนดใน 30 วัน (เหลือ ${diffDays} วัน)`;
+            else if (diffDays !== null && diffDays > 30) timingDetail = `เกิน 30 วัน (Fix 500)`;
+            else timingDetail = 'เงื่อนไขอื่นๆ / ไม่ระบุวัน';
+
+            console.log(`     ↳ 📋 [รายละเอียดคะแนน]`);
+            console.log(`        👉 กลยุทธ์: +${strategicPoints} | เวลา [${timingDetail}]: +${timingPoints} | ค้างระบบ (${agingDays} วัน): +${agingPoints.toFixed(4)}`);
+            console.log(`        👉 ความพร้อม: +${readinessPoints} แต้ม ${isFullyAllocated ? '➔ 🟢 [ได้รับพัสดุครบถ้วน Fully Allocated โบนัสบวกเต็ม 2,000]' : `[คำนวณจากปริมาณพัสดุ ${rowCount} ชิ้น]`}`);
+            console.log(`     ---------------------------------------------------------------------------------------------------------------------------`);
         }
-
         return { totalScore: score, daysRemaining: diffDays };
     },
 
     _calculateDaysRemaining(dateStr) {
         if (!dateStr) return null;
-
-        const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-        if (!dateMatch) return null;
-
+        let day, month, yearCE;
+        const googleDateMatch = dateStr.match(/Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})\)/);
+        if (googleDateMatch) {
+            yearCE = parseInt(googleDateMatch[1]);
+            month = parseInt(googleDateMatch[2]);
+            day = parseInt(googleDateMatch[3]);
+        } else {
+            const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (!dateMatch) return null;
+            day = parseInt(dateMatch[1]);
+            month = parseInt(dateMatch[2]) - 1;
+            yearCE = parseInt(dateMatch[3]);
+        }
+        if (yearCE > 2500) yearCE -= 543;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        const day = parseInt(dateMatch[1]);
-        const month = parseInt(dateMatch[2]) - 1;
-        const yearCE = parseInt(dateMatch[3]) - 543;
         const deadline = new Date(yearCE, month, day);
-
         if (isNaN(deadline.getTime())) return null;
-
         return Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+    },
+
+    _calculateAgingDays(dateStr) {
+        if (!dateStr) return 0;
+        let day, month, yearCE;
+        const googleDateMatch = dateStr.match(/Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})\)/);
+        if (googleDateMatch) {
+            yearCE = parseInt(googleDateMatch[1]);
+            month = parseInt(googleDateMatch[2]); 
+            day = parseInt(googleDateMatch[3]);
+        } else {
+            const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (!dateMatch) return 0;
+            day = parseInt(dateMatch[1]);
+            month = parseInt(dateMatch[2]) - 1; 
+            yearCE = parseInt(dateMatch[3]);
+        }
+        if (yearCE > 2500) yearCE -= 543;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const openDate = new Date(yearCE, month, day);
+        if (isNaN(openDate.getTime())) return 0;
+        const diffTime = today - openDate;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
     },
 
     _calculateStrategicPoints(strA, vvipData) {
         if (strA === "") return 0;
-
         let points = 1000;
-
         if (vvipData && Array.isArray(vvipData)) {
             const isVVIP = vvipData.some(row => {
-                const vvipVal = (row.c && row.c[1] && row.c[1].v)
-                    ? row.c[1].v.toString().trim()
-                    : "";
+                const vvipVal = (row.c && row.c[1] && row.c[1].v) ? row.c[1].v.toString().trim() : "";
                 return vvipVal === strA;
             });
             if (isVVIP) points += 4000;
         }
-
         return points;
     },
 
     _calculateTimingPoints(strY, diffDays, strX) {
         const accumulationDays = Math.abs(diffDays || 0);
-
-        if (strY === "งาน 02.2") {
-            return 3000;
-        } else if (strY === "เกินกำหนด") {
-            return 2000 + (accumulationDays * 2);
-        } else if (diffDays !== null && diffDays >= 0 && diffDays <= 30) {
-            return 1000 + (accumulationDays * 20);
-        } else if (diffDays !== null && diffDays > 30) {
-            return 500;
-        } else if (strY === "ไม่เกินกำหนด" && strX === "") {
-            return 500;
-        }
+        if (strY === "งาน 02.2") return 3000;
+        if (strY === "เกินกำหนด") return 2000 + (accumulationDays * 2);
+        if (diffDays !== null && diffDays >= 0 && diffDays <= 30) return 1000 + (accumulationDays * 20);
+        if (diffDays !== null && diffDays > 30) return 500;
+        if (strY === "ไม่เกินกำหนด" && strX === "") return 500;
         return 0;
     },
 
@@ -358,10 +474,10 @@ const ScoringService = {
         return rowCount <= 5 ? 1800 : 500;
     }
 };
-
 // ==================== Allocation Service ====================
+// ==================== Allocation Service (เวอร์ชันพ่น Log สรุปอันดับคิว) ====================
 const AllocationService = {
-    calculateAllocation(rawDatabase, vvipData, totalStock, materialTypeMap = {}) {
+    calculateAllocation(rawDatabase, vvipData, totalStock, materialTypeMap = {}, budgetMapping = {}) {
         if (!rawDatabase || !rawDatabase.rows) {
             return { allocatedResults: [], finalWbsScores: new Map(), wbsStatusMap: new Map() };
         }
@@ -370,22 +486,24 @@ const AllocationService = {
         const finalWbsScores = new Map();
         const wbsStatusMap = new Map();
 
-        // สร้าง Unique WBS โดยใช้ Set (เร็วกว่า)
         const uniqueWBSSet = new Set(
             rawDatabase.rows.map(r => getCellValue(r.c[0]).toString().trim())
         );
         const uniqueWBS = Array.from(uniqueWBSSet);
 
-        // STEP 1-2: สร้างคิว
+        // STEP 1: เตรียมคิวงานรอบแรก (ใช้คะแนนตั้งต้นก่อนแจกของเพื่อจัดลำดับความสำคัญ)
         const queue = rawDatabase.rows.map(row => {
             const wbs = getCellValue(row.c[0]).toString().trim();
             const rowsOfWbs = rawDatabase.rows.filter(
                 r => getCellValue(r.c[0]).toString().trim() === wbs
             );
 
+            const openDateValue = getCellValue(row.c[26]);
+            const wbsBudget = budgetMapping[wbs] || 0;
+
             const info = ScoringService.calculateScoreDetails(
                 wbs, getCellValue(row.c[24]), getCellValue(row.c[23]),
-                rowsOfWbs.length, vvipData, false
+                rowsOfWbs.length, vvipData, false, openDateValue, false // ยังไม่เปิด Log
             );
 
             return {
@@ -395,14 +513,24 @@ const AllocationService = {
                 pending: parseFloat(getCellValue(row.c[14])) || 0,
                 score: info.totalScore,
                 rowCount: rowsOfWbs.length,
-                raw: { valA: getCellValue(row.c[0]), valY: getCellValue(row.c[24]), valX: getCellValue(row.c[23]) }
+                budget: wbsBudget,
+                raw: { 
+                    valA: getCellValue(row.c[0]), 
+                    valY: getCellValue(row.c[24]), 
+                    valX: getCellValue(row.c[23]),
+                    valOpenDate: openDateValue
+                }
             };
         });
 
-        // เรียงลำดับ
-        queue.sort((a, b) => b.score - a.score || a.rowCount - b.rowCount);
+        // จัดเรียงคิว 3 ชั้นเพื่อเข้าคิวตัดสต็อก
+        queue.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
+            return b.budget - a.budget;
+        });
 
-        // STEP 3: จัดสรร
+        // STEP 2: ดำเนินการจัดสรรพัสดุตามคิวจริง
         let allocatedResults = queue.map(item => {
             const available = currentStock[item.partID] || 0;
             const assigned = Math.min(available, item.pending);
@@ -419,10 +547,11 @@ const AllocationService = {
             };
         });
 
-        // STEP 4: กำหนดสถานะสี
+        // STEP 3: สรุปผลลัพธ์และบันทึกข้อมูลเพื่อเตรียมจัดอันดับสุดท้าย
+        const finalRankPrepList = [];
+
         uniqueWBS.forEach(wbs => {
             const items = allocatedResults.filter(r => r.wbs === wbs);
-
             const isGreen = items.length > 0 && items.every(i => i.pending > 0 && i.assigned >= i.pending);
             const isRed = items.length > 0 && items.every(i => i.assigned === 0);
 
@@ -435,29 +564,90 @@ const AllocationService = {
 
             const firstItem = items[0];
             if (firstItem) {
+                // คำนวณคะแนนสุทธิสุดท้ายหลังแจกของ (ใส่ค่า isGreen เพื่อลุ้นโบนัส +2000)
                 const final = ScoringService.calculateScoreDetails(
                     firstItem.raw.valA, firstItem.raw.valY, firstItem.raw.valX,
-                    firstItem.rowCount, vvipData, isGreen
+                    firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false // ยังไม่เปิด Log ตรงนี้
                 );
 
                 finalWbsScores.set(wbs, final.totalScore);
 
                 let status = "yellow";
-                if (isGreen) {
-                    status = "green";
-                } else if (isBlue) {
-                    status = "blue";
-                } else if (isRed) {
-                    status = "red";
-                }
+                if (isGreen) status = "green";
+                else if (isBlue) status = "blue";
+                else if (isRed) status = "red";
+                
                 wbsStatusMap.set(wbs, status);
-
                 items.forEach(it => it.score = final.totalScore);
+
+                // เก็บลงอาร์เรย์ชั่วคราวเพื่อนำไปเรียงลำดับพิมพ์ออกรายงาน
+                finalRankPrepList.push({
+                    wbs: wbs,
+                    finalScore: final.totalScore,
+                    rowCount: firstItem.rowCount,
+                    budget: firstItem.budget,
+                    status: status,
+                    raw: firstItem.raw,
+                    isFullyAllocated: isGreen
+                });
             }
         });
 
+       // ================================================================================================
+        // 🏆 🧾 [FINAL RANKING REPORT] พ่นตัวเลขคะแนนสุทธิเรียงตามอันดับ 1 ถึงสุดท้าย
+        // ================================================================================================
+        // 🎯 ตรรกะการจัดเรียงลำดับ 3 ชั้น (เบื้องหลังยังใช้คะแนนดิบ 4 ตำแหน่งเพื่อความแม่นยำ)
+        finalRankPrepList.sort((a, b) => {
+            // 🥇 ชั้นที่ 1: คะแนนรวมสูงสุดมาก่อน
+            if (b.finalScore !== a.finalScore) {
+                return b.finalScore - a.finalScore;
+            }
+            // 🥈 ชั้นที่ 2: ถ้าคะแนนเท่ากันเป๊ะ ➔ เอาจำนวนรายการพัสดุน้อยที่สุดขึ้นก่อน
+            if (a.rowCount !== b.rowCount) {
+                return a.rowCount - b.rowCount;
+            }
+            // 🥉 ชั้นที่ 3: ถ้าคะแนนเท่ากัน และพัสดุเท่ากันอีก ➔ เอามูลค่างาน (Budget) มากที่สุดขึ้นก่อน
+            return b.budget - a.budget;
+        });
+
+        console.log("================================================================================================================================================");
+        console.log(`🏆 [FINAL RANKING REPORT] รายงานสรุปคะแนนสุทธิและจัดอันดับงาน (WBS) เรียงจากอันดับ 1 ถึงสุดท้าย (${finalRankPrepList.length} รายการ)`);
+        console.log("👉 เกณฑ์การจัดอันดับ: 1. คะแนนสุทธิสูงสุด ➔ 2. รายการพัสดุน้อยที่สุด ➔ 3. มูลค่างานสูงสุด");
+        console.log("================================================================================================================================================");
+
+        finalRankPrepList.forEach((item, index) => {
+            const rank = index + 1;
+            const statusLabel = item.status === "green" ? "🟢 FULLY" : (item.status === "blue" ? "🔵 MAIN" : (item.status === "yellow" ? "🟡 PARTIAL" : "🔴 NONE"));
+            const budgetStr = item.budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            // แสดงผลคะแนนดิบ 4 ตำแหน่งใน Log เพื่อให้ผู้ใช้งานเห็นเหตุผลการตัดอันดับเวลาเกิด Case ที่คะแนนหรือพัสดุเท่ากัน
+            console.log(
+                `อันดับที่ ${rank.toString().padEnd(2)} | ` +
+                `WBS: ${item.wbs.padEnd(15)} | ` +
+                `สถานะ: [${statusLabel}] | ` +
+                `คะแนนสุทธิสุดท้าย: ${item.finalScore.toFixed(4).padStart(10)} แต้ม | ` +
+                `จำนวนพัสดุ: ${item.rowCount.toString().padStart(2)} รายการ | ` +
+                `มูลค่างาน: ${budgetStr.padStart(14)} บาท`
+            );
+
+            // ส่งไปดึงรายละเอียด Breakdown ใต้บรรทัดตัวเอง
+            ScoringService.calculateScoreDetails(
+                item.raw.valA, item.raw.valY, item.raw.valX,
+                item.rowCount, vvipData, item.isFullyAllocated, item.raw.valOpenDate, true
+            );
+        });
+
+        console.log("================================================================================================================================================");
         return { allocatedResults, finalWbsScores, wbsStatusMap };
     },
+
+
+    updatePieChart(data) {
+        if (typeof updatePieChart === 'function') {
+            updatePieChart(data);
+        }
+    },
+
 
 // 🎯 1. ฟังก์ชันหลัก: สแกนตารางรอบเดียวจบ แล้วกระจายงานให้กราฟแต่ละตัว
   updateDashboardCharts: function(tableSelector) {
@@ -581,7 +771,7 @@ const GraphRender = {
         datasets: [{
           data: [0, 0, 0], // จำนวนงาน
           customMoney: [0, 0, 0], // [เพิ่มเข้ามา] ยอดเงินรวมสะสม
-          backgroundColor: ['#2ed573', '#9333ea', '#ff4757'],
+          backgroundColor: ['#2ed573', '#8454b1', '#eb4856'],
           borderWidth: 2,
           borderColor: '#ffffff'
         }]
@@ -648,13 +838,13 @@ const GraphRender = {
             label: 'งานที่มีไฟน้ำเงิน/เหลือง',
             data: [], // จำนวนงานไฟเหลือง
             customMoney: [], // ยอดเงินรวมไฟเหลือง
-            backgroundColor: '#9333ea'
+            backgroundColor: '#8454b1'
           },
           {
             label: 'งานที่มีไฟแดง',
             data: [], // จำนวนงานไฟแดง
             customMoney: [], // ยอดเงินรวมไฟแดง
-            backgroundColor: '#ff4757'
+            backgroundColor: '#eb4856'
           }
         ]
       },
@@ -712,8 +902,55 @@ const GraphRender = {
     });
   }
 };
+
+// ==================== Event Handlers ====================
+function renderInitialStockMatch(allocatedData, materialTypeMap) {
+    if (!allocatedData || !Array.isArray(allocatedData)) {
+        console.warn("⚠️ No allocated data provided");
+        return;
+    }
+
+    // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
+    const filteredAllocatedData = allocatedData.filter(res => {
+        const assignedValue = parseFloat(res.assigned) || 0;
+        return assignedValue > 0;
+    });
+    const tableContent = {
+        cols: [
+            { label: "หมายเลขงาน" },
+            { label: "รหัสพัสดุ" },
+            { label: "ชื่อพัสดุ" },
+            { label: "ประเภท" },
+            { label: "ค้างเบิก" },
+            { label: "จำนวนที่ได้" },
+            { label: "คงเหลือ" },
+            { label: "ทั้งหมด" }
+        ],
+        rows: allocatedData.map(res => {
+            const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
+            const safeTotal = (isNaN(res.totalStock) || res.totalStock === null) ? 0 : res.totalStock;
+            return {
+                c: [
+                    { v: res.wbs },
+                    { v: res.partID },
+                    { v: res.partName },
+                    { v: 0 },
+                    { v: res.pending || 0 },
+                    { v: res.assigned || 0 },
+                    { v: safeRemaining },
+                    { v: safeTotal }
+                ]
+            };
+        })
+    };
+
+    stockMatchTableInstance = TableRenderer.renderStockTable('#tableStockMatch', tableContent, materialTypeMap, "match");
+}
+
 // ==================== Table Renderer ====================
 const TableRenderer = {
+
+    //===== ตาราง match stock=============//
     renderStockTable(target, tableData, materialTypeMap = {}, mode = "stock") {
         if (!tableData || !tableData.rows || !tableData.cols) {
             console.warn("⚠️ No data for table:", target);
@@ -801,6 +1038,8 @@ matchTable.buttons().container().appendTo('#my-export-space');
 return matchTable;
     },
 
+//===== ตาราง Requirement =============//
+
     renderRequirementTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping = {}) {
         const $el = $(selector);
         if ($.fn.DataTable.isDataTable(selector)) {
@@ -811,19 +1050,22 @@ return matchTable;
         let html = this._buildTableHTML(data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping);
         $el.html(html);
 
+
    // 🎯 1. ประกาศตัวแปรรับค่าตาราง (เปลี่ยนจาก return เป็น const ตัวแปรไว้ก่อนเพื่อเอาไปสั่งย้ายปุ่ม)
 const RequirementTable = $el.DataTable({
     "pageLength": 10,
     "responsive": true,
-    "order": [[6, "desc"]],
+    "order": [[7, "desc"]], 
     "buttons": [
         {
             extend: 'excel',
             text: '<i class="fas fa-file-excel mr-1"></i> Export',
             filename: 'R2C_Report',
-            className: 'px-3 py-2 mb-0  text-center text-white uppercase align-middle bg-purple rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+            className: 'px-3 py-2 mb-0 text-center text-white uppercase align-middle bg-purple rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
         }
     ],
+    "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+    
     "columnDefs": [
         {
             "targets": 0,
@@ -832,10 +1074,20 @@ const RequirementTable = $el.DataTable({
         },
         { "targets": 5, "type": "num" }
     ],
-    // 🚀 ล็อก B ไว้ใน dom เพื่อให้ตารางปั้นปุ่มรอไว้ในระบบหลังบ้านก่อน
-    "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>'
+    
+    // 🎯 แก้ไขฟังก์ชันตอนท้ายให้สั้นลงและซ่อนสกรอลบาร์สนิท
+    "initComplete": function() {
+        this.api().columns.adjust();
+        
+        // เปิดให้เลื่อนขวาได้เมื่อจอเล็ก + ยิงสไตล์สั้นๆ ไปซ่อนแถบสกรอลบาร์ไม่ให้เห็นในจอคอม
+        const $wrapper = $('#tableRequirement_Data').parent().css({ 'overflow-x': 'auto' });
+        
+        $('<style>').text(`
+            #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
+            #${$wrapper.attr('id')} { scrollbar-width: none !important; }
+        `).appendTo('head');
+    }
 });
-
 // 🎯 2. สั่งย้ายก้อนปุ่มจากตาราง วาร์ปไปลงที่ช่อง ID ของคุณบิ๊กทันที (สั้นๆ แค่นี้เลย)
 RequirementTable.buttons().container().appendTo('#export-Require');
 
@@ -881,13 +1133,13 @@ return RequirementTable;
 
         let html = '<thead class="table-light"><tr>';
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สัญญาณไฟ</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass}">หมายเลขงาน</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass}">ชื่องาน</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass}">การไฟฟ้า</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass}">สถานะงาน</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-right">มูลค่างานตามแผน</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass}">จำนวนวันคงเหลือ</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-right">คะแนนสะสม</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">หมายเลขงาน</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">ชื่องาน</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">การไฟฟ้า</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สถานะงาน</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">มูลค่างานตามแผน</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนวันคงเหลือ</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">คะแนนสะสม</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนรายการ</th>`;
         html += '</tr></thead><tbody>';
 
@@ -924,11 +1176,28 @@ return RequirementTable;
             let peaName = peaNameMapping[valW] || valW || "-";
             let rowCount = countMap.get(valA) || 0;
 
-            let result = ScoringService.calculateScoreDetails(valA, valY, valX, rowCount, vvipData);
+            // 🎯 แก้ไขจากจุดเดิม ให้ดึงและส่งค่า OpenDate (วันที่เปิดงาน) เข้าไปด้วย
+            let valOpenDate = getCellValue(row.c[26]); // ดึงวันที่เปิดงานที่ Index 26 มารอก่อน
+
+            let result = ScoringService.calculateScoreDetails(
+                valA,          // valA
+                valY,          // valY
+                valX,          // valX
+                rowCount,      // rowCount
+                vvipData,      // vvipData
+                false,         // isFullyAllocated (รอบแสดงผลตารางเริ่มต้นให้เป็น false)
+                valOpenDate,   // valOpenDate (🎯 ส่งเข้าพารามิเตอร์ตัวที่ 7 เพื่อให้คำนวณ Aging ตรงกับใน Log)
+                false          // isFinalCalc
+            );
+            // 1. ดึงคะแนนดิบที่มีทศนิยม 4 ตำแหน่งมาใช้ (ตัวแปรนี้จะถูก DataTable นำไปใช้จัดเรียงคิวหลังบ้าน)
             let totalScore = (finalScores && finalScores.has(valA))
                 ? finalScores.get(valA)
                 : result.totalScore;
 
+            // 2. 🎯 สำหรับแสดงผลหน้าจอ: ปัดเศษตัวเลขให้เป็นเลขถ้วน ไม่มีทศนิยม
+            // เช่น 7025.1420 จะโชว์เป็น 7025 | 1000.8500 จะโชว์เป็น 1001
+            let displayScore = typeof totalScore === 'number' ? Math.round(totalScore).toLocaleString() : totalScore;
+            
             let dayDisplay = "-";
             let dayClass = "";
             if (result.daysRemaining !== null) {
@@ -951,14 +1220,14 @@ return RequirementTable;
 
             html += `<tr class="clickable-requirement" data-wbs="${valA}" style="cursor: pointer;">
                 <td class="${TABLE_STYLES.cellClass} text-center "><span style="display: none;">${searchToken}</span>${lightHTML}</td>
-                <td class="${TABLE_STYLES.cellClass}"><div class="px-3 py-1"><h6 class="mb-0 text-sm leading-normal" ${headerStyle}>${valA}</h6></div></td>
-                <td class="${TABLE_STYLES.cellClass}"><p ${textStyle}>${valT}</p></td>
-                <td class="${TABLE_STYLES.cellClass}"><span ${textStyle}>${peaName}</span></td>
-                <td class="${TABLE_STYLES.cellClass}"><span ${textStyle}>${valY}</span></td>
-                <td class="${TABLE_STYLES.cellClass} text-right" data-order="${budgetOrderValue}"><span ${textBoldStyle} class="text-dark font-mono">${budgetDisplay}</span></td>
-                <td class="${TABLE_STYLES.cellClass}"><span class="text-m font-bold leading-tight ${dayClass}">${dayDisplay}</span></td>
-                <td class="${TABLE_STYLES.cellClass}"><span ${textBoldStyle}>${totalScore.toLocaleString()}</span></td>
-                <td class="${TABLE_STYLES.cellClass}"><span class="badge rounded-pill  text-right bg-purple ">${rowCount} รายการ</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><div class="px-3 py-1"><h6 class="mb-0 text-sm leading-normal" ${headerStyle}>${valA}</h6></div></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><p ${textStyle}>${valT}</p></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><span ${textStyle}>${peaName}</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><span ${textStyle}>${valY}</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center" data-order="${budgetOrderValue}"><span ${textBoldStyle} class="text-dark font-mono">${budgetDisplay}</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><span class="text-m font-bold leading-tight ${dayClass}">${dayDisplay}</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><span ${textBoldStyle}>${displayScore}</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><span class="badge rounded-pill  text-right bg-purple ">${rowCount} รายการ</span></td>
             </tr>`;
         });
 
@@ -968,6 +1237,9 @@ return RequirementTable;
         return html;
     },
 
+
+
+    //=========== ตาราง NoStock พัสดุที่ไม่ได้รับการจัดสรร ===========//
 /**
  * แสดงตารางพัสดุที่ไม่ได้รับการจัดสรร (assigned = 0)
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
@@ -1003,28 +1275,39 @@ return RequirementTable;
           res.assigned || 0
     ]);
 
-const currentTable = $el.DataTable({
+const NoStockTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "pageLength": 10,
     "responsive": true,
     
-    // 🎯 2. เพิ่มออปชันปุ่ม Export สไตล์ปุ่มสีขาว ตัวหนังสือสีเขียว สวยเนี๊ยบ
     "buttons": [
         {
             extend: 'excel',
             text: '<i class="fas fa-file-excel mr-1"></i> Export',
             filename: 'R2C_NoStock_report',
-            className: 'px-3 py-2 mb-0  text-center text-green-600 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+            className: 'px-3 py-2 mb-0 text-center text-green-600 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
         }
     ],
     
-    // 🎯 3. ยัดตัวอักษร B เข้าไปใน dom (ต่อท้าย f) เพื่อให้เปิดระบบสร้างปุ่มของ DataTable
     "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
           
     "columnDefs": [
-        { "targets": "_all", "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
+        // 🎯 1. ดักทุบคอลัมน์ 0, 1 บังคับแถวเดียวตรงๆ ไม่สลับบรรทัดเด็ดขาด
+        { 
+            "targets": [0, 1], 
+            "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
+            "createdCell": function (td) {
+                $(td).css({
+                    'white-space': 'nowrap',
+                    'word-break': 'keep-all'
+                });
+            }
+        },
         { "targets": 0, "className": "font-bold text-blue-700" },
+        
+        // 🎯 2. เอาเลข 5 ออก (เหลือแค่ 2, 3, 4 เพื่อแก้ปัญหา Error ทันที)
+        { "targets": [2, 3, 4], "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
         {
             "targets": 3,
             "className": "text-red-600 text-base",
@@ -1037,15 +1320,30 @@ const currentTable = $el.DataTable({
         }
     ],
     "headerCallback": function (thead) {
-        $(thead).find('th').addClass('bg-red-50 text-red-700 font-bold py-3 px-4 text-left border-b-2 border-red-200');
+        $(thead).find('th').addClass('bg-red-50 text-red-700 font-bold py-3 px-4 text-left border-b-2 border-red-200').css('white-space', 'nowrap');
+    },
+    
+    // 🎯 3. สั่งครอบตัวอุ้มตาราง คัดสไตล์สกรอลบาร์ออก (ในคอมไม่มีแถบวิ่ง แต่ในมือถือปัดขวาได้สวยๆ)
+    "initComplete": function() {
+        this.api().columns.adjust();
+        
+        // เจาะจงที่ parent wrapper ของตารางนี้โดยตรง
+        const $wrapper = $('#tableNoStock').parent().css({ 'overflow-x': 'auto' });
+        
+        $('<style>').text(`
+            #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
+            #${$wrapper.attr('id')} { scrollbar-width: none !important; }
+        `).appendTo('head');
     }
 });
 
+
+
 // 🎯 4. [บรรทัดเด็ด] สั่งย้ายปุ่มวาร์ปไปที่กล่อง ID ขวาสุดบนแถวหัวข้อสีเขียวทันที
-currentTable.buttons().container().appendTo('#export-NoStock');
+NoStockTable.buttons().container().appendTo('#export-NoStock');
 
 // 🎯 5. รีเทิร์นตัวแปรตารางออกไปใช้งานต่อตามปกติ
-return currentTable;
+return NoStockTable;
 }, // 👈 เช็กดูว่ามีปีกกาปิดตัวนี้ครบถ้วนไหม
 
 
@@ -1074,6 +1372,8 @@ const FilterModule = {
         $filter.select2({
             theme: 'bootstrap-5',
             placeholder: 'ค้นหาหมายเลขงาน...',
+            width: '100%',
+            closeOnSelect: false,
             allowClear: true
         });
 
@@ -1102,6 +1402,8 @@ const FilterModule = {
 
         $filter.select2({
             theme: 'bootstrap-5',
+            width: '100%',
+            closeOnSelect: false,
             placeholder: 'ค้นหาสถานะงาน...',
             allowClear: true
         });
@@ -1135,7 +1437,7 @@ const FilterModule = {
             theme: 'bootstrap-5',
             width: '100%',
             closeOnSelect: false,
-            placeholder: 'เลือกการไฟฟ้า...',
+            placeholder: 'ค้นหาการไฟฟ้า...',
             allowClear: true
         });
 
@@ -1153,10 +1455,10 @@ setupFilterLight(tableInstance, rawData) {
         // 2. ยัด Option แบบที่ Select2 ชอบ (ตัวแรกสุดต้องว่างโล่ง 100%)
         const optionsHTML = `
             <option value=""></option>
-            <option value="status-green">🟢 ของครบ (สีเขียว)</option>
-            <option value="status-blue">🔵 พัสดุหลักครบ (สีน้ำเงิน)</option>
-            <option value="status-yellow">🟡 ได้ของบางส่วน (สีเหลือง)</option>
-            <option value="status-red">🔴 ไม่ได้ของเลย (สีแดง)</option>
+            <option value="status-green">🟢 ของครบ</option>
+            <option value="status-blue">🔵 พัสดุหลักครบ </option>
+            <option value="status-yellow">🟡 ได้ของบางส่วน </option>
+            <option value="status-red">🔴 ไม่ได้ของเลย </option>
         `;
         $filter.html(optionsHTML);
 
@@ -1190,49 +1492,6 @@ setupFilterLight(tableInstance, rawData) {
     }
 };
 
-// ==================== Event Handlers ====================
-function renderInitialStockMatch(allocatedData, materialTypeMap) {
-    if (!allocatedData || !Array.isArray(allocatedData)) {
-        console.warn("⚠️ No allocated data provided");
-        return;
-    }
-
-    // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
-    const filteredAllocatedData = allocatedData.filter(res => {
-        const assignedValue = parseFloat(res.assigned) || 0;
-        return assignedValue > 0;
-    });
-    const tableContent = {
-        cols: [
-            { label: "หมายเลขงาน" },
-            { label: "รหัสพัสดุ" },
-            { label: "ชื่อพัสดุ" },
-            { label: "ประเภท" },
-            { label: "ค้างเบิก" },
-            { label: "จำนวนที่ได้" },
-            { label: "คงเหลือ" },
-            { label: "ทั้งหมด" }
-        ],
-        rows: allocatedData.map(res => {
-            const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
-            const safeTotal = (isNaN(res.totalStock) || res.totalStock === null) ? 0 : res.totalStock;
-            return {
-                c: [
-                    { v: res.wbs },
-                    { v: res.partID },
-                    { v: res.partName },
-                    { v: 0 },
-                    { v: res.pending || 0 },
-                    { v: res.assigned || 0 },
-                    { v: safeRemaining },
-                    { v: safeTotal }
-                ]
-            };
-        })
-    };
-
-    stockMatchTableInstance = TableRenderer.renderStockTable('#tableStockMatch', tableContent, materialTypeMap, "match");
-}
 
 
 
@@ -1364,7 +1623,8 @@ async function initDashboard() {
             rawRequirementDatabase,
             globalVVIP,
             totalStockSummary,
-            materialTypeMap
+            materialTypeMap,
+            budgetMapping
         );
 
         //--------------วาดตาราง-------------------
