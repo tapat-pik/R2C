@@ -1,5 +1,5 @@
 git add .
 
-git commit -m "update"
+git commit -m "update ตารางพัสดุล้าสมัย"
 
-git push
+git push origin main

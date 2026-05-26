@@ -1246,7 +1246,14 @@ const matchTable = $el.DataTable({
     "responsive": true,
     "autoWidth": false,
     "order": [[0, "asc"]],
-    "buttons": [ /* ... เก็บค่าเดิมไว้ ... */ ],
+    "buttons": [
+        {
+            extend: 'excel',
+            text: '<i class="fas fa-file-excel mr-1"></i> Export',
+            filename: 'R2C_InStock_Report',
+            className: 'px-3 py-2 mb-0 text-center text-white uppercase align-middle bg-purple rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+        }
+    ],
     "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
     
     // 🌟 1. เพิ่ม Class เข้าไปในคอลัมน์เพื่อให้ CSS เส้นขอบทำงาน

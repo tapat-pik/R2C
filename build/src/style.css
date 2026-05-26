@@ -508,3 +508,113 @@ h1, h2, h3, h4, h5 {
     color: white !important;
     border-color: #8454b1 !important;
 }
+
+
+/* การตั้งค่า Font และพื้นหลัง */
+body {
+    font-family: 'Prompt', sans-serif;
+    background-color: #f4f7f6;
+    padding: 20px;
+}
+
+/* 1. คลาสสำหรับการทำ Card แบบมีเงาและไล่สี */
+.card-custom-bg {
+    background-image: linear-gradient(to bottom right, #ffffff, #f8f7ff);
+    border: 1px solid #e0d8f5;
+    border-radius: 16px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-custom-shadow {
+    box-shadow: 0 10px 25px rgba(108, 92, 231, 0.08);
+}
+
+.card-custom-bg:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(108, 92, 231, 0.15);
+}
+
+/* 2. การจัดการส่วนของไอคอน */
+.icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background-color: #f8f7ff;
+    color: #6c5ce7;
+    border: 1px solid #e0d8f5;
+    border-radius: 12px;
+    font-size: 24px;
+}
+
+/* 3. การปรับตัวอักษรและตัวเลข */
+.text-dashboard-purple { color: #2d2138; }
+.text-dashboard-sub { color: #6b7280; }
+
+.main-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #2d2138;
+    margin: 10px 0;
+}
+
+.unit-label {
+    font-size: 16px;
+    font-weight: 400;
+}
+
+/* 4. กล่องตารางข้อมูลย่อยด้านล่าง Card */
+.info-box-bottom {
+    background-color: #f0edff;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.info-text-small {
+    font-size: 13px;
+    color: #4a4a4a;
+}
+
+.info-box-container {
+   
+    border-radius: 12px;       /* มุมมน */
+    overflow: hidden;          /* ให้เนื้อหาข้างในโค้งตามขอบ */
+    margin-top: 15px;
+    background-color: #ffffff;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    border-bottom: 1px solid #e0d8f5; 
+}
+
+/* ลบเส้นขีดล่างของแถวสุดท้าย */
+.info-row:last-child {
+    border-bottom: none;
+}
+
+/* แถวที่ 1: สีม่วงอ่อนปกติ */
+.highlight-row {
+    background-color: #dacde9;
+}
+
+/* แถวที่ 2: สีที่คุณต้องการใหม่ (#ebe9f6) */
+.info-row:nth-child(2) {
+    background-color: #f7f7f8;
+}
+
+.label {
+    font-weight: 600;
+    color: #2d2138;
+    font-size: 0.875rem; /* ปรับขนาดฟอนต์ให้พอดีกับกล่อง */
+}
+
+.value {
+    font-weight: 500;
+    color: #2d2138;
+    font-size: 0.875rem;
+}
