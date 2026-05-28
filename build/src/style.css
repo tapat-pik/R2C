@@ -572,6 +572,13 @@ body {
     margin-top: 15px;
 }
 
+.info-white-box-bottom {
+    background-color: #ffffff;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
 .info-text-small {
     font-size: 13px;
     color: #4a4a4a;

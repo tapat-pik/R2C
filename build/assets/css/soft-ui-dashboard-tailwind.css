@@ -2466,7 +2466,16 @@ h6 {
   line-height: 1.5rem;
 }
 .text-xxl {
-  font-size: 5cqb;
+  font-size: 50px;
+  line-height: 1.75rem;
+}
+
+.text-2xl {
+  font-size: 40px;
+  line-height: 1.75rem;
+}
+.text-3xl {
+  font-size: 50px;
   line-height: 1.75rem;
 }
 .text-xl {
