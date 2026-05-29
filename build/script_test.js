@@ -1218,13 +1218,53 @@ function ShowTotalJobs(tableInstance) {
 
     console.log(`📊 Green Value Sum: ${totalValueGreenSum.toLocaleString()}`);
 }
-// ==================== Event Handlers ====================
+// ============== คำนวณความพร้อมพัสดุและงาน ==============//
+
+// ฟังก์ชันคำนวณความพร้อมของงาน (ค่าเฉลี่ยราย WBS)
+function updateProgressData(allocatedData, materialTypeMap) {
+    allocatedData.forEach(res => {
+        // 1. ดึงประเภทจาก Map (ตรวจสอบว่า partID นี้เป็นประเภทอะไร)
+        const partID = res.partID;
+        const matType = materialTypeMap[partID] || "";
+        
+        // 2. เช็กเงื่อนไข: ถ้าเป็นพัสดุที่ไม่เบิกจากคลัง ให้เป็น 100% ทันที
+        // (ปรับคำว่า 'พัสดุไม่เบิกจากคลัง' ให้ตรงกับค่าในระบบของคุณนะครับ)
+        if (matType === 'พัสดุไม่เบิกจากคลัง') { 
+            res.calcPercent = 100;
+        } 
+        // 4. คำนวณปกติ
+        else {
+            const assigned = parseFloat(res.assigned) || 0;
+            const pending = parseFloat(res.pending) || 0;
+            res.calcPercent = (pending > 0) ? Math.min((assigned / pending) * 100, 100) : 0;
+        }
+    });
+    return allocatedData;
+}
+function getWBSProgressMap(allocatedData) {
+    const stats = {};
+    allocatedData.forEach(res => {
+        if (!stats[res.wbs]) stats[res.wbs] = { total: 0, count: 0 };
+        
+        // ดึงค่า res.calcPercent ที่คำนวณไว้ในข้อ 1 มาใช้
+        stats[res.wbs].total += res.calcPercent; 
+        stats[res.wbs].count += 1;
+    });
+    
+    const map = {};
+    for (let wbs in stats) {
+        map[wbs] = stats[wbs].total / stats[wbs].count;
+    }
+    return map;
+}
+// ==================== Event Handlers ====================//
 function renderInitialStockMatch(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) {
         console.warn("⚠️ No allocated data provided");
         return;
     }
-
+// 1. สั่งคำนวณ % พัสดุรายตัวให้ครบทุกแถว
+    allocatedData = updateProgressData(allocatedData, materialTypeMap);
     // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
     const filteredAllocatedData = allocatedData.filter(res => {
         const assignedValue = parseFloat(res.assigned) || 0;
@@ -1244,6 +1284,7 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
         rows: allocatedData.map(res => {
             const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
             const safeTotal = (isNaN(res.totalStock) || res.totalStock === null) ? 0 : res.totalStock;
+            
             return {
                 c: [
                     { v: res.wbs },
@@ -1359,14 +1400,14 @@ return matchTable;
 
 //===== ตาราง Requirement =============//
 
-    renderRequirementTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping = {}) {
+    renderRequirementTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping = {}, wbsProgressMap = {}) {
         const $el = $(selector);
         if ($.fn.DataTable.isDataTable(selector)) {
             $el.DataTable().destroy();
             $el.empty();
         }
 
-        let html = this._buildTableHTML(data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping);
+        let html = this._buildTableHTML(data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
         $el.html(html);
 
 
@@ -1391,7 +1432,20 @@ const RequirementTable = $el.DataTable({
             "orderable": false,
             "render": function (data, type, row) { return data; }
         },
-        { "targets": 5, "type": "num" }
+        { "targets": 5, "type": "num" },
+        {
+            "targets": 10,
+            "visible": false,
+            "searchable": true // สำคัญ: ตั้งเป็น true เพื่อให้ช่อง Search ของตารางค้นหาข้อมูลจากช่องนี้ได้
+        },
+        { 
+        "targets": 11, // คอลัมน์ % ความพร้อม
+        "type": "num", 
+        "render": function(data, type, row) {
+            // เพื่อให้ Sort ได้ถูกต้อง ต้องดึงค่าตัวเลขออกมาจาก HTML
+            return type === 'sort' ? parseFloat(data) : data;
+        }
+    }
     ],
     
     // 🎯 แก้ไขฟังก์ชันตอนท้ายให้สั้นลงและซ่อนสกรอลบาร์สนิท
@@ -1445,7 +1499,7 @@ return RequirementTable;
         });
     },
 
-    _buildTableHTML(data, vvipData, peaNameMapping = {}, finalScores = null, wbsStatusMap = new Map(), budgetMapping = {}) {
+    _buildTableHTML(data, vvipData, peaNameMapping = {}, finalScores = null, wbsStatusMap = new Map(), budgetMapping = {}, wbsProgressMap= {}) {
         const headerStyle = `style="${TABLE_STYLES.headerStyle}"`;
         const textStyle = `class="mb-0 text-m leading-tight" style="${TABLE_STYLES.textStyle}"`;
         const textBoldStyle = `class="mb-0 font-bold text-m leading-tight" style="${TABLE_STYLES.textBoldStyle}"`;
@@ -1460,9 +1514,10 @@ return RequirementTable;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สถานะงาน</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">มูลค่างานตามแผน</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนวันคงเหลือ</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">คะแนนสะสม</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนรายการ</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">การกำหนดโครงการ</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">คะแนนสะสม</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center d-none">การกำหนดโครงการ</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center ">% ความพร้อม</th>`;
         html += '</tr></thead><tbody>';
 
         const uniqueMap = new Map();
@@ -1563,7 +1618,16 @@ return RequirementTable;
             let rawBudget = budgetMapping[valA];
             let budgetDisplay = (rawBudget !== undefined) ? rawBudget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
             let budgetOrderValue = (rawBudget !== undefined) ? rawBudget : 0;
-            
+            const progress = wbsProgressMap[item.valA] || 0;
+            const barColor = progress >= 80 ? 'bg-success' : (progress >= 50 ? 'bg-warning' : 'bg-danger');
+            const progressHTML = `
+                <div style="width: 100px;">
+                    <div class="progress" style="height: 8px; background-color: #eee;">
+                        <div class="progress-bar ${barColor}" style="width: ${progress}%"></div>
+                    </div>
+                    <small class="font-bold">${progress.toFixed(0)}%</small>
+                </div>
+            `;
             // 🎯 ส่วนที่เพิ่ม 2: ยัดข้อมูลแถวนี้ลงถังเก็บ
             activeRowsDataForChart.push({ status: status, qty: rowCount });
 
@@ -1577,9 +1641,10 @@ return RequirementTable;
                 <td class="${TABLE_STYLES.cellClass} text-center"><span ${textStyle}>${valY}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center" data-order="${budgetOrderValue}"><span ${textBoldStyle} class="text-dark font-mono">${budgetDisplay}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><span class="text-m font-bold leading-tight ${dayClass}">${dayDisplay}</span></td>
-                <td class="${TABLE_STYLES.cellClass} text-center"><span ${textBoldStyle}>${displayScore}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><span class="badge rounded-pill  text-right bg-purple ">${rowCount} รายการ</span></td>
-                 <td class="${TABLE_STYLES.cellClass} text-center"><span ${textStyle}>${ProjectPlan}</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center"><span ${textBoldStyle}>${displayScore}</span></td> 
+                <td class="${TABLE_STYLES.cellClass} text-center d-none"><span ${textStyle}>${ProjectPlan}</span></td>
+                <td class="${TABLE_STYLES.cellClass} text-center">${progressHTML}</td>
             </tr>`;
         });
 
@@ -1727,7 +1792,7 @@ return NoStockTable;
 renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
 
-    const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ"];
+    const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ","พัสดุไม่เบิกจากคลัง"];
 
     // กรองเฉพาะ assigned === 0 และประเภทที่ต้องการ
     const obsoleteData = allocatedData.filter(res => {
@@ -2151,7 +2216,8 @@ async function initDashboard() {
             materialTypeMap,
             budgetMapping
         );
-
+        const processedAllocData = updateProgressData(alloc.allocatedResults, materialTypeMap);
+        const wbsProgressMap = getWBSProgressMap(processedAllocData);
         //================วาดตาราง เรียกฟังก์ชันมาใช้งาน=================//
         config.forEach(sheet => {
             const data = dataMap[sheet.name];
@@ -2160,7 +2226,7 @@ async function initDashboard() {
             if (sheet.name === 'Requirement_Data') {
                 parcelTable = TableRenderer.renderRequirementTable(
                     sheet.target, data, globalVVIP, peaNameMapping,
-                    alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping
+                    alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
                 );
                 renderInitialStockMatch(alloc.allocatedResults, materialTypeMap);
                                 // หลังจาก renderInitialStockMatch เพิ่มบรรทัด
