@@ -1136,7 +1136,88 @@ const GraphRender = {
     });
   }
 };
+function updateDashboardCards(tableSelector) {
+    const table = $(tableSelector).DataTable();
+    const filteredData = table.rows({ search: 'applied' }).data();
 
+    // เรียกฟังก์ชันย่อยเพื่ออัปเดตข้อมูลแต่ละส่วน
+    ShowTotalJobs(filteredData);
+    // ในอนาคตสามารถเพิ่ม ShowTotalBudget(filteredData) ได้ที่นี่
+}
+function ShowTotalJobs(tableInstance) {
+    // 1. นับจำนวนงานทั้งหมด
+    const totalCount = tableInstance.rows().count();
+    $('#total-jobs-count').text(totalCount.toLocaleString());
+
+    let totalCIPCount = 0;
+    let total022Count = 0;
+    let totalValueAllSum = 0; 
+    let totalValueCIPSum = 0; 
+    let totalGreenCount = 0;
+    let totalValueGreenSum = 0; // ตัวแปรเก็บมูลค่ารวมของงานสีเขียว
+    let totalBlueCount = 0;
+    let totalValueBlueSum = 0; // ตัวแปรเก็บมูลค่ารวมของงานสีน้ำเงิน
+
+    // 2. ลูปผ่านแต่ละแถว
+    tableInstance.rows().nodes().each(function(rowNode) {
+        const $tds = $(rowNode).find('td');
+        
+        const cellProject = $tds.eq(10).text().trim(); // การกำหนดโครงการ
+        const rawValue = $tds.eq(6).text().trim();     // มูลค่างาน (Index 6)
+        const statusHTML = $tds.eq(1).html() || "";    // สัญญาณไฟ (Index 1)
+        
+        // แปลงค่าเงินเป็นตัวเลข
+        const numericValue = parseFloat(rawValue.replace(/,/g, '')) || 0;
+         totalValueAllSum += numericValue;
+        // เช็คสัญญาณไฟสีเขียว
+        const isGreen = statusHTML.includes('status-green');
+        if (isGreen) {
+            totalGreenCount++;
+            totalValueGreenSum += numericValue; // สะสมมูลค่างานสีเขียว
+        }
+
+        const isBlue = statusHTML.includes('status-blue');
+        if (isBlue) {
+            totalBlueCount++;
+            totalValueBlueSum += numericValue; // สะสมมูลค่างานสีน้ำเงิน
+        }
+
+        // แยกนับจำนวนและมูลค่าตามเงื่อนไขการกำหนดโครงการ
+        if (cellProject !== 'งาน 02.2') {
+            totalCIPCount++;
+            totalValueCIPSum += numericValue;
+        } else {
+            total022Count++;
+        }
+    });
+
+    // 3. อัปเดตตัวเลขลง HTML
+    $('#total-CIP-count').text(totalCIPCount.toLocaleString());
+    $('#total-022-count').text(total022Count.toLocaleString());
+    $('#total-green-count').text(totalGreenCount.toLocaleString());
+    $('#total-blue-count').text(totalBlueCount.toLocaleString());
+  // อัปเดตมูลค่ารวม CIP
+    $('#total-valueAll-count').text(totalValueAllSum.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }));
+
+    // อัปเดตมูลค่ารวม CIP
+    $('#total-valueCIP-count').text(totalValueCIPSum.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }));
+
+    // อัปเดตมูลค่ารวมงานสีเขียว
+    $('#total-valueGreen-count').text(totalValueGreenSum.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }));
+
+    // อัปเดตมูลค่ารวมงานสีน้ำเงิน
+    $('#total-valueBlue-count').text(totalValueBlueSum.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }));
+
+    console.log(`📊 Green Value Sum: ${totalValueGreenSum.toLocaleString()}`);
+}
 // ==================== Event Handlers ====================
 function renderInitialStockMatch(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) {
@@ -1381,6 +1462,7 @@ return RequirementTable;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนวันคงเหลือ</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">คะแนนสะสม</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนรายการ</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">การกำหนดโครงการ</th>`;
         html += '</tr></thead><tbody>';
 
         const uniqueMap = new Map();
@@ -1409,6 +1491,7 @@ return RequirementTable;
         // ================================================================================================
         const sortedWBSList = [];
         uniqueMap.forEach((row, valA) => {
+            let ProjectPlan = getCellValue(row.c[12]); //การกำหนดโครงการ
             let valX = getCellValue(row.c[23]);
             let valY = getCellValue(row.c[24]);
             let rowCount = countMap.get(valA) || 0;
@@ -1453,7 +1536,7 @@ return RequirementTable;
             const rowCount = item.rowCount;
             const totalScore = item.totalScore;
             const result = item.result;
-
+            let ProjectPlan = getCellValue(row.c[12]); //การกำหนดโครงการ
             let valT = getCellValue(row.c[19]);
             let valW = getCellValue(row.c[22]) || "";
             let valX = getCellValue(row.c[23]);
@@ -1496,6 +1579,7 @@ return RequirementTable;
                 <td class="${TABLE_STYLES.cellClass} text-center"><span class="text-m font-bold leading-tight ${dayClass}">${dayDisplay}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><span ${textBoldStyle}>${displayScore}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><span class="badge rounded-pill  text-right bg-purple ">${rowCount} รายการ</span></td>
+                 <td class="${TABLE_STYLES.cellClass} text-center"><span ${textStyle}>${ProjectPlan}</span></td>
             </tr>`;
         });
 
@@ -2068,7 +2152,7 @@ async function initDashboard() {
             budgetMapping
         );
 
-        //--------------วาดตาราง-------------------
+        //================วาดตาราง เรียกฟังก์ชันมาใช้งาน=================//
         config.forEach(sheet => {
             const data = dataMap[sheet.name];
             if (!data) return;
@@ -2080,6 +2164,13 @@ async function initDashboard() {
                 );
                 renderInitialStockMatch(alloc.allocatedResults, materialTypeMap);
                                 // หลังจาก renderInitialStockMatch เพิ่มบรรทัด
+                // --- [เพิ่มจุดที่ 1] เรียกอัปเดต Card ทันทีหลังจากตารางถูกสร้างเสร็จ ---
+                updateDashboardCards(sheet.target); 
+
+                // --- [เพิ่มจุดที่ 2] ผูก Event ให้ทำงานเมื่อมีการค้นหาหรือเปลี่ยนหน้า ---
+                $(sheet.target).on('draw.dt search.dt', function() {
+                    updateDashboardCards(sheet.target);
+                });                
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
                 obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
                 FilterModule.setupFilterID_WBS(parcelTable, data);
@@ -2115,7 +2206,7 @@ async function initDashboard() {
      $('#main-page-loader').fadeOut(300, function() {
             $(this).remove(); // สั่งทำลาย Element ทิ้งไปเลยไม่ให้โผล่มาหลอนซ้ำสอง
         });
-
+//==============================  end code===============================//
       
     } catch (err) {
         console.error("❌ Error:", err);
