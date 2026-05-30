@@ -220,12 +220,12 @@ h1, h2, h3, h4, h5 {
 
 #tableStockMatch thead th {
     padding: 4px 6px !important;
-    background-color: #8454b1 !important; /* สีเขียวอมฟ้าตามรูป */
+    background-color: #26867f !important; /* สีเขียวอมฟ้าตามรูป */
     color: #ffffff !important;           /* ตัวอักษรสีขาวเพื่อให้ตัดกับพื้นหลัง */
     font-size: 13px !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
-    border-bottom: 1px solid #8454b1 !important; /* เส้นขอบที่เข้มขึ้นเล็กน้อย */
+    border-bottom: 1px solid #26867f !important; /* เส้นขอบที่เข้มขึ้นเล็กน้อย */
 }
 /* ลบเส้นขอบทับซ้อนในตัวตาราง */
 #tableStockMatch tbody td {
@@ -313,7 +313,7 @@ h1, h2, h3, h4, h5 {
 
 #tableNoStock thead th {
     padding: 8px 6px !important;
-    background-color: #8454b1 !important; /* สีเขียวอมฟ้าตามรูป */
+    background-color: #c23737 !important; /* สีเขียวอมฟ้าตามรูป */
     color: #ffffff !important;
     font-size: 13px !important;
     font-weight: 600 !important;

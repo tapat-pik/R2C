@@ -12,5 +12,5 @@ git pull origin main
 
 # 5. push ไฟล์ที่แก้ไขขึ้น git
 git add .
-git commit -m "update แก้ card แสดงจำนวนงาน"
+git commit -m "update เปอร์เซ็น"
 git push origin main

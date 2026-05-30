@@ -1382,6 +1382,60 @@ const matchTable = $el.DataTable({
     "columnDefs": [
         { "targets": "_all", "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal" },
         { "targets": [0, 1], "className": "font-bold text-violet-800 whitespace-nowrap border-l border-gray-200" },
+        //  { "targets": [3], "className": "font-bold text-violet-800 whitespace-nowrap border-l border-gray-200" },
+      { 
+    "targets": 3, 
+    "render": function(data, type, row) {
+        let bgColor = "#e5e7eb"; // สีเทา (ค่าเริ่มต้น)
+        let textColor = "#374151";
+        
+if (data === 'พัสดุหลัก') {
+    // ม่วงพาสเทลอ่อน (Soft Purple) - ดูเบาสบายตา
+    bgColor = "#e9d5ff"; 
+    textColor = "#6b21a8"; 
+    
+} else if (data === 'พัสดุรอง') {
+    // ม่วงกลาง (Vivid Purple) - เห็นชัดเจนขึ้น
+    bgColor = "#c084fc"; 
+    textColor = "#421a80"; 
+    
+} else if (data === 'ผลิตภัณฑ์คอนกรีต') {
+    // ม่วงเข้ม (Deep Purple) - เน้นความหนักแน่น
+    bgColor = "#7e22ce"; 
+    textColor = "#f3e8ff"; // ใช้ตัวหนังสือสีขาว/อ่อนเพื่อให้ตัดกับพื้นหลังเข้ม
+}
+
+        return `<span class="inline-flex items-center" 
+                    style="font-size: 13px !important; 
+                           padding: 4px 16px !important; 
+                           border-radius: 50px !important; 
+                           background-color: ${bgColor} !important; 
+                           color: ${textColor} !important; 
+                           display: inline-flex !important; 
+                           justify-content: center; 
+                           align-items: center; 
+                           white-space: nowrap;">
+                    <i class= style="color: ${textColor} !important;"></i>${data || '-'}
+                </span>`;
+    },
+    "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
+},
+        { 
+        "targets": 6, // ระบุคอลัมน์ index ที่ 6
+        "render": function(data, type, row) {
+            // ตรวจสอบว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใช้ toFixed(2)
+            return (typeof data === 'number') ? data.toFixed(2) : data;
+        },
+        "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal"
+    },
+    { 
+        "targets": 7, // ระบุคอลัมน์ index ที่ 7
+        "render": function(data, type, row) {
+            // ตรวจสอบว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใช้ toFixed(2)
+            return (typeof data === 'number') ? data.toFixed(2) : data;
+        },
+        "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal"
+    },
         { "targets": [-1], "className": "text-right whitespace-nowrap border-r border-gray-200" } 
     ],
     
@@ -1619,15 +1673,30 @@ return RequirementTable;
             let budgetDisplay = (rawBudget !== undefined) ? rawBudget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
             let budgetOrderValue = (rawBudget !== undefined) ? rawBudget : 0;
             const progress = wbsProgressMap[item.valA] || 0;
-            const barColor = progress >= 80 ? 'bg-success' : (progress >= 50 ? 'bg-warning' : 'bg-danger');
+           const barColor = progress >= 80 
+            ? 'bg-gradient-to-tl from-green-600 to-lime-400' 
+            : (progress >= 50 
+                ? 'bg-gradient-to-tl from-blue-600 to-cyan-400' 
+                : 'bg-gradient-to-tl from-red-600 to-rose-400');
+
             const progressHTML = `
-                <div style="width: 100px;">
-                    <div class="progress" style="height: 8px; background-color: #eee;">
-                        <div class="progress-bar ${barColor}" style="width: ${progress}%"></div>
+                <div class="flex items-center justify-center">
+                    <span class="mr-2 text-xs font-semibold leading-tight">${progress.toFixed(0)}%</span>
+                    <div>
+                        <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
+                            <div 
+                                class="duration-600 ease-soft ${barColor} -mt-0.38 -ml-px flex h-1.5 flex-col justify-center overflow-hidden whitespace-nowrap rounded text-center text-white transition-all" 
+                                style="width: ${progress}%"
+                                role="progressbar" 
+                                aria-valuenow="${progress.toFixed(0)}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                            </div>
+                        </div>
                     </div>
-                    <small class="font-bold">${progress.toFixed(0)}%</small>
                 </div>
             `;
+
             // 🎯 ส่วนที่เพิ่ม 2: ยัดข้อมูลแถวนี้ลงถังเก็บ
             activeRowsDataForChart.push({ status: status, qty: rowCount });
 
