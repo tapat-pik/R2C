@@ -1916,9 +1916,9 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
         if (!data || data === "-") return '<span class="text-gray-400">-</span>';
         
         // ✂️ นับตัวอักษรรวม ถ้าเกิน 25 ตัว ค่อยสั่งหักข้อความลงบรรทัดที่สอง
-        if (data.length > 25) {
-            const firstLine = data.substring(0, 25);
-            const secondLine = data.substring(25);
+        if (data.length > 20) {
+            const firstLine = data.substring(0, 20);
+            const secondLine = data.substring(20);
             
             // 🌟 บังคับใส่ font-size: inherit !important เพื่อให้ขนาดตัวหนังสือเท่าตัวอื่นเป๊ะๆ
             return `<span style="font-size: inherit !important; white-space: nowrap !important; word-break: keep-all !important;">${firstLine}</span><br><span style="font-size: inherit !important; display: inline-block; max-width: 100%; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;" title="${data}">${secondLine}</span>`;
@@ -1946,13 +1946,22 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
             },
 
             // 🎯 col 5: Note -> ล็อกความสูงไว้ไม่เกิน 2 บรรทัดด้วย line-clamp-2
-           { 
-    "targets": 5, 
+         {
+    "targets": 5,
     "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm",
     "render": function(data) {
         if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-        // ใช้ inline-block เพื่อให้ div กว้างตามเนื้อหา แต่ไม่เกิน max-width
-        return `<div class="inline-block" style="max-width: 320px; word-wrap: break-word;" title="${data}">${data}</div>`;
+        
+        // ใช้ CSS สำหรับบังคับตัด 2 บรรทัดโดยเฉพาะ
+        return `<div class="line-clamp-2" 
+                     style="display: -webkit-box; 
+                            -webkit-line-clamp: 2; 
+                            -webkit-box-orient: vertical; 
+                            overflow: hidden; 
+                            max-width: 320px; 
+                            min-width: 200px; 
+                            word-break: break-word;" 
+                     title="${data}">${data}</div>`;
     }
 }
         ],
