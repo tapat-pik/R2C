@@ -1945,8 +1945,60 @@ h6 {
     box-shadow: 0 15px 30px 0 rgba(108, 92, 231, 0.4) !important;
     transform: translateY(-5px);
 }
-
-
+.bg-red-gradient {
+    /* พื้นหลัง */
+    background: linear-gradient(to bottom right, #ffe3e3 0%, #fcfcfd 100%) !important;
+    
+    /* กรอบสีม่วงอ่อนให้ Card ดูขอบคมชัด */
+    border: 0.5px solid #dfd9f0e7 !important;
+    
+    /* เงาแบบกล่องลอย (Hard Shadow):
+       0 10px: ตำแหน่งเงาลงล่าง
+       20px: ความฟุ้ง (ปรับลดลงเพื่อให้เงาดูคม)
+       0: spread (ทำให้เงาไม่กระจายตัวออกข้างมากไป)
+       rgba(108, 92, 231, 0.3): สีม่วงเข้มขึ้นเพื่อให้เงาชัด
+    */
+    box-shadow: 0 5px 10px 0 rgba(144, 144, 145, 0.3) !important;
+    
+    border-radius: 16px !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.bg-green-gradient {
+    /* พื้นหลัง */
+    background: linear-gradient(to bottom right, #e3ffef 0%, #fcfcfd 100%) !important;
+    
+    /* กรอบสีม่วงอ่อนให้ Card ดูขอบคมชัด */
+    border: 0.5px solid #dfd9f0e7 !important;
+    
+    /* เงาแบบกล่องลอย (Hard Shadow):
+       0 10px: ตำแหน่งเงาลงล่าง
+       20px: ความฟุ้ง (ปรับลดลงเพื่อให้เงาดูคม)
+       0: spread (ทำให้เงาไม่กระจายตัวออกข้างมากไป)
+       rgba(108, 92, 231, 0.3): สีม่วงเข้มขึ้นเพื่อให้เงาชัด
+    */
+    box-shadow: 0 5px 10px 0 rgba(144, 144, 145, 0.3) !important;
+    
+    border-radius: 16px !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.bg-gray-gradient {
+    /* พื้นหลัง */
+    background: linear-gradient(to bottom right, #ececec 0%, #fcfcfd 100%) !important;
+    
+    /* กรอบสีม่วงอ่อนให้ Card ดูขอบคมชัด */
+    border: 0.5px solid #dfd9f0e7 !important;
+    
+    /* เงาแบบกล่องลอย (Hard Shadow):
+       0 10px: ตำแหน่งเงาลงล่าง
+       20px: ความฟุ้ง (ปรับลดลงเพื่อให้เงาดูคม)
+       0: spread (ทำให้เงาไม่กระจายตัวออกข้างมากไป)
+       rgba(108, 92, 231, 0.3): สีม่วงเข้มขึ้นเพื่อให้เงาชัด
+    */
+    box-shadow: 0 5px 10px 0 rgba(144, 144, 145, 0.3) !important;
+    
+    border-radius: 16px !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 .bg-purple {
   background-color: #8454b1 !important; /* สีพื้นฐาน Soft UI */
   /* หยอดสีฟ้า-ม่วงจาง ๆ ผสมเข้าไปแบบในรูปเป้าหมาย */

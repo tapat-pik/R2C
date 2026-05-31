@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="src/style.css">
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
     <link
       rel="apple-touch-icon"
       sizes="76x76"
@@ -533,7 +534,7 @@
 
         <!-- ซ้าย: รายการพัสดุที่ Match แล้ว (w-1/2) -->
      <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0 flex flex-col">
-  <div class="card relative flex flex-col flex-auto min-w-0 break-words bg-white border-0 shadow-sm h-full">
+  <div class="card relative flex flex-col flex-auto min-w-0 break-words bg-green-gradient border-0 shadow-sm h-full">
 
     <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
       <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
@@ -561,7 +562,7 @@
         <!-- ขวา: NoStock (บน) + Obsolete (ล่าง) เรียงกันในคอลัมเดียว (w-1/2) -->
         <div class="w-full md:w-1/2 px-3 flex flex-col gap-3">
 
-        <div class="relative flex flex-col min-w-0 break-words bg-white border-0 shadow-soft-xl rounded-2xl bg-clip-border">
+        <div class="relative flex flex-col min-w-0 break-words bg-red-gradient border-0 shadow-soft-xl rounded-2xl bg-clip-border">
  <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
   <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
     <i class="fa-solid fa-triangle-exclamation me-3" 
@@ -581,11 +582,11 @@
 </div>
 
           <!-- กรอบล่าง: รายการพัสดุล้าสมัย -->
-         <div class="relative flex flex-col min-w-0 break-words bg-white border-0 shadow-soft-xl rounded-2xl bg-clip-border">
+         <div class="relative flex flex-col min-w-0 break-words bg-gray-gradient border-0 shadow-soft-xl rounded-2xl bg-clip-border">
 <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
     <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
-      <i class="fa-solid fa-lock-keyhole" style="color: rgb(132, 132, 131) ; "></i>
-
+      <i class="fa-solid fa-lock me-3" style="color: rgb(132, 132, 131); font-size: 24px;  filter: drop-shadow(0 0 6px rgba(146, 146, 146, 0.5));"></i>
+<!-- <i class="fa-duotone fa-solid fa-lock-keyhole" style="--fa-primary-color: rgb(132, 132, 131); --fa-secondary-color: rgb(132, 132, 131);"></i> -->
       รายการพัสดุล้าสมัย / เปลี่ยนแปลงรหัสพัสดุ / พัสดุไม่ต้องเบิกจากคลัง
     </h6>
     <div id="export-Obsolete"></div>
@@ -608,9 +609,9 @@
 <div class="flex flex-wrap -mx-3 mt-6">
         <div class="w-full max-w-full px-3">
           
-          <div class="relative flex flex-col min-w-0 mb-6 break-words bg-white border-0 border-transparent border-solid shadow-soft-xl rounded-2xl bg-clip-border p-6">
+          <div class="relative flex flex-col min-w-0 mb-6 break-words bg-purple-gradient border-0 border-transparent border-solid shadow-soft-xl rounded-2xl bg-clip-border p-6">
         
-            <div class="pb-0 mb-0 bg-white border-b-0 border-b-solid rounded-t-2xl border-b-transparent">
+            <div class="pb-0 mb-0  border-b-0 border-b-solid rounded-t-2xl border-b-transparent">
               <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
         <svg xmlns="http://www.w3.org/2000/svg" class="mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
@@ -626,7 +627,7 @@
               </p>
             </div>
 
-            <div class="w-full overflow-x-auto mt-4">
+            <div class="w-full overflow-x-auto mt-4 ">
               <table id="tableUpcoming" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>
             </div>
 
@@ -828,7 +829,7 @@
  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<!-- <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>  -->
+
 
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>

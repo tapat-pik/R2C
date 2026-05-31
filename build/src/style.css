@@ -2,7 +2,7 @@
 :root {
     --primary-color: #0d6efd;
     --font-main: 'Sarabun', sans-serif;
-    --bg-light: #f8fafc;
+    /* --bg-light: #f8fafc; */
     --text-muted: #64748b;
     --border-color: #e2e8f0;
 }
@@ -178,90 +178,77 @@ h1, h2, h3, h4, h5 {
 
 /* 1. คุมขนาดตัวหนังสือทุกจุดในตาราง Stock ให้เท่ากับหัวตาราง */
 
-/* --- 1. คุมขนาดตัวหนังสือและสีพื้นฐาน --- */
-/* --- 1. ปรับขนาดส่วนหัวและส่วนท้ายตาราง --- */
-/* --- 1. ปรับขนาดส่วนหัวและส่วนท้ายตาราง --- */
+/* --- 1. ปรับการแสดงผลส่วนหัวและส่วนท้าย (Wrapper) --- */
+/* --- 1. การตั้งค่าโครงสร้างหลัก (ลบสีพื้นหลังทั้งหมด) --- */
+/* --- 1. ลบพื้นหลังทุกส่วนของตารางให้โปร่งใส --- */
+#tableStockMatch,
 #tableStockMatch_wrapper,
-.mini-dt-header,
-.mini-dt-footer {
+#tableStockMatch thead,
+#tableStockMatch tbody,
+#tableStockMatch tr,
+#tableStockMatch th,
+#tableStockMatch td {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* --- 2. การจัดการฟอนต์และระยะห่างพื้นฐาน --- */
+#tableStockMatch_wrapper,
+#tableStockMatch_wrapper * {
+    font-family: 'Sarabun', sans-serif !important;
     font-size: 13px !important;
-    color: #67748E !important;
+    /* color: #67748E !important; */
+     
 }
 
-/* --- 2. จัดการช่อง Search และ Length Menu --- */
-#tableStockMatch_wrapper .dataTables_filter input {
-    width: 180px !important;
-    height: 28px !important;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-    margin-left: 5px !important;
+/* --- 3. หัวตาราง: โปร่งใส มีแค่เส้นใต้แนวนอน --- */
+#tableStockMatch thead th {
+    border-top: none !important;
+    border-bottom: 2px solid #e1e3e6 !important; /* เส้นคั่นหนาใต้หัวตาราง */
+    border-left: none !important;
+    border-right: none !important;
+    padding: 10px 8px !important;
+    text-transform: uppercase;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    color: rgb(58 65 111 / var(--tw-text-opacity, 1));
+    text-align: center !important; 
+    justify-content: center !important;
 }
 
+/* --- 4. เนื้อหาตาราง: เส้นคั่นเฉพาะแนวนอน --- */
+#tableStockMatch tbody td {
+    padding: 8px 10px !important;
+    border-bottom: 1px solid #e1e3e6 !important; /* เส้นคั่นระหว่างแถว */
+    border-left: none !important;
+    border-right: none !important;
+     color: #67748E !important;
+}
+
+/* --- 5. ลบเส้นขอบตาราง (Table wrapper) --- */
+#tableStockMatch.dataTable {
+    border-collapse: collapse !important;
+    border: none !important;
+}
+
+/* --- 6. ช่อง Search และ Length Menu --- */
+#tableStockMatch_wrapper .dataTables_filter input,
 #tableStockMatch_wrapper .dataTables_length select {
     height: 28px !important;
-    padding: 0 4px !important;
-    width: 55px !important;
-    font-size: 13px !important;
+    padding: 2px 8px !important;
     border: 1px solid #d1d5db !important;
     border-radius: 6px !important;
 }
 
-/* --- 3. ส่วนของตาราง: ใส่กรอบและมุมโค้ง --- */
-#tableStockMatch {
-    border-collapse: separate !important; /* ต้องมีเพื่อให้มุมโค้งทำงานได้ */
-    border-spacing: 0 !important;
-    border: 1px solid #e2e8f0 !important; /* สีกรอบ */
-    border-radius: 12px !important;       /* ความโค้งของมุมตาราง */
-    overflow: hidden !important;          /* ตัดส่วนเกินให้โค้ง */
-}
-
-
-#tableStockMatch thead th {
-    padding: 4px 6px !important;
-    background-color: #8454b1 !important; /* สีเขียวอมฟ้าตามรูป */
-    color: #ffffff !important;           /* ตัวอักษรสีขาวเพื่อให้ตัดกับพื้นหลัง */
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    white-space: nowrap !important;
-    border-bottom: 1px solid #8454b1 !important; /* เส้นขอบที่เข้มขึ้นเล็กน้อย */
-}
-/* ลบเส้นขอบทับซ้อนในตัวตาราง */
-#tableStockMatch tbody td {
-    padding: 3px 6px !important;
-    border-bottom: 1px solid #f1f5f9 !important;
-    font-size: 13px !important;
-    /* white-space: nowrap !important; */
-}
-
-/* --- 4. การสลับสีแถว (Zebra Striping) --- */
-#tableStockMatch tbody tr.odd td {
-  background-color: #f7f6f6 !important; /* เขียวอ่อน */
-    
-}
-
-#tableStockMatch tbody tr.even td {
-    background-color: #ffffff !important;
-}
-
-#tableStockMatch tbody tr:hover td {
-    background-color: #ede9fe !important; 
-}
-
-/* --- 5. ปุ่มเปลี่ยนหน้า (Pagination) --- */
+/* --- 7. Pagination (ปุ่มเปลี่ยนหน้า) --- */
 #tableStockMatch_wrapper .dataTables_paginate .paginate_button {
-    min-width: 18px !important;
-    height: 18px !important;
-    padding: 0 5px !important;
-    margin: 0 1px !important;
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
+    padding: 2px 8px !important;
+    margin: 0 2px !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 3px !important;
+    border-radius: 4px !important;
     background: white !important;
-    font-size: 13px !important;
+    cursor: pointer;
+    font-size: 12px !important;
 }
 
 #tableStockMatch_wrapper .dataTables_paginate .paginate_button.current {
@@ -269,191 +256,210 @@ h1, h2, h3, h4, h5 {
     color: white !important;
     border-color: #8454b1 !important;
 }
+
+/* --- 8. ข้อมูล Info และอื่นๆ --- */
+.dataTables_wrapper .dataTables_info {
+    font-size: 12px !important;
+    padding-top: 5px !important;
+}
+
+/* --- 9. ลบแถบสี Striped ที่อาจติดมา --- */
+table.dataTable.stripe tbody tr.odd,
+table.dataTable.display tbody tr.odd,
+table.dataTable.stripe tbody tr.even,
+table.dataTable.display tbody tr.even {
+    background-color: transparent !important;
+}
 /* ==========================================================================
    🎯 ดึงสไตล์ความจิ๋วพิเศษมาใส่ให้ตารางพัสดุไม่มีของ (#tableNoStock)
    ========================================================================== */
 
 /* 1. คุมขนาดฟอนต์และสีข้อความพื้นฐานรอบตาราง */
-/* --- 1. ปรับขนาดส่วนหัวและส่วนท้ายตาราง --- */
+/* --- 1. ลบพื้นหลังทุกส่วนของตารางให้โปร่งใส --- */
+#tableNoStock,
 #tableNoStock_wrapper,
-.mini-dt-header,
-.mini-dt-footer {
+#tableNoStock thead,
+#tableNoStock tbody,
+#tableNoStock tr,
+#tableNoStock th,
+#tableNoStock td {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* --- 2. การจัดการฟอนต์และระยะห่างพื้นฐาน --- */
+#tableNoStock_wrapper,
+#tableNoStock_wrapper * {
+    font-family: 'Sarabun', sans-serif !important;
     font-size: 13px !important;
+    /* color: #67748E !important; */
+}
+
+/* --- 3. หัวตาราง: โปร่งใส มีแค่เส้นใต้แนวนอน --- */
+#tableNoStock thead th {
+    border-top: none !important;
+    border-bottom: 2px solid #e1e3e6 !important; /* เส้นคั่นหนาใต้หัวตาราง */
+    border-left: none !important;
+    border-right: none !important;
+    padding: 10px 8px !important;
+    text-transform: uppercase;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+   color: rgb(58 65 111 / var(--tw-text-opacity, 1));
+   text-align: center !important; 
+    justify-content: center !important;
+}
+
+/* --- 4. เนื้อหาตาราง: เส้นคั่นเฉพาะแนวนอน --- */
+#tableNoStock tbody td {
+    padding: 8px 10px !important;
+    border-bottom: 1px solid #e1e3e6 !important; /* เส้นคั่นระหว่างแถว */
+    border-left: none !important;
+    border-right: none !important;
+    
     color: #67748E !important;
 }
 
-/* --- 2. จัดการช่อง Search และ Length Menu --- */
-#tableNoStock_wrapper .dataTables_filter input {
-    width: 180px !important;
-    height: 28px !important;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-    margin-left: 5px !important;
+/* --- 5. ลบเส้นขอบตาราง (Table wrapper) --- */
+#tableNoStock.dataTable {
+    border-collapse: collapse !important;
+    border: none !important;
 }
 
+/* --- 6. ช่อง Search และ Length Menu --- */
+#tableNoStock_wrapper .dataTables_filter input,
 #tableNoStock_wrapper .dataTables_length select {
     height: 28px !important;
-    padding: 0 4px !important;
-    width: 55px !important;
-    font-size: 13px !important;
+    padding: 2px 8px !important;
     border: 1px solid #d1d5db !important;
     border-radius: 6px !important;
 }
 
-/* --- 3. ส่วนของตาราง: ใส่กรอบ มุมโค้ง และสีหัวตารางตามรูป --- */
-#tableNoStock {
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-}
-
-#tableNoStock thead th {
-    padding: 8px 6px !important;
-    background-color: #8454b1 !important; /* สีเขียวอมฟ้าตามรูป */
-    color: #ffffff !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    white-space: nowrap !important;
-    border-bottom: 1px solid #1f6e69 !important;
-}
-
-#tableNoStock tbody td {
-    padding: 3px 6px !important;
-    border-bottom: 1px solid #f1f5f9 !important;
-    font-size: 13px !important;
-    /* white-space: nowrap !important; */
-}
-
-/* --- 4. การสลับสีแถว (Zebra Striping) --- */
-#tableNoStock tbody tr.odd td {
-        background-color: #f7f6f6 !important; /* เขียวอ่อน */
-
-}
-
-#tableNoStock tbody tr.even td {
-    background-color: #ffffff !important; /* ขาว */
-}
-
-#tableNoStock tbody tr:hover td {
-    background-color: #dcfce7 !important; /* เขียวอ่อนตอน Hover */
-}
-
-/* --- 5. ปุ่มเปลี่ยนหน้า (Pagination) --- */
+/* --- 7. Pagination (ปุ่มเปลี่ยนหน้า) --- */
 #tableNoStock_wrapper .dataTables_paginate .paginate_button {
-    min-width: 18px !important;
-    height: 18px !important;
-    padding: 0 5px !important;
-    margin: 0 1px !important;
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
+    padding: 2px 8px !important;
+    margin: 0 2px !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 3px !important;
+    border-radius: 4px !important;
     background: white !important;
-    font-size: 13px !important;
+    cursor: pointer;
+    font-size: 12px !important;
 }
 
 #tableNoStock_wrapper .dataTables_paginate .paginate_button.current {
-    background-color: #26867f !important; /* ปรับสีปุ่มที่เลือกให้เป็นสีเขียวอมฟ้าเข้ากับหัวตาราง */
+    background-color: #8454b1 !important;
     color: white !important;
-    border-color: #26867f !important;
+    border-color: #8454b1 !important;
+}
+
+/* --- 8. ข้อมูล Info และอื่นๆ --- */
+.dataTables_wrapper .dataTables_info {
+    font-size: 12px !important;
+    padding-top: 5px !important;
+}
+
+/* --- 9. ลบแถบสี Striped ที่อาจติดมา --- */
+table.dataTable.stripe tbody tr.odd,
+table.dataTable.display tbody tr.odd,
+table.dataTable.stripe tbody tr.even,
+table.dataTable.display tbody tr.even {
+    background-color: transparent !important;
 }
 
 /* ==========================================================================
    🎯 ตารางพัสดุล้าสมัย (#tableObsolete) - ใช้สไตล์เดียวกับ tableNoStock
    ========================================================================== */
 
-/* --- 1. ปรับขนาดส่วนหัวและส่วนท้ายตาราง --- */
+/* --- 1. ลบพื้นหลังทุกส่วนของตารางให้โปร่งใส --- */
+#tableObsolete,
 #tableObsolete_wrapper,
-.mini-dt-header,
-.mini-dt-footer {
+#tableObsolete thead,
+#tableObsolete tbody,
+#tableObsolete tr,
+#tableObsolete th,
+#tableObsolete td {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* --- 2. การจัดการฟอนต์และระยะห่างพื้นฐาน --- */
+#tableObsolete_wrapper,
+#tableObsolete_wrapper * {
+    font-family: 'Sarabun', sans-serif !important;
     font-size: 13px !important;
+    /* color: #67748E !important; */
+}
+
+/* --- 3. หัวตาราง: โปร่งใส มีแค่เส้นใต้แนวนอน --- */
+#tableObsolete thead th {
+    border-top: none !important;
+    border-bottom: 2px solid #e1e3e6 !important; /* เส้นคั่นหนาใต้หัวตาราง */
+    border-left: none !important;
+    border-right: none !important;
+    padding: 10px 8px !important;
+    text-transform: uppercase;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    color: rgb(58 65 111 / var(--tw-text-opacity, 1));
+    text-align: center !important; 
+    justify-content: center !important;
+}
+
+/* --- 4. เนื้อหาตาราง: เส้นคั่นเฉพาะแนวนอน --- */
+#tableObsolete tbody td {
+    padding: 8px 10px !important;
+    border-bottom: 1px solid #e1e3e6 !important; /* เส้นคั่นระหว่างแถว */
+    border-left: none !important;
+    border-right: none !important;
     color: #67748E !important;
 }
 
-/* --- 2. จัดการช่อง Search และ Length Menu --- */
-#tableObsolete_wrapper .dataTables_filter input {
-    width: 180px !important;
-    height: 28px !important;
-    padding: 4px 8px !important;
-    font-size: 12px !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-    margin-left: 5px !important;
+/* --- 5. ลบเส้นขอบตาราง (Table wrapper) --- */
+#tableObsolete.dataTable {
+    border-collapse: collapse !important;
+    border: none !important;
 }
 
+/* --- 6. ช่อง Search และ Length Menu --- */
+#tableObsolete_wrapper .dataTables_filter input,
 #tableObsolete_wrapper .dataTables_length select {
     height: 28px !important;
-    padding: 0 4px !important;
-    width: 55px !important;
-    font-size: 13px !important;
+    padding: 2px 8px !important;
     border: 1px solid #d1d5db !important;
     border-radius: 6px !important;
 }
 
-/* --- 3. ส่วนของตาราง: ใส่กรอบ มุมโค้ง และสีหัวตาราง --- */
-#tableObsolete {
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-}
-
-#tableObsolete thead th {
-    padding: 8px 6px !important;
-    background-color: #8F8DA0 !important; /* สีเขียวอมฟ้า */
-    color: #ffffff !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    white-space: nowrap !important;
-    border-bottom: 1px solid #8F8DA0 !important;
-}
-
-#tableObsolete tbody td {
-    padding: 3px 6px !important;
-    border-bottom: 1px solid #f1f5f9 !important;
-    font-size: 13px !important;
-    white-space: nowrap !important;
-}
-
-/* --- 4. การสลับสีแถว (Zebra Striping) --- */
-#tableObsolete tbody tr.odd td {
-    background-color: #f7f6f6 !important; /* เขียวอ่อน */
-}
-
-#tableObsolete tbody tr.even td {
-    background-color: #ffffff !important; /* ขาว */
-}
-
-#tableObsolete tbody tr:hover td {
-    background-color: #dcfce7 !important; /* เขียวอ่อนตอน Hover */
-}
-
-/* --- 5. ปุ่มเปลี่ยนหน้า (Pagination) --- */
+/* --- 7. Pagination (ปุ่มเปลี่ยนหน้า) --- */
 #tableObsolete_wrapper .dataTables_paginate .paginate_button {
-    min-width: 18px !important;
-    height: 18px !important;
-    padding: 0 5px !important;
-    margin: 0 1px !important;
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
+    padding: 2px 8px !important;
+    margin: 0 2px !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 3px !important;
+    border-radius: 4px !important;
     background: white !important;
-    font-size: 13px !important;
+    cursor: pointer;
+    font-size: 12px !important;
 }
 
 #tableObsolete_wrapper .dataTables_paginate .paginate_button.current {
-    background-color: #26867f !important;
+    background-color: #8454b1 !important;
     color: white !important;
-    border-color: #26867f !important;
+    border-color: #8454b1 !important;
 }
+
+/* --- 8. ข้อมูล Info และอื่นๆ --- */
+.dataTables_wrapper .dataTables_info {
+    font-size: 12px !important;
+    padding-top: 5px !important;
+}
+
+/* --- 9. ลบแถบสี Striped ที่อาจติดมา --- */
+table.dataTable.stripe tbody tr.odd,
+table.dataTable.display tbody tr.odd,
+table.dataTable.stripe tbody tr.even,
+table.dataTable.display tbody tr.even {
+    background-color: transparent !important;
+}
+
 
 /* การตั้งค่า Font และพื้นหลัง */
 body {
@@ -577,3 +583,8 @@ body {
 .bg-success { background-color: #28a745; }
 .bg-warning { background-color: #ffc107; }
 .bg-danger { background-color: #dc3545; }
+
+#tableUpcoming_wrapper {
+    background-color: transparent !important;
+    background: transparent !important;
+}

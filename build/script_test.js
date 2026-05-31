@@ -3,6 +3,7 @@
  * All functionality in one file with optimizations
  */
 
+
 // ==================== Configuration ====================
 const config = [
     { name: 'Material_Master', target: '#tableParcel' },
@@ -304,155 +305,100 @@ function renderUpcomingTable(data) {
     });
 
     return $el.DataTable({
-        "data": dataSet,
-        "columns": colHeaders,
-        "pageLength": 10,
-        "responsive": true,
-        "dom": '<"flex justify-end items-center gap-4 mb-4"fl>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-        "columnDefs": [
-            // บังคับสีฟอนต์เนื้อหาทุกคอลัมน์เป็น #67748E ผ่าน CSS inline style
-            { 
-                "targets": "_all", 
-                "className": "py-3 px-3 border-b border-gray-100 font-normal align-middle ",
-                "createdCell": function (td) {
-                    $(td).css('color', '#67748E');
-                }
-            },
-            
-            // คอลัมน์ 0 (วัสดุ) - ใช้สี #67748E ตัวหนา และทำไฮไลท์พื้นหลังอ่อน ๆ 
-            { 
-                "targets": 0, 
-                "className": "font-bold font-mono text-left",
-                "render": function(data) {
-                    return `<span class="bg-slate-50 px-2 py-1 rounded font-semibold " style="color: #67748E;">${data}</span>`;
-                }
-            },
-            
-            // คอลัมน์ 1 (ข้อความสั้น)
-            { "targets": 1, "className": "font-medium" },
-            // 🎯 คอลัมน์ 2 (กลุ่มการจัดซื้อ) - แยกประเภทตามข้อความแล้วใส่ไอคอนข้างหน้า
-// 🎯 คอลัมน์ 2 (กลุ่มการจัดซื้อ) - เปลี่ยนไอคอน "ขอโอน" เป็นลูกศรโค้งครึ่งวงกลม
-// 🎯 คอลัมน์ 2 (กลุ่มการจัดซื้อ) - ใส่ !important ล็อกสีพื้นหลังและสีตัวหนังสือ ไม่ให้ CSS อื่นมากลบ
-{ 
-    "targets": 2, 
-    "className": "py-3 px-3 border-b border-gray-100 text-center align-middle font-medium",
-    "render": function(data) {
-        if (!data || data === "-") return "-";
-        
-        const text = data.toString().trim();
-        
-        // 1. ตระกูล กฟส. / กฟจ. -> เถิบขอบข้างออกเป็น px-4 และระยะไอคอน me-2
-        if (text.includes("กฟส.") || text.includes("กฟจ.")) {
-            return `<span class="inline-flex items-center px-4 py-2 " 
-                          style="font-size: 13px !important; border-radius: 50px !important; background-color: #d1fae5 !important; color: #047857 !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
-                        <i class="fas fa-shopping-cart me-2" style="color: #047857 !important;"></i>${data}
-                    </span>`;
-        }
-        
-        // 2. กจล. -> เถิบขอบข้างออกเป็น px-4 และระยะไอคอน me-2
-        if (text.includes("กจล.")) {
-            return `<span class="inline-flex items-center px-4 py-2 " 
-                          style="font-size: 13px !important; border-radius: 50px !important; background-color: #dbeafe !important; color: #1d4ed8 !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
-                        <i class="fas fa-truck me-2" style="color: #1d4ed8 !important;"></i>${data}
-                    </span>`;
-        }
-        
-        // 3. ขอโอน -> เถิบขอบข้างออกเป็น px-4 และระยะไอคอน me-2
-        if (text.includes("ขอโอน")) {
-            return `<span class="inline-flex items-center px-4 py-2 " 
-                          style="font-size: 13px !important; border-radius: 50px !important; background-color: #ffedd5 !important; color: #c2410c !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
-                        <i class="fas fa-sync-alt me-2" style="color: #c2410c !important;"></i>${data}
-                    </span>`;
-        }
-        
-        return `<span style="font-size: inherit !important;">${data}</span>`;
-    }
-},
-            // คอลัมน์ 3 (เอกสารการจัดซื้อ)
-            { "targets": 3, "className": "font-bold font-mono text-sm" },
-            // 🎯 คอลัมน์ 4 (วันที่เอกสาร) - แกะฟอร์แมต Date(Y,M,D) มาแปลงเป็น วัน เดือน ปี พร้อมใส่ไอคอนปฏิทิน
-{
-    "targets": 4,
-    "className": "py-3 px-3 border-b border-gray-100 font-normal align-middle whitespace-nowrap text-slate-600",
-    "render": function(data) {
-        if (!data || data === "-") return "-";
-
-        let dateStr = data.toString().trim();
-        
-        // 🔎 ตรวจสอบว่าถ้าเจอข้อความรูปแบบ Date(2026,1,4) หรือใกล้เคียง
-        if (dateStr.includes("Date(") || dateStr.startsWith("Date")) {
-            // ดึงเฉพาะตัวเลขข้างในวงเล็บออกมา เช่น "2026,1,4"
-            const matches = dateStr.match(/\(([^)]+)\)/);
-            if (matches && matches[1]) {
-                const parts = matches[1].split(',');
-                if (parts.length >= 3) {
-                    const year = parseInt(parts[0].trim());
-                    // ⚠️ สำคัญมาก: เดือนของ JavaScript ในคำสั่งแบบนี้มักเริ่มจาก 0 (0 = ม.ค., 1 = ก.พ.) 
-                    // แต่ถ้าในข้อมูลดิบพี่ตั้งใจให้ 1 = ม.ค. เลย ให้ใช้ตามเดิม
-                    const monthNum = parseInt(parts[1].trim()); 
-                    const day = parseInt(parts[2].trim());
-
-                    // รายชื่อเดือนภาษาไทยย่อ
-                    const monthsTh = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-                    
-                    // ปรับค่า Index ของเดือน (สมมติระบบเป็นแบบ 0-11: เดือน 1 คือ ก.พ.)
-                    // แต่ถ้าในรูป "Date(2026,1,4)" แปลว่าวันที่ 1 เม.ย. ตามตารางบน แสดงว่า Index คลาดเคลื่อน
-                    // จากรูปตารางบนโชว์ "1 เม.ย. 2026" แต่ Raw Data คือ Date(2026,1,4) 
-                    // เพื่อความแม่นยำดึงชื่อเดือนตรงๆ: ถ้า 1 แปลว่า เม.ย. เราจะดึงตามสัดส่วน หรือถ้าเทียบตามตารางบน พี่สามารถแมปคำได้เลยครับ
-                    
-                    // สรุปเพื่อให้ตรงตามตารางด้านบนเป๊ะๆ (แปลงปีเป็น พ.ศ. หรือใช้ ค.ศ. ตามแบรนดิ้ง)
-                    // ในที่นี้สมมติแปลงเป็น ค.ศ. ตามรูปบน: "1 เม.ย. 2026"
-                    let displayMonth = monthsTh[monthNum] || "เม.ย."; // ค่า Default กันเหนียวถ้าหลุดสเปก
-                    
-                    // ถ้าแกะสำเร็จ จัดรูปแบบกลับไป: "วัน เดือน ปี"
-                    dateStr = `${day} ${displayMonth} ${year}`;
-                }
+    "data": dataSet,
+    "columns": colHeaders,
+    "pageLength": 10,
+    "responsive": true,
+    "dom": '<"flex justify-end items-center gap-4 mb-4"fl>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+    "columnDefs": [
+        // บังคับสีฟอนต์เนื้อหาทุกคอลัมน์
+        { 
+            "targets": "_all", 
+            "className": "py-3 px-3 border-b border-gray-100 font-normal align-middle",
+            "createdCell": function (td) {
+                $(td).css('color', '#67748E');
             }
-        }
+        },
+        // คอลัมน์ 0 (วัสดุ)
+        { 
+            "targets": 0, 
+            "className": "font-bold font-mono text-left",
+            "render": function(data) {
+                return `<span class=" px-2 py-1 rounded font-semibold" style="color: #67748E;">${data}</span>`;
+            }
+        },
+        // คอลัมน์ 1
+        { "targets": 1, "className": "font-medium" },
+        // คอลัมน์ 2 (กลุ่มการจัดซื้อ)
+        { 
+            "targets": 2, 
+            "className": "py-3 px-3 border-b border-gray-100 text-center align-middle font-medium",
+            "render": function(data) {
+                if (!data || data === "-") return "-";
+                const text = data.toString().trim();
+                let bgColor = "#f3f4f6", textColor = "#374151", icon = "fa-tag";
+                
+                if (text.includes("กฟส.") || text.includes("กฟจ.")) { bgColor = "#d1fae5"; textColor = "#047857"; icon = "fa-shopping-cart"; }
+                else if (text.includes("กจล.")) { bgColor = "#dbeafe"; textColor = "#1d4ed8"; icon = "fa-truck"; }
+                else if (text.includes("ขอโอน")) { bgColor = "#ffedd5"; textColor = "#c2410c"; icon = "fa-sync-alt"; }
+                
+                return `<span class="inline-flex items-center px-4 py-2" 
+                           style="font-size: 13px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important;">
+                           <i class="fas ${icon} me-2" style="color: ${textColor} !important;"></i>${data}
+                       </span>`;
+            }
+        },
+        // คอลัมน์ 3
+        { "targets": 3, "className": "font-bold font-mono text-sm" },
+        // คอลัมน์ 4 (วันที่)
+        {
+            "targets": 4,
+            "className": "py-3 px-3 border-b border-gray-100 font-normal align-middle whitespace-nowrap text-slate-600",
+            "render": function(data) {
+                if (!data || data === "-") return "-";
+                let dateStr = data.toString().trim();
+                const matches = dateStr.match(/\(([^)]+)\)/);
+                if (matches && matches[1]) {
+                    const parts = matches[1].split(',');
+                    const monthsTh = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+                    dateStr = `${parseInt(parts[2])} ${monthsTh[parseInt(parts[1])] || "เม.ย."} ${parseInt(parts[0])}`;
+                }
+                return `<span><i class="far fa-calendar-alt text-slate-500 me-2"></i>${dateStr}</span>`;
+            }
+        },
+        // คอลัมน์ 5
+        { 
+            "targets": 5, 
+            "className": "font-normal font-mono text-xs",
+            "render": function(data) {
+                return (data == null || data === "-") ? "-" : `<span class="inline-block bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md font-medium" style="color: #67748E;">${data}</span>`;
+            }
+        },
+        // คอลัมน์ 7
+        {
+            "targets": 7,
+            "className": "text-right font-semibold font-mono",
+            "render": function(data) {
+                const num = parseFloat(data);
+                return isNaN(num) ? data : num.toLocaleString(undefined, {minimumFractionDigits: 0});
+            }
+        },
+        { "targets": 8, "className": "text-center font-medium text-xs" }
+    ],
+    "headerCallback": function (thead) {
+        $(thead).find('th')
+            .removeClass()
+            .addClass('font-extrabold text-sm py-3 px-3 border-b border-gray-200 uppercase tracking-wider whitespace-nowrap')
+            .css({
+                'background-color': 'transparent', // หัวตารางโปร่งใส
+                'color': '#344767'
+            });
 
-        // 🌟 พ่นผลลัพธ์พร้อมยัดไอคอนปฏิทินสีเทาเข้มขอบสวยหน้าข้อความเด็ดๆ
-        return `<span style="font-size: inherit !important;"><i class="far fa-calendar-alt text-slate-500 me-2"></i>${dateStr}</span>`;
+        $(thead).find('th').eq(2).addClass('text-center');
+        $(thead).find('th').eq(8).addClass('text-center');
     }
-},
-            // คอลัมน์ 5 (องค์ประกอบ WBS) - แก้ไขจุดเสี่ยงใช้ == null แทน !
-            { 
-                "targets": 5, 
-                "className": "font-normal font-mono text-xs",
-                "render": function(data) {
-                    if (data == null || data === "-") return "-";
-                    return `<span class="inline-block bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md font-medium" style="color: #67748E;">${data}</span>`;
-                }
-            },
-            
-            // คอลัมน์ 7 (ปริมาณที่สั่ง) - เว้นวรรคเงื่อนไขให้เคลียร์โค้ดอ่านง่ายขึ้น
-            {
-                "targets": 7,
-                "className": "text-right font-semibold font-mono",
-                "render": function(data) {
-                    const num = parseFloat(data);
-                    return isNaN(num) ? data : num.toLocaleString(undefined, {minimumFractionDigits: 0});
-                }
-            },
-
-            // คอลัมน์ 8 (หน่วยที่สั่ง)
-            { "targets": 8, "className": "text-center font-medium text-xs" }
-        ],
-        // บังคับสีข้อความหัวคอลัมน์เป็น #344767 ตัวหนาจัดปั้ก
-     "headerCallback": function (thead) {
-    $(thead).find('th')
-        .removeClass() 
-        .addClass('bg-slate-50/80 font-extrabold text-sm py-3 px-3 border-b border-gray-200 uppercase tracking-wider whitespace-nowrap')
-        .css('color', '#344767');
-
-    // 🌟 ดักดึงเฉพาะคอลัมน์ที่ 2 (กลุ่มการจัดซื้อ) ให้ข้อความหัวข้ออยู่ตรงกลางเป๊ะๆ
-    $(thead).find('th').eq(2).removeClass('text-left').addClass('text-center');
-    
-    // (แถม) ถ้าตารางมีคอลัมน์หน่วยที่สั่ง (Index 8) ที่ข้อมูลอยู่ตรงกลางเหมือนกัน ก็จัดหัวข้อให้กลางด้วยครับพี่
-    $(thead).find('th').eq(8).removeClass('text-left').addClass('text-center');
+});
 }
-    });
-}
-
 // ==================== Scoring Service ====================
 const ScoringService = {
     matchedWBSCache: new Set(),
@@ -1276,6 +1222,7 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
             { label: "รหัสพัสดุ" },
             { label: "ชื่อพัสดุ" },
             { label: "ประเภท" },
+            { label: "รอเบิก/ที่ได้" },
             { label: "ค้างเบิก" },
             { label: "จำนวนที่ได้" },
             { label: "คงเหลือ" },
@@ -1291,6 +1238,7 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
                     { v: res.partID },
                     { v: res.partName },
                     { v: 0 },
+                    { v: `${res.pending || 0}/${res.assigned || 0}` },
                     { v: res.pending || 0 },
                     { v: res.assigned || 0 },
                     { v: safeRemaining },
@@ -1342,11 +1290,11 @@ const TableRenderer = {
     if (mode === "match") {
         dataSet = dataSet.filter(row => {
             // ดักจับทั้งคอลัมน์ที่ 4 และ 5 เผื่อมีการเลื่อนของตำแหน่งโครงสร้าง
-            const valAt4 = parseFloat(row[4]) || 0;
-            const valAt5 = parseFloat(row[5]) || 0;
+            const valAt4 = parseFloat(row[5]) || 0;
+            const valAt5 = parseFloat(row[6]) || 0;
             
             // ตรวจสอบข้อมูลดิบในคอลัมน์ที่ 5 แบบละเอียด (ลบช่องว่างออก)
-            const rawVal5 = row[5] ? row[5].toString().trim() : "0";
+            const rawVal5 = row[6] ? row[6].toString().trim() : "0";
 
             // 🔥 เงื่อนไข: ถ้าเป็นเลข 0 ตัวเปล่าๆ หรือช่องว่าง หรือแปลงเป็นตัวเลขแล้วได้ <= 0 จะไม่ให้ผ่าน!
             if (rawVal5 === "0" || rawVal5 === "" || valAt5 <= 0) {
@@ -1378,76 +1326,70 @@ const matchTable = $el.DataTable({
     ],
     "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
     
-    // 🌟 1. เพิ่ม Class เข้าไปในคอลัมน์เพื่อให้ CSS เส้นขอบทำงาน
     "columnDefs": [
-        { "targets": "_all", "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal" },
+        { "targets": "_all", "className": "py-3 px-3 border-r border-l border-gray-200 text-centertext-slate-600 font-normal" },
         { "targets": [0, 1], "className": "font-bold text-violet-800 whitespace-nowrap border-l border-gray-200" },
-        //  { "targets": [3], "className": "font-bold text-violet-800 whitespace-nowrap border-l border-gray-200" },
-      { 
-    "targets": 3, 
-    "render": function(data, type, row) {
-        let bgColor = "#e5e7eb"; // สีเทา (ค่าเริ่มต้น)
-        let textColor = "#374151";
-        
-if (data === 'พัสดุหลัก') {
-    // ม่วงพาสเทลอ่อน (Soft Purple) - ดูเบาสบายตา
-    bgColor = "#e9d5ff"; 
-    textColor = "#6b21a8"; 
-    
-} else if (data === 'พัสดุรอง') {
-    // ม่วงกลาง (Vivid Purple) - เห็นชัดเจนขึ้น
-    bgColor = "#c084fc"; 
-    textColor = "#421a80"; 
-    
-} else if (data === 'ผลิตภัณฑ์คอนกรีต') {
-    // ม่วงเข้ม (Deep Purple) - เน้นความหนักแน่น
-    bgColor = "#7e22ce"; 
-    textColor = "#f3e8ff"; // ใช้ตัวหนังสือสีขาว/อ่อนเพื่อให้ตัดกับพื้นหลังเข้ม
-}
-
-        return `<span class="inline-flex items-center" 
-                    style="font-size: 13px !important; 
-                           padding: 4px 16px !important; 
-                           border-radius: 50px !important; 
-                           background-color: ${bgColor} !important; 
-                           color: ${textColor} !important; 
-                           display: inline-flex !important; 
-                           justify-content: center; 
-                           align-items: center; 
-                           white-space: nowrap;">
-                    <i class= style="color: ${textColor} !important;"></i>${data || '-'}
-                </span>`;
-    },
-    "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
-},
         { 
-        "targets": 6, // ระบุคอลัมน์ index ที่ 6
-        "render": function(data, type, row) {
-            // ตรวจสอบว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใช้ toFixed(2)
-            return (typeof data === 'number') ? data.toFixed(2) : data;
+            "targets": 3, 
+            "render": function(data, type, row) {
+                let bgColor = "#e5e7eb";
+                let textColor = "#374151";
+                if (data === 'พัสดุหลัก') { bgColor = "#e9d5ff"; textColor = "#6b21a8"; } 
+                else if (data === 'พัสดุรอง') { bgColor = "#d5d8ff"; textColor = "#214ca8"; } 
+                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#d5fff9"; textColor = "#2189a8"; }
+
+                return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                        ${data || '-'}
+                        </span>`;
+            },
+            "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
         },
-        "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal"
-    },
-    { 
-        "targets": 7, // ระบุคอลัมน์ index ที่ 7
+        { 
+        "targets": 4, // คอลัมน์ที่รวมร่างไว้
         "render": function(data, type, row) {
-            // ตรวจสอบว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใช้ toFixed(2)
-            return (typeof data === 'number') ? data.toFixed(2) : data;
+            // ถ้าเป็นการแสดงผล (display) ให้โชว์แบบสวยงาม
+            if (type === 'display') {
+                const parts = data.split('/');
+                return `<div class="text-center whitespace-nowrap">
+                        <span style="color: rgb(76, 199, 68); font-weight: bold; margin-right: 8px; font-size: 16px;">✓</span>
+                            <span class="text-orange-600 font-bold">${parts[0]}</span>
+                            <span class="text-gray-400">/</span>
+                            <span class="text-green-600 font-bold">${parts[1]}</span>
+                        </div>`;
+            }
+            return data; // ถ้าเป็นค่าที่ใช้ Sort หรือ Filter ให้คืนค่าเดิม
+        }
         },
-        "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal"
+        { "targets": [5, 6], "visible": false },
+        { 
+        "targets": [7, 8], 
+        "render": function(data, type, row) {
+            if (type === 'display' && typeof data === 'number') {
+                // ใช้ toLocaleString เพื่อใส่คอมม่าและทศนิยม 2 ตำแหน่ง
+                return data.toLocaleString(undefined, { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                });
+            }
+            return data; 
+        },
+        "className": "py-3 px-3 border-r border-l border-gray-200 text-right text-slate-600 font-normal"
     },
         { "targets": [-1], "className": "text-right whitespace-nowrap border-r border-gray-200" } 
     ],
     
-    // 🌟 2. ปรับหัวตารางให้เป็นโทนม่วงหรูหรา
+    // ตั้งค่าหัวตารางเป็นโปร่งใส
     "headerCallback": function (thead) {
         $(thead).find('th')
             .removeClass()
-            .addClass('bg-violet-50 text-violet-900 font-extrabold text-sm py-3 px-4 text-left border-b-2 border-violet-200 uppercase tracking-wider')
-            .css('border-right', '1px solid #e2e8f0'); // เส้นแบ่งหัวตาราง
+            .addClass('text-violet-900 font-extrabold text-sm py-3 px-4 text-left border-b-2 border-violet-200 uppercase tracking-wider')
+            .css({
+                'background-color': 'transparent',
+                'border-right': '1px solid #e2e8f0'
+            });
     }
 });
-// 🎯 [โค้ดบรรทัดสำคัญ] เขียนต่อท้ายคำสั่งสร้างตารางเสร็จ สั่งวาร์ปย้ายปุ่มไปโผล่ที่ id ข้างบนทันที!
+
 matchTable.buttons().container().appendTo('#my-export-space');
 return matchTable;
     },
@@ -1803,33 +1745,55 @@ const NoStockTable = $el.DataTable({
         { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
  
         // col 3: ประเภท (เพิ่มใหม่) - badge สีเทาเหมือนตาราง StockMatch
-        {
-            "targets": 3,
-            "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
-            "render": function(data) {
-                if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-                const color = data === "พัสดุหลัก" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600";
-                return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${color}">${data}</span>`;
-            }
+        // {
+        //     "targets": 3,
+        //     "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
+        //     "render": function(data) {
+        //         if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+        //         const color = data === "พัสดุหลัก" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600";
+        //         return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${color}">${data}</span>`;
+        //     }
+        // },
+        { 
+            "targets": 3, 
+            "render": function(data, type, row) {
+                let bgColor = "#e5e7eb";
+                let textColor = "#374151";
+                if (data === 'พัสดุหลัก') { bgColor = "#e9d5ff"; textColor = "#6b21a8"; } 
+                else if (data === 'พัสดุรอง') { bgColor = "#d5d8ff"; textColor = "#214ca8"; } 
+                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#d5fff9"; textColor = "#2189a8"; }
+
+                return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                        ${data || '-'}
+                        </span>`;
+            },
+            "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
         },
- 
         // col 4: ค้างเบิก
         {
             "targets": 4,
-            "className": "text-red-600 text-base",
+            "className": "text-red-600 text-base text-right",
             "render": $.fn.dataTable.render.number(',', '.', 0)
         },
  
         // col 5: จำนวนที่ได้
         {
             "targets": 5,
-            "className": "text-red-600 font-bold text-base",
+            "className": "text-red-600 text-right font-bold text-base",
             "render": $.fn.dataTable.render.number(',', '.', 0)
         }
+        
     ],
-    "headerCallback": function (thead) {
-        $(thead).find('th').addClass('bg-red-50 text-red-700 font-bold py-3 px-4 text-left border-b-2 border-red-200').css('white-space', 'nowrap');
-    },
+   "headerCallback": function (thead) {
+    $(thead).find('th')
+        .removeClass() // ล้างคลาสสีเดิมออก
+        .addClass('font-bold py-3 px-4 text-left') // ใส่คลาสที่จำเป็น
+        .css({
+            'background-color': 'transparent', // ทำให้หัวตารางโปร่งใส
+            'border-bottom': '2px solid #e9d5ff', // ใช้สีเส้นคั่นที่คุณชอบ
+            'white-space': 'nowrap'
+        });
+},
     
     // 🎯 3. สั่งครอบตัวอุ้มตาราง คัดสไตล์สกรอลบาร์ออก (ในคอมไม่มีแถบวิ่ง แต่ในมือถือปัดขวาได้สวยๆ)
     "initComplete": function() {
@@ -1927,6 +1891,21 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
                     $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
                 }
             },
+            { 
+            "targets": 3, 
+            "render": function(data, type, row) {
+                let bgColor = "#e5e7eb";
+                let textColor = "#374151";
+                if (data === 'พัสดุล้าสมัย') { bgColor = "#ffd5d5"; textColor = "#a82121"; } 
+                else if (data === 'เปลี่ยนรหัสพัสดุ') { bgColor = "#ffe1d5"; textColor = "#a85221"; } 
+                else if (data === 'พัสดุไม่เบิกจากคลัง') { bgColor = "#ffd5f6"; textColor = "#a82192"; }
+
+                return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                        ${data || '-'}
+                        </span>`;
+            },
+            "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
+        },
             { "targets": 0, "className": "font-bold text-blue-700 whitespace-nowrap" },
 
 // 🎯 col 2: ชื่อพัสดุ -> ตัดเอาแค่ 60 ตัวอักษรดื้อๆ (เท่ากับ 2 บรรทัดพอดี) ห้ามงอกบรรทัด 3
@@ -1967,14 +1946,15 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
             },
 
             // 🎯 col 5: Note -> ล็อกความสูงไว้ไม่เกิน 2 บรรทัดด้วย line-clamp-2
-            { 
-                "targets": 5, 
-                "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm",
-                "render": function(data) {
-                    if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-                    return `<div class="line-clamp-2" style="max-width: 320px; min-width: 200px; word-break: break-word; white-space: normal;" title="${data}">${data}</div>`;
-                }
-            }
+           { 
+    "targets": 5, 
+    "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm",
+    "render": function(data) {
+        if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+        // ใช้ inline-block เพื่อให้ div กว้างตามเนื้อหา แต่ไม่เกิน max-width
+        return `<div class="inline-block" style="max-width: 320px; word-wrap: break-word;" title="${data}">${data}</div>`;
+    }
+}
         ],
         "headerCallback": function(thead) {
             $(thead).find('th').addClass('bg-orange-50 text-orange-700 font-bold py-3 px-4 text-left border-b-2 border-orange-200').css('white-space', 'nowrap');
