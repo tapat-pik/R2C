@@ -2655,7 +2655,10 @@ h6 {
   --tw-text-opacity: 1;
   color: rgb(130 214 22 / var(--tw-text-opacity, 1));
 }
-
+.text-green
+{
+  color: rgb(76, 199, 68);
+}
 .text-neutral-900 {
   --tw-text-opacity: 1;
   color: rgb(17 17 17 / var(--tw-text-opacity, 1));

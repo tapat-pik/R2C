@@ -1103,6 +1103,15 @@ function ShowTotalJobs(tableInstance) {
     let totalValueGreenSum = 0; // ตัวแปรเก็บมูลค่ารวมของงานสีเขียว
     let totalBlueCount = 0;
     let totalValueBlueSum = 0; // ตัวแปรเก็บมูลค่ารวมของงานสีน้ำเงิน
+    let total022green_count = 0; 
+    let totalCgreen_count = 0; 
+    let totalIgreen_count = 0; 
+    let totaPgreen_count = 0; 
+    let total022Blue_count = 0; 
+    let totalCBlue_count = 0; 
+    let totalIBlue_count = 0; 
+     let totaPBlue_count = 0; 
+
 
     // 2. ลูปผ่านแต่ละแถว
     tableInstance.rows().nodes().each(function(rowNode) {
@@ -1115,37 +1124,103 @@ function ShowTotalJobs(tableInstance) {
         // แปลงค่าเงินเป็นตัวเลข
         const numericValue = parseFloat(rawValue.replace(/,/g, '')) || 0;
          totalValueAllSum += numericValue;
+         
         // เช็คสัญญาณไฟสีเขียว
         const isGreen = statusHTML.includes('status-green');
+        const projectUpper = cellProject.toUpperCase();
         if (isGreen) {
             totalGreenCount++;
             totalValueGreenSum += numericValue; // สะสมมูลค่างานสีเขียว
+            
+            if (projectUpper.includes('C-')) {
+
+               totalCgreen_count++;
+            //    console.log(`📊 Green Value Sum C: ${cellProject.toLocaleString()}`);
+            }
+             if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) {
+                totalIgreen_count++;
+                // console.log(`📊 Green Value Sum I: ${cellProject.toLocaleString()}`);
+            }
+             if (projectUpper.includes('P-')) {
+                totaPgreen_count++;
+                //  console.log(`📊 Green Value Sum P: ${cellProject.toLocaleString()}`);
+            }
+             if (projectUpper.includes('งาน 02.2')) {
+                total022green_count++;
+                // console.log(`📊 Green Value Sum 02.2: ${cellProject.toLocaleString()}`);
+            }
+            // console.log(`📊 Green Value Sum C: ${totalCgreen_count.toLocaleString()}`);
+            
         }
+      
 
         const isBlue = statusHTML.includes('status-blue');
         if (isBlue) {
             totalBlueCount++;
             totalValueBlueSum += numericValue; // สะสมมูลค่างานสีน้ำเงิน
+            if (projectUpper.includes('C-')) {
+
+               totalCBlue_count++;
+            //    console.log(`📊 Blue Value Sum C: ${cellProject.toLocaleString()}`);
+            }
+             if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) {
+                totalIBlue_count++;
+                // console.log(`📊 Blue Value Sum I: ${cellProject.toLocaleString()}`);
+            }
+             if (projectUpper.includes('P-')) {
+                totaPBlue_count++;
+                //  console.log(`📊 Blue Value Sum P: ${cellProject.toLocaleString()}`);
+            }
+             if (projectUpper.includes('งาน 02.2')) {
+                total022Blue_count++;
+                // console.log(`📊 Green Value Sum 02.2: ${cellProject.toLocaleString()}`);
+            }
         }
 
         // แยกนับจำนวนและมูลค่าตามเงื่อนไขการกำหนดโครงการ
-        if (cellProject !== 'งาน 02.2') {
+        if (!cellProject.includes('งาน 02.2')) {
             totalCIPCount++;
             totalValueCIPSum += numericValue;
-        } else {
+
+        } else  {
             total022Count++;
         }
-    });
 
+         
+
+    });
+   
+        const valueInMillions = totalValueAllSum / 1000000;
+        
+        // ฟอร์แมตทศนิยม 2 ตำแหน่ง
+        const formattedAll = valueInMillions.toLocaleString(undefined, {
+            minimumFractionDigits: 0, 
+            maximumFractionDigits: 0
+        });  
+        
+        console.log(`📊 Green Value Sum C: ${totalCgreen_count.toLocaleString()}`);
+         console.log(`📊 Green Value Sum I: ${totalIgreen_count.toLocaleString()}`);
+         console.log(`📊 Green Value Sum P: ${totaPgreen_count.toLocaleString()}`);
+         console.log(`📊 Green Value Sum 02.2: ${total022green_count.toLocaleString()}`);
     // 3. อัปเดตตัวเลขลง HTML
     $('#total-CIP-count').text(totalCIPCount.toLocaleString());
     $('#total-022-count').text(total022Count.toLocaleString());
     $('#total-green-count').text(totalGreenCount.toLocaleString());
     $('#total-blue-count').text(totalBlueCount.toLocaleString());
+    
+    $('#total-022Green-count').text(total022green_count.toLocaleString());
+    $('#total-Cgreen-count').text(totalCgreen_count.toLocaleString());
+    $('#total-Igreen-count').text(totalIgreen_count.toLocaleString());
+    $('#total-Pgreen-count').text(totaPgreen_count.toLocaleString());
+
+    $('#total-022Blue-count').text(total022Blue_count.toLocaleString());
+    $('#total-CBlue-count').text(totalCBlue_count.toLocaleString());
+    $('#total-IBlue-count').text(totalIBlue_count.toLocaleString());
+    $('#total-PBlue-count').text(totaPBlue_count.toLocaleString());
+
+    
   // อัปเดตมูลค่ารวม CIP
-    $('#total-valueAll-count').text(totalValueAllSum.toLocaleString(undefined, {
-        minimumFractionDigits: 2, maximumFractionDigits: 2
-    }));
+    $('#total-valueAll-count').text(formattedAll );
 
     // อัปเดตมูลค่ารวม CIP
     $('#total-valueCIP-count').text(totalValueCIPSum.toLocaleString(undefined, {
@@ -1161,6 +1236,9 @@ function ShowTotalJobs(tableInstance) {
     $('#total-valueBlue-count').text(totalValueBlueSum.toLocaleString(undefined, {
         minimumFractionDigits: 2, maximumFractionDigits: 2
     }));
+
+    // อัปเดตมูลค่ารวมงานสีเขียว
+    
 
     console.log(`📊 Green Value Sum: ${totalValueGreenSum.toLocaleString()}`);
 }
@@ -1222,11 +1300,12 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
             { label: "รหัสพัสดุ" },
             { label: "ชื่อพัสดุ" },
             { label: "ประเภท" },
-            { label: "รอเบิก/ที่ได้" },
+            { label: "ทั้งหมด" },
+            { label: "ที่ได้/ค้างเบิก" },
             { label: "ค้างเบิก" },
             { label: "จำนวนที่ได้" },
             { label: "คงเหลือ" },
-            { label: "ทั้งหมด" }
+            
         ],
         rows: allocatedData.map(res => {
             const safeRemaining = (isNaN(res.remainingAfter) || res.remainingAfter === null) ? 0 : res.remainingAfter;
@@ -1238,11 +1317,12 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
                     { v: res.partID },
                     { v: res.partName },
                     { v: 0 },
-                    { v: `${res.pending || 0}/${res.assigned || 0}` },
+                    { v: safeTotal },
+                    { v: `${res.assigned || 0}/${res.pending || 0}` },
                     { v: res.pending || 0 },
                     { v: res.assigned || 0 },
-                    { v: safeRemaining },
-                    { v: safeTotal }
+                    { v: safeRemaining }
+                    
                 ]
             };
         })
@@ -1290,11 +1370,11 @@ const TableRenderer = {
     if (mode === "match") {
         dataSet = dataSet.filter(row => {
             // ดักจับทั้งคอลัมน์ที่ 4 และ 5 เผื่อมีการเลื่อนของตำแหน่งโครงสร้าง
-            const valAt4 = parseFloat(row[5]) || 0;
-            const valAt5 = parseFloat(row[6]) || 0;
+            const valAt4 = parseFloat(row[6]) || 0;
+            const valAt5 = parseFloat(row[7]) || 0;
             
             // ตรวจสอบข้อมูลดิบในคอลัมน์ที่ 5 แบบละเอียด (ลบช่องว่างออก)
-            const rawVal5 = row[6] ? row[6].toString().trim() : "0";
+            const rawVal5 = row[7] ? row[7].toString().trim() : "0";
 
             // 🔥 เงื่อนไข: ถ้าเป็นเลข 0 ตัวเปล่าๆ หรือช่องว่าง หรือแปลงเป็นตัวเลขแล้วได้ <= 0 จะไม่ให้ผ่าน!
             if (rawVal5 === "0" || rawVal5 === "" || valAt5 <= 0) {
@@ -1344,25 +1424,8 @@ const matchTable = $el.DataTable({
             },
             "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
         },
-        { 
-        "targets": 4, // คอลัมน์ที่รวมร่างไว้
-        "render": function(data, type, row) {
-            // ถ้าเป็นการแสดงผล (display) ให้โชว์แบบสวยงาม
-            if (type === 'display') {
-                const parts = data.split('/');
-                return `<div class="text-center whitespace-nowrap">
-                        <span style="color: rgb(76, 199, 68); font-weight: bold; margin-right: 8px; font-size: 16px;">✓</span>
-                            <span class="text-orange-600 font-bold">${parts[0]}</span>
-                            <span class="text-gray-400">/</span>
-                            <span class="text-green-600 font-bold">${parts[1]}</span>
-                        </div>`;
-            }
-            return data; // ถ้าเป็นค่าที่ใช้ Sort หรือ Filter ให้คืนค่าเดิม
-        }
-        },
-        { "targets": [5, 6], "visible": false },
-        { 
-        "targets": [7, 8], 
+         { 
+        "targets": [4], 
         "render": function(data, type, row) {
             if (type === 'display' && typeof data === 'number') {
                 // ใช้ toLocaleString เพื่อใส่คอมม่าและทศนิยม 2 ตำแหน่ง
@@ -1374,6 +1437,37 @@ const matchTable = $el.DataTable({
             return data; 
         },
         "className": "py-3 px-3 border-r border-l border-gray-200 text-right text-slate-600 font-normal"
+    },
+        { 
+        "targets": 5, // คอลัมน์ที่รวมร่างไว้
+        "render": function(data, type, row) {
+            // ถ้าเป็นการแสดงผล (display) ให้โชว์แบบสวยงาม
+            if (type === 'display') {
+                const parts = data.split('/');
+                return `<div class="text-center whitespace-nowrap">
+                        <span lass="font-bold" style="color: rgb(76, 199, 68); font-weight: bold; margin-right: 8px; font-size: 16px;">✓</span>
+                            <span class="text-green font-bold">${parts[0]}</span>
+                            <span class="text-gray-400">/</span>
+                            <span class="text-green-600 font-bold">${parts[1]}</span>
+                        </div>`;
+            }
+            return data; // ถ้าเป็นค่าที่ใช้ Sort หรือ Filter ให้คืนค่าเดิม
+        }
+        },
+        { "targets": [6, 7], "visible": false },
+        { 
+        "targets": [ 8], 
+        "render": function(data, type, row) {
+            if (type === 'display' && typeof data === 'number') {
+                // ใช้ toLocaleString เพื่อใส่คอมม่าและทศนิยม 2 ตำแหน่ง
+                return data.toLocaleString(undefined, { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                });
+            }
+            return data; 
+        },
+        "className": "py-3 px-3 border-r border-l border-gray-200 text-right font-semibold text-slate-600 font-normal"
     },
         { "targets": [-1], "className": "text-right whitespace-nowrap border-r border-gray-200" } 
     ],
@@ -1431,7 +1525,7 @@ const RequirementTable = $el.DataTable({
         { "targets": 5, "type": "num" },
         {
             "targets": 10,
-            "visible": false,
+            // "visible": false,
             "searchable": true // สำคัญ: ตั้งเป็น true เพื่อให้ช่อง Search ของตารางค้นหาข้อมูลจากช่องนี้ได้
         },
         { 
@@ -1514,6 +1608,7 @@ return RequirementTable;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">คะแนนสะสม</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center d-none">การกำหนดโครงการ</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center ">% ความพร้อม</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center d-none">งบ</th>`;
         html += '</tr></thead><tbody>';
 
         const uniqueMap = new Map();
@@ -1588,6 +1683,7 @@ return RequirementTable;
             const totalScore = item.totalScore;
             const result = item.result;
             let ProjectPlan = getCellValue(row.c[12]); //การกำหนดโครงการ
+            let BudgetCIP = getCellValue(row.c[18]);
             let valT = getCellValue(row.c[19]);
             let valW = getCellValue(row.c[22]) || "";
             let valX = getCellValue(row.c[23]);
@@ -1656,6 +1752,7 @@ return RequirementTable;
                 <td class="${TABLE_STYLES.cellClass} text-center"><span ${textBoldStyle}>${displayScore}</span></td> 
                 <td class="${TABLE_STYLES.cellClass} text-center d-none"><span ${textStyle}>${ProjectPlan}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center">${progressHTML}</td>
+                <td class="${TABLE_STYLES.cellClass} text-center d-none "><span ${textStyle}>${BudgetCIP}</span></td>
             </tr>`;
         });
 
@@ -1696,8 +1793,7 @@ renderNoStockTable(allocatedData, materialTypeMap) {
         { title: "รหัสพัสดุ" },     // index 1
         { title: "ชื่อพัสดุ" },     // index 2
         { title: "ประเภท" },        // index 3 (เพิ่มใหม่ ก่อนค้างเบิก)
-        { title: "ค้างเบิก" },      // index 4
-        { title: "จำนวนที่ได้" }    // index 5
+        { title: "ที่ได้ / ค้างเบิก" }
     ];
  
     const dataSet = noStockData.map(res => {
@@ -1707,8 +1803,7 @@ renderNoStockTable(allocatedData, materialTypeMap) {
             res.partID  || "-",   // 1
             res.partName|| "-",   // 2
             partType,             // 3 ประเภท
-            res.pending || 0,     // 4
-            res.assigned|| 0      // 5
+           { assigned: res.assigned || 0, pending: res.pending || 0 }
         ];
     });
  
@@ -1771,17 +1866,30 @@ const NoStockTable = $el.DataTable({
         },
         // col 4: ค้างเบิก
         {
-            "targets": 4,
-            "className": "text-red-600 text-base text-right",
-            "render": $.fn.dataTable.render.number(',', '.', 0)
-        },
- 
-        // col 5: จำนวนที่ได้
-        {
-            "targets": 5,
-            "className": "text-red-600 text-right font-bold text-base",
-            "render": $.fn.dataTable.render.number(',', '.', 0)
-        }
+                "targets": 4,
+                "className": "py-3 px-3 border-b border-gray-100 text-center whitespace-nowrap text-base",
+                "render": function(data, type, row) {
+                    // ป้องกันความผิดพลาดของข้อมูล
+                    if (!data || typeof data !== 'object') return '0 / 0';
+                    
+                    const assignedFormated = data.assigned.toLocaleString();
+                    const pendingFormated = data.pending.toLocaleString();
+                    
+                    // แสดงผลในสไตล์: จำนวนที่ได้ (สีเขียวหรือสีปกติ) / ค้างเบิก (สีแดงโดดเด่น)
+                    return ` <span class="font-bold text-red-600" style=" font-weight: bold; margin-right: 5px; font-size: 16px;">✗</span>
+                    <span class="font-bold text-red-600 ">${assignedFormated}</span> 
+                            <span class="text-slate-700">/</span> 
+                            <span class="font-bold text-slate-700">${pendingFormated}</span>`;
+
+
+                        //     `<div class="text-center whitespace-nowrap">
+                        // <span lass="font-bold" style="color: rgb(199, 68, 68); font-weight: bold; margin-right: 5px; font-size: 16px;">✗</span>
+                        //     <span class="text-red-600 font-bold">${assignedFormated}</span>
+                        //     <span class="text-slate-700">/</span>
+                        //     <span class="text-slate-700 font-bold">${pendingFormated}</span>
+                        // </div>`;
+                }
+            }
         
     ],
    "headerCallback": function (thead) {
@@ -2126,7 +2234,70 @@ setupFilterLight(tableInstance, rawData) {
             // ค้นหาเฉพาะในคอลัมน์ที่ 1 (คอลัมน์สัญญาณไฟ)
             tableInstance.column(1).search(selectedSearchToken, false, false).draw();
         });
-    }
+    },
+
+    setupFilterProjectGroup(table, data) {
+    const $filter = $('#FilterProjectGroup');
+    $filter.empty().append('<option value="">ทั้งหมด (กลุ่มโครงการ)</option>');
+
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        let val = getCellValue(row.c[12]);
+        if (val && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    list.sort().forEach(item => {
+        $filter.append(`<option value="${item}">${item}</option>`);
+    });
+
+    $filter.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: false,
+        placeholder: 'ค้นหากลุ่มโครงการ...',
+        allowClear: true
+    });
+
+    $filter.on('change', function () {
+        const val = $(this).val();
+        // 🎯 แก้ไขตรงนี้: ปรับมาใช้คำสั่งค้นหาข้อความปกติ (ไม่ต้องใช้ ^ และ $) ในคอลัมน์ Index 5
+        table.column(10).search(val ? val : '').draw();
+    });
+},
+ setupFilterBudgetCIP(table, data) {
+    const $filter = $('#FilterBudgetCIP');
+    $filter.empty().append('<option value="">ทั้งหมด (งบ)</option>');
+
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        let val = getCellValue(row.c[18]);
+        if (val && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    list.sort().forEach(item => {
+        $filter.append(`<option value="${item}">${item}</option>`);
+    });
+
+    $filter.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: false,
+        placeholder: 'ค้นหางบ...',
+        allowClear: true
+    });
+
+    $filter.on('change', function () {
+        const val = $(this).val();
+        // 🎯 แก้ไขตรงนี้: ปรับมาใช้คำสั่งค้นหาข้อความปกติ (ไม่ต้องใช้ ^ และ $) ในคอลัมน์ Index 5
+        table.column(12).search(val ? val : '').draw();
+    });
+}
 };
 
 
@@ -2178,7 +2349,47 @@ function setupGlobalEvents() {
 
     setupRowClickEvent();
 }
-
+function showR2CCardInfo() {
+    Swal.fire({
+        title: 'Ready-to-Close คืออะไร?',
+        html: `<div style="text-align: left; font-size: 15px; color: #475569; line-height: 1.6;">
+                <p>การ์ดนี้ใช้แสดงข้อมูลสรุปของงานที่อยู่ในสถานะ <b>"พร้อมปิดงาน"</b> โดยระบบจะคำนวณและแสดงผลแยกตามกลุ่มงานย่อยดังนี้:</p>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li><b>C :</b> จำนวนงานประเภทคอมพิวเตอร์/ระบบ</li>
+                    <li><b>I :</b> จำนวนงานประเภทโครงสร้างพื้นฐาน</li>
+                    <li><b>P :</b> จำนวนงานประเภทจัดซื้อจัดจ้างทั่วไป</li>
+                    <li><b>C02.2 :</b> จำนวนงานในส่วนรหัสพิเศษเดี่ยว</li>
+                </ul>
+                <p style="margin-top: 10px; font-size: 13px; color: #94a3b8;">*แถวมูลค่าด้านล่างจะไม่ถูกนำไปคำนวณรวมกับงาน C02.2</p>
+               </div>`,
+        icon: 'info',
+        confirmButtonText: 'รับทราบ',
+        confirmButtonColor: '#8a73cd', // ใช้โทนสีม่วงให้เข้ากับ Card ของคุณ
+        customClass: {
+            popup: 'rounded-2xl' // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
+        }
+    });
+}
+function showR2WCardInfo() {
+    Swal.fire({
+        title: 'Ready-to-Work คืออะไร?',
+        html: `<div style="text-align: left; font-size: 15px; color: #475569; line-height: 1.6;">
+                <p>การ์ดนี้ใช้แสดงข้อมูลสรุปของงานที่อยู่ในสถานะ <b>"พร้อมทำงาน"</b> โดยระบบจะคำนวณและแสดงผลแยกตามกลุ่มงานย่อยดังนี้:</p>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li><b>C :</b> จำนวนงานประเภทคอมพิวเตอร์/ระบบ</li>
+                    <li><b>I :</b> จำนวนงานประเภทโครงสร้างพื้นฐาน</li>
+                    <li><b>P :</b> จำนวนงานประเภทจัดซื้อจัดจ้างทั่วไป</li>
+                    <li><b>C02.2 :</b> จำนวนงานในส่วนรหัสพิเศษเดี่ยว</li>
+                </ul>
+               </div>`,
+        icon: 'info',
+        confirmButtonText: 'รับทราบ',
+        confirmButtonColor: '#8a73cd', // ใช้โทนสีม่วงให้เข้ากับ Card ของคุณ
+        customClass: {
+            popup: 'rounded-2xl' // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
+        }
+    });
+}
 // ==================== Main Initialization ====================
 async function initDashboard() {
     const startTime = performance.now();
@@ -2301,6 +2512,8 @@ async function initDashboard() {
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
                 FilterModule.setupFilterLight(parcelTable, data, alloc.wbsStatusMap);
+                FilterModule.setupFilterProjectGroup(parcelTable, data);
+                FilterModule.setupFilterBudgetCIP(parcelTable, data);
 
                 // 🎯 [จุดที่เพิ่มคำสั่ง 1] สั่งอัปเดตกราฟวงกลมทันทีหลังสร้างตารางนี้เสร็จ
                 // โดยใช้ตัวแปร sheet.target ซึ่งเป็น ID ตารางพัสดุหลัก
