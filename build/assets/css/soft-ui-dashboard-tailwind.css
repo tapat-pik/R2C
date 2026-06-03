@@ -1941,10 +1941,10 @@ h6 {
 }
 
 /* เมื่อเอาเมาส์ชี้ เงาจะขยับขึ้นเล็กน้อยตามสไตล์กล่องลอย */
-.bg-purple-gradient:hover {
+/* .bg-purple-gradient:hover {
     box-shadow: 0 15px 30px 0 rgba(108, 92, 231, 0.4) !important;
     transform: translateY(-5px);
-}
+} */
 .bg-red-gradient {
     /* พื้นหลัง */
     background: linear-gradient(to bottom right, #ffe3e3 0%, #fcfcfd 100%) !important;

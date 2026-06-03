@@ -102,9 +102,9 @@ h1, h2, h3, h4, h5 {
     
     /* ลดขนาดตัวหนังสือ Showing 1 to 10... */
     .dataTables_info {
-        font-size: 0.75rem !important; /* ขนาดเล็กเท่ากับ text-xs ของ Tailwind */
+        
         color: #6c757d !important;    /* ปรับสีเป็นสีเทาหม่น */
-         font-size: 0.875rem !important;
+        font-size: 18px !important;
         padding-top: 15px !important;
         opacity: 0.8;                 /* ทำให้ดูจางลงเล็กน้อย */
     }
@@ -195,7 +195,7 @@ h1, h2, h3, h4, h5 {
 /* --- 2. การจัดการฟอนต์และระยะห่างพื้นฐาน --- */
 #tableStockMatch_wrapper,
 #tableStockMatch_wrapper * {
-    font-family: 'Sarabun', sans-serif !important;
+    /* font-family: 'Sarabun', sans-serif !important; */
     font-size: 13px !important;
     /* color: #67748E !important; */
      
@@ -290,7 +290,7 @@ table.dataTable.display tbody tr.even {
 /* --- 2. การจัดการฟอนต์และระยะห่างพื้นฐาน --- */
 #tableNoStock_wrapper,
 #tableNoStock_wrapper * {
-    font-family: 'Sarabun', sans-serif !important;
+    /* font-family: 'Sarabun', sans-serif !important; */
     font-size: 13px !important;
     /* color: #67748E !important; */
 }
@@ -385,7 +385,7 @@ table.dataTable.display tbody tr.even {
 /* --- 2. การจัดการฟอนต์และระยะห่างพื้นฐาน --- */
 #tableObsolete_wrapper,
 #tableObsolete_wrapper * {
-    font-family: 'Sarabun', sans-serif !important;
+    /* font-family: 'Sarabun', sans-serif !important; */
     font-size: 13px !important;
     /* color: #67748E !important; */
 }
@@ -448,7 +448,7 @@ table.dataTable.display tbody tr.even {
 
 /* --- 8. ข้อมูล Info และอื่นๆ --- */
 .dataTables_wrapper .dataTables_info {
-    font-size: 12px !important;
+    font-size: 14px !important;
     padding-top: 5px !important;
 }
 
@@ -587,4 +587,27 @@ body {
 #tableUpcoming_wrapper {
     background-color: transparent !important;
     background: transparent !important;
+}
+
+/* 🎯 บังคับให้โครงสร้างตาราง Upcoming ทั้งหมดมีพื้นหลังเป็นสีใส (Transparent) */
+#tableUpcoming,
+#tableUpcoming select,
+#tableUpcoming input {
+    background-color: transparent !important;
+}
+
+/* 🎯 ล้างค่าเงา (box-shadow) และสีพื้นหลังของแถวและช่องเซลล์ทั้งหมดในตาราง */
+#tableUpcoming tbody tr,
+#tableUpcoming tbody td,
+#tableUpcoming thead th {
+    background-color: transparent !important;
+    --bs-table-bg: transparent !important;
+    --bs-table-bg-type: transparent !important;
+    --bs-table-bg-state: transparent !important;
+    box-shadow: none !important; /* สลายเงาสีขาวของ Bootstrap 5 */
+}
+
+/* (แถมเพิ่มเติม) ถ้าต้องการให้เส้นขอบระหว่างแถวดูจางลงเข้ากับความใส */
+#tableUpcoming tbody td {
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
 }

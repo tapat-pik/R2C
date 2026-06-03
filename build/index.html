@@ -718,7 +718,7 @@
 <div class="flex flex-wrap -mx-3 mt-6">
         <div class="w-full max-w-full px-3">
           
-          <div class="relative flex flex-col min-w-0 mb-6 break-words bg-white border-0 border-transparent border-solid shadow-soft-xl rounded-2xl bg-clip-border p-6">
+          <div class="relative flex flex-col min-w-0 mb-6 break-words bg-purple-gradient border-0 border-transparent border-solid shadow-soft-xl rounded-2xl bg-clip-border p-6">
         
             <div class="pb-0 mb-0  border-b-0 border-b-solid rounded-t-2xl border-b-transparent">
               <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
@@ -727,14 +727,39 @@
           <path d="m3.3 7 8.7 5 8.7-5"></path>
           <path d="M12 22V12"></path>
         </svg>
+
        รายการรอจัดซื้อ- รับโอน
       </h6>
+
               
               <p class="mb-0 text-sm leading-normal">
                 <i class="fa fa-check text-cyan-500"></i>
                 <span class="ml-1 font-semibold">30 done</span> this month
               </p>
             </div>
+
+
+             <div class="row mb-4 g-3">
+        
+        <div class="col-xl col-md-4">
+            <label class="mb-1 font-sans font-bold leading-normal text-slate-700">รหัสพัสดุ</label>
+           <select id="FilterUpcoming_Material" class="form-select"></select>
+        </div>
+
+        <div class="col-xl col-md-4">
+            <label class="mb-1 font-sans font-bold leading-normal text-slate-700">ชื่อพัสดุ</label>
+            <select id="FilterUpcoming_MaterialName" class="form-select"></select>
+        </div>
+
+        <div class="col-xl col-md-4">
+            <label class="mb-1 font-sans font-bold leading-normal text-slate-700">กลุ่มการจัดซื้อ</label>
+            <select id="FilterUpcoming_PurchaseGroup" class="form-select"></select>
+        </div>
+
+      
+      
+
+    </div>
 
             <div class="w-full overflow-x-auto mt-4 ">
               <table id="tableUpcoming" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>

@@ -304,12 +304,14 @@ function renderUpcomingTable(data) {
         ];
     });
 
+    
     return $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "pageLength": 10,
     "responsive": true,
-    "dom": '<"flex justify-end items-center gap-4 mb-4"fl>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+    // เปลี่ยน "text-sm" เป็น "text-base" (หรือถอดออก) และเอา "-sm" ออกจาก pagination
+"dom": '<"flex justify-end items-center gap-4 mb-4"fl>rt<"flex justify-between items-center mt-4"<"text-base text-gray-600 font-medium"i><"pagination-normal"p>>',
     "columnDefs": [
         // บังคับสีฟอนต์เนื้อหาทุกคอลัมน์
         { 
@@ -1401,7 +1403,7 @@ const matchTable = $el.DataTable({
             extend: 'excel',
             text: '<i class="fas fa-file-excel mr-1"></i> Export',
             filename: 'R2C_InStock_Report',
-            className: 'px-3 py-2 mb-0 text-center text-white uppercase align-middle bg-purple rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+            className: 'px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
         }
     ],
     "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
@@ -2006,7 +2008,7 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
                 let textColor = "#374151";
                 if (data === 'พัสดุล้าสมัย') { bgColor = "#ffd5d5"; textColor = "#a82121"; } 
                 else if (data === 'เปลี่ยนรหัสพัสดุ') { bgColor = "#ffe1d5"; textColor = "#a85221"; } 
-                else if (data === 'พัสดุไม่เบิกจากคลัง') { bgColor = "#ffd5f6"; textColor = "#a82192"; }
+                else if (data === 'พัสดุไม่เบิกจากคลัง') { bgColor = "#fffbd5"; textColor = "#a89b21"; }
 
                 return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
                         ${data || '-'}
@@ -2297,7 +2299,135 @@ setupFilterLight(tableInstance, rawData) {
         // 🎯 แก้ไขตรงนี้: ปรับมาใช้คำสั่งค้นหาข้อความปกติ (ไม่ต้องใช้ ^ และ $) ในคอลัมน์ Index 5
         table.column(12).search(val ? val : '').draw();
     });
+},
+
+
+// =========== filter ตัวใหม่ล่าสุดสำหรับตารางพัสดุที่กำลังจะมาถึง (Upcoming Material) =========== //
+setupFilterUpcoming_MaterialID(table, data) {
+    // 1. กำหนด Selector ของ Element Select HTML สำหรับรหัสพัสดุ
+    const $filter = $('#FilterUpcoming_Material'); 
+    $filter.empty().append('<option value="">ทั้งหมด (รหัสพัสดุ)</option>');
+
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        
+        // 2. ดึงข้อมูลจากช่อง Index 0 (รหัสพัสดุ) ของข้อมูลดิบ
+        // (ตรวจสอบการใช้ฟังก์ชัน getCellValue หรือตรวจสอบค่า cell.v แบบเดียวกับฟังก์ชัน render)
+        let cell = row.c[0];
+        let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
+        
+        if (val && val !== "-" && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    // 3. เรียงลำดับข้อมูลพัสดุและใส่เข้าไปใน Dropdown
+    list.sort().forEach(item => {
+        $filter.append(`<option value="${item}">${item}</option>`);
+    });
+
+    // 4. เปิดใช้งาน Select2
+    $filter.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: true, // รหัสพัสดุส่วนใหญ่มักเลือกทีละรายการ ถ้าอยากให้เลือกได้หลายอันค่อยเปลี่ยนเป็น false
+        placeholder: 'ค้นหารหัสพัสดุ...',
+        allowClear: true
+    });
+
+    // 5. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนค่า เพื่อกรองข้อมูลใน DataTable คอลัมน์ที่ 0
+    $filter.on('change', function () {
+        const val = $(this).val();
+        // 🎯 กรองในคอลัมน์ Index 0 (รหัสพัสดุ)
+        // ใช้คำสั่งค้นหาข้อความปกติ (ถ้าต้องการให้ตรงเป๊ะเป๊ะ สามารถเปลี่ยนเป็น table.column(0).search(val ? '^' + val + '$' : '', true, false).draw(); ได้ครับ)
+        table.column(0).search(val ? val : '').draw();
+    });
+},
+setupFilterUpcoming_MaterialName(table, data) {
+    // 1. กำหนด Selector ของ Element Select HTML สำหรับชื่อพัสดุ
+    const $filter = $('#FilterUpcoming_MaterialName'); 
+    $filter.empty().append('<option value="">ทั้งหมด (ชื่อพัสดุ)</option>');
+
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        
+        // 2. ดึงข้อมูลจากช่อง Index 1 (ชื่อพัสดุ) ของข้อมูลดิบ
+        // (ตรวจสอบการใช้ฟังก์ชัน getCellValue หรือตรวจสอบค่า cell.v แบบเดียวกับฟังก์ชัน render)
+        let cell = row.c[1];
+        let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
+        
+        if (val && val !== "-" && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    // 3. เรียงลำดับข้อมูลพัสดุและใส่เข้าไปใน Dropdown
+    list.sort().forEach(item => {
+        $filter.append(`<option value="${item}">${item}</option>`);
+    });
+
+    // 4. เปิดใช้งาน Select2
+    $filter.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: true, // รหัสพัสดุส่วนใหญ่มักเลือกทีละรายการ ถ้าอยากให้เลือกได้หลายอันค่อยเปลี่ยนเป็น false
+        placeholder: 'ค้นหาชื่อพัสดุ...',
+        allowClear: true
+    });
+
+    // 5. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนค่า เพื่อกรองข้อมูลใน DataTable คอลัมน์ที่ 1
+    $filter.on('change', function () {
+        const val = $(this).val();
+        // 🎯 กรองในคอลัมน์ Index 1 (ชื่อพัสดุ)
+        // ใช้คำสั่งค้นหาข้อความปกติ (ถ้าต้องการให้ตรงเป๊ะเป๊ะ สามารถเปลี่ยนเป็น table.column(1).search(val ? '^' + val + '$' : '', true, false).draw(); ได้ครับ)
+        table.column(1).search(val ? val : '').draw();
+    });
+},
+setupFilterUpcoming_PurchaseGroup(table, data) {
+    // 1. กำหนด Selector ของ Element Select HTML สำหรับกลุ่มการจัดซื้อ
+    const $filter = $('#FilterUpcoming_PurchaseGroup'); 
+    $filter.empty().append('<option value="">ทั้งหมด (กลุ่มการจัดซื้อ)</option>');
+
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        
+        // 2. ดึงข้อมูลจากช่อง Index 2 (กลุ่มการจัดซื้อ) ของข้อมูลดิบ
+        // (ตรวจสอบการใช้ฟังก์ชัน getCellValue หรือตรวจสอบค่า cell.v แบบเดียวกับฟังก์ชัน render)
+        let cell = row.c[2];
+        let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
+        
+        if (val && val !== "-" && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    // 3. เรียงลำดับข้อมูลพัสดุและใส่เข้าไปใน Dropdown
+    list.sort().forEach(item => {
+        $filter.append(`<option value="${item}">${item}</option>`);
+    });
+
+    // 4. เปิดใช้งาน Select2
+    $filter.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: true, // รหัสพัสดุส่วนใหญ่มักเลือกทีละรายการ ถ้าอยากให้เลือกได้หลายอันค่อยเปลี่ยนเป็น false
+        placeholder: 'ค้นหาชื่อพัสดุ...',
+        allowClear: true
+    });
+
+    // 5. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนค่า เพื่อกรองข้อมูลใน DataTable คอลัมน์ที่ 2
+    $filter.on('change', function () {
+        const val = $(this).val();
+        // 🎯 กรองในคอลัมน์ Index 2 (กลุ่มการจัดซื้อ)
+        // ใช้คำสั่งค้นหาข้อความปกติ (ถ้าต้องการให้ตรงเป๊ะเป๊ะ สามารถเปลี่ยนเป็น table.column(2).search(val ? '^' + val + '$' : '', true, false).draw(); ได้ครับ)
+        table.column(2).search(val ? val : '').draw();
+    });
 }
+
+
 };
 
 
@@ -2532,7 +2662,18 @@ async function initDashboard() {
             }
         });
             if (upcomingData && upcomingData.rows && upcomingData.rows.length > 0) {
-                renderUpcomingTable(upcomingData);
+                // 1. ส่งข้อมูลไป render ตาราง และรับค่า DataTable Instance กลับมาเก็บไว้ในตัวแปร
+                const upcomingTableInstance = renderUpcomingTable(upcomingData);
+                // 2. ตรวจสอบว่ามี Instance ของตารางจริง และข้อมูลถูกต้อง จึงจะเริ่มผูกตัวกรอง (Filter)
+                if (upcomingTableInstance) {
+                    // เรียกฟังก์ชันฟิลเตอร์สถานะงาน (ตัวเดิมที่คุณมี)
+                    FilterModule.setupFilterUpcoming_MaterialID(upcomingTableInstance, upcomingData);
+                    // เรียกฟังก์ชันฟิลเตอร์รหัสพัสดุ (ตัวใหม่ที่สร้างขึ้น)
+                    FilterModule.setupFilterUpcoming_MaterialName(upcomingTableInstance, upcomingData);
+                    FilterModule.setupFilterUpcoming_PurchaseGroup(upcomingTableInstance, upcomingData);
+                
+                console.log("🔍 Filters for Upcoming Table initialized!");
+                 }
                 console.log("📦 Upcoming Item Table Rendered successfully!");
             } else {
                 console.warn("⚠️ No rows found in Upcoming_Item data");
