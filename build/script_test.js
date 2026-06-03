@@ -2303,17 +2303,67 @@ setupFilterLight(tableInstance, rawData) {
 
 
 // =========== filter ตัวใหม่ล่าสุดสำหรับตารางพัสดุที่กำลังจะมาถึง (Upcoming Material) =========== //
-setupFilterUpcoming_MaterialID(table, data) {
-    // 1. กำหนด Selector ของ Element Select HTML สำหรับรหัสพัสดุ
-    const $filter = $('#FilterUpcoming_Material'); 
-    $filter.empty().append('<option value="">ทั้งหมด (รหัสพัสดุ)</option>');
+// setupFilterUpcoming_MaterialID(table, data) {
+//     // 1. กำหนด Selector ของ Element Select HTML สำหรับรหัสพัสดุ
+//     const $filter = $('#FilterUpcoming_Material'); 
+//     $filter.empty().append('<option value="">ทั้งหมด (รหัสพัสดุ)</option>');
 
+//     let list = [];
+//     data.rows.forEach(row => {
+//         if (!row || !row.c) return;
+        
+//         // 2. ดึงข้อมูลจากช่อง Index 0 (รหัสพัสดุ) ของข้อมูลดิบ
+//         // (ตรวจสอบการใช้ฟังก์ชัน getCellValue หรือตรวจสอบค่า cell.v แบบเดียวกับฟังก์ชัน render)
+//         let cell = row.c[0];
+//         let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
+        
+//         if (val && val !== "-" && !list.includes(val)) {
+//             list.push(val);
+//         }
+//     });
+
+//     // 3. เรียงลำดับข้อมูลพัสดุและใส่เข้าไปใน Dropdown
+//     list.sort().forEach(item => {
+//         $filter.append(`<option value="${item}">${item}</option>`);
+//     });
+
+//     // 4. เปิดใช้งาน Select2
+//     $filter.select2({
+//         theme: 'bootstrap-5',
+//         width: '100%',
+//         closeOnSelect: true, // รหัสพัสดุส่วนใหญ่มักเลือกทีละรายการ ถ้าอยากให้เลือกได้หลายอันค่อยเปลี่ยนเป็น false
+//         placeholder: 'ค้นหารหัสพัสดุ...',
+//         allowClear: true
+//     });
+
+//     // 5. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนค่า เพื่อกรองข้อมูลใน DataTable คอลัมน์ที่ 0
+//     $filter.on('change', function () {
+//         const val = $(this).val();
+//         // 🎯 กรองในคอลัมน์ Index 0 (รหัสพัสดุ)
+//         // ใช้คำสั่งค้นหาข้อความปกติ (ถ้าต้องการให้ตรงเป๊ะเป๊ะ สามารถเปลี่ยนเป็น table.column(0).search(val ? '^' + val + '$' : '', true, false).draw(); ได้ครับ)
+//         table.column(0).search(val ? val : '').draw();
+//     });
+// },
+
+setupFilterUpcoming_MaterialID(table, data) {
+    // ==========================================
+    // 1. กำหนดตัวแปรและดึง Element จาก HTML ใหม่
+    // ==========================================
+    const $dropdownMenu = $('#dropdownSearch');
+    const $searchContainer = $dropdownMenu.find('ul'); // พื้นที่สอดแทรกรายการ <li>
+    const $searchInput = $('#search');
+    const $clearButton = $('#clearMaterialFilter');
+    
+    // เคลียร์รายการเก่าในดรอปดาวน์ออกก่อน เพื่อรองรับการอัปเดตข้อมูลใหม่
+    $searchContainer.empty(); 
+
+    // ==========================================
+    // 2. ดึงข้อมูลและจัดการรหัสพัสดุไม่ให้ซ้ำ (ตรรกะเดิมของคุณ)
+    // ==========================================
     let list = [];
     data.rows.forEach(row => {
         if (!row || !row.c) return;
         
-        // 2. ดึงข้อมูลจากช่อง Index 0 (รหัสพัสดุ) ของข้อมูลดิบ
-        // (ตรวจสอบการใช้ฟังก์ชัน getCellValue หรือตรวจสอบค่า cell.v แบบเดียวกับฟังก์ชัน render)
         let cell = row.c[0];
         let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
         
@@ -2322,26 +2372,80 @@ setupFilterUpcoming_MaterialID(table, data) {
         }
     });
 
-    // 3. เรียงลำดับข้อมูลพัสดุและใส่เข้าไปใน Dropdown
-    list.sort().forEach(item => {
-        $filter.append(`<option value="${item}">${item}</option>`);
+    // ==========================================
+    // 3. เรียงลำดับข้อมูลและสร้าง List Item (HTML) ยัดกลับเข้าไปในดรอปดาวน์
+    // ==========================================
+    list.sort().forEach((item, index) => {
+        // สร้าง ID เฉพาะตัว (Unique ID) เพื่อให้ Tag Label ผูกกับ Checkbox ได้ถูกต้องเวลาคลิก
+        const uniqueId = `dropdown-material-${index}`; 
+        
+        const listItemHtml = `
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded material-filter-item">
+                <label for="${uniqueId}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">
+                        ${item}
+                    </div>
+                    <input id="${uniqueId}" type="checkbox" value="${item}" class="material-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong focus:ring-2 focus:ring-brand-soft">
+                </label>
+            </li>
+        `;
+        $searchContainer.append(listItemHtml);
     });
 
-    // 4. เปิดใช้งาน Select2
-    $filter.select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        closeOnSelect: true, // รหัสพัสดุส่วนใหญ่มักเลือกทีละรายการ ถ้าอยากให้เลือกได้หลายอันค่อยเปลี่ยนเป็น false
-        placeholder: 'ค้นหารหัสพัสดุ...',
-        allowClear: true
+    // ==========================================
+    // 4. ระบบพิมพ์ค้นหาในดรอปดาวน์ (Search Filter inside Dropdown)
+    // ==========================================
+    // เคลียร์ Event เก่าออกก่อน (.off) แล้วผูกใหม่ (.on) ป้องกันปัญหาสคริปต์ซ้อนกันเวลารันฟังก์ชันซ้ำ
+    $searchInput.off('input').on('input', function () {
+        const searchText = $(this).val().toLowerCase();
+        
+        $searchContainer.find('.material-filter-item').each(function () {
+            const itemText = $(this).text().toLowerCase();
+            
+            // ถ้าคำค้นหาตรงกับชื่อพัสดุ ให้แสดงผล ถ้าไม่ตรงให้ซ่อน
+            if (itemText.includes(searchText)) {
+                $(this).attr('style', 'display: flex !important'); 
+            } else {
+                $(this).attr('style', 'display: none !important');  
+            }
+        });
     });
 
-    // 5. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนค่า เพื่อกรองข้อมูลใน DataTable คอลัมน์ที่ 0
-    $filter.on('change', function () {
-        const val = $(this).val();
-        // 🎯 กรองในคอลัมน์ Index 0 (รหัสพัสดุ)
-        // ใช้คำสั่งค้นหาข้อความปกติ (ถ้าต้องการให้ตรงเป๊ะเป๊ะ สามารถเปลี่ยนเป็น table.column(0).search(val ? '^' + val + '$' : '', true, false).draw(); ได้ครับ)
-        table.column(0).search(val ? val : '').draw();
+    // ==========================================
+    // 5. ระบบดักจับการเลือก Checkbox และส่งค่าไปฟิลเตอร์ใน DataTable
+    // ==========================================
+    $searchContainer.off('change', '.material-checkbox').on('change', '.material-checkbox', function () {
+        let selectedVals = [];
+        
+        // วนลูปหา Checkbox ทุกตัวในกล่องที่ถูกติ๊กเลือก (Checked) แล้วเก็บค่าเข้า Array
+        $searchContainer.find('.material-checkbox:checked').each(function () {
+            selectedVals.push($(this).val());
+        });
+
+        // ตรวจสอบเงื่อนไขแล้วส่งค่าไปกรองที่ตาราง DataTable
+        if (selectedVals.length > 0) {
+            // ทำการ Escape เครื่องหมายพิเศษ และเชื่อมข้อมูลด้วย | (แปลว่า "หรือ")
+            const searchRegex = selectedVals.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+            // ทำการฟิลเตอร์ที่คอลัมน์ Index 0 แบบตรงตัวเป๊ะๆ (Exact Match) ด้วย Regex เช่น ^(M001|M002)$
+            table.column(0).search(`^(${searchRegex})$`, true, false).draw();
+        } else {
+            // ถ้าไม่มีการติ๊กเลือกพัสดุเลยสักตัว ให้เคลียร์ฟิลเตอร์เพื่อให้แสดงข้อมูลตารางทั้งหมด
+            table.column(0).search('').draw();
+        }
+    });
+
+    // ==========================================
+    // 6. ระบบปุ่มล้างค่าที่เลือกทั้งหมด (Clear Filters Button)
+    // ==========================================
+    $clearButton.off('click').on('click', function() {
+        // 1. เอาเครื่องหมายติ๊กถูกออกจาก Checkbox ทุกตัวในรายการ
+        $searchContainer.find('.material-checkbox').prop('checked', false); 
+        // 2. ล้างช่องพิมพ์ค้นหาให้กลับมาเป็นค่าว่าง
+        $searchInput.val('');
+        // 3. แสดงรายการพัสดุทุกตัวใน List เผื่อมีบางตัวโดนซ่อนอยู่จากการค้นหาค้างไว้
+        $searchContainer.find('.material-filter-item').attr('style', 'display: flex !important');
+        // 4. สั่งสั่งตาราง DataTable รีเซ็ตกลับมาโชว์ข้อมูลพัสดุทั้งหมดเหมือนเดิม
+        table.column(0).search('').draw(); 
     });
 },
 setupFilterUpcoming_MaterialName(table, data) {

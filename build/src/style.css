@@ -611,3 +611,154 @@ body {
 #tableUpcoming tbody td {
     border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
 }
+
+/* ==========================================================================
+   1. CSS ของเดิมที่คุณส่งมา (คงไว้ 100% ห้ามเปลี่ยนหรือลบออก)
+   ========================================================================== */
+.select2-container--bootstrap-5 .select2-selection {
+    border: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single {
+    padding-top: 4px !important;
+    height: auto !important;
+}
+
+
+/* ==========================================================================
+   2. CSS ปรับแต่งโครงสร้างระบบ Multiple ให้ทรงกล่องคงเดิม ช่องค้นหาไม่หาย
+   ========================================================================== */
+
+/* จัดโครงสร้างภายในกล่องหลักให้เรียงตัวเป็นแนวนอนแถวเดียว */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    padding: 0 4px !important;
+    width: 100% !important;
+    overflow: hidden;
+}
+
+/* แปลงร่างชิปตัวแรกให้กลายเป็นข้อความสรุป (ลบกรอบเหลี่ยมทิ้งไป) */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice:first-child {
+    display: inline-block !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 8px 0 0 !important;
+    color: #1e293b !important; /* สีเทาเข้ม Slate-800 */
+    font-size: 0.875rem !important;
+    white-space: nowrap !important;
+    position: static !important;
+}
+
+/* ซ่อนชิปตัวที่ 2 เป็นต้นไป เพื่อไม่ให้กล่องบวมหรือซ้อนกัน */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice:not(:first-child) {
+    display: none !important;
+}
+
+/* ซ่อนปุ่มกากบาทเล็กในชิป */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove {
+    display: none !important;
+}
+
+/* ตั้งค่าช่องพิมพ์ค้นหาให้ยืดหยุ่นและแสดงผลต่อท้ายข้อความสรุปเสมอ */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-search--inline {
+    display: inline-block !important;
+    flex-grow: 1 !important;
+    min-width: 80px !important;
+    margin: 0 !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-search--inline .select2-search__field {
+    margin: 0 !important;
+    padding-top: 4px !important;
+    background: transparent !important;
+    width: 100% !important;
+}
+
+
+/* ==========================================================================
+   3. CSS จัดการปุ่ม Clear (X) และปุ่มลูกศร (Dropdown Arrow) ด้านขวาสุด
+   ========================================================================== */
+
+/* ล็อกตำแหน่งปุ่มกากบาทเคลียร์ค่าหลักของ Select2 */
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__clear {
+    display: inline-block !important;
+    margin-right: 25px !important; /* เว้นที่หลบให้ปุ่มลูกศรด้านขวา */
+    font-size: 1.25rem;
+    color: #94a3b8;
+}
+
+/* บังคับสร้างปุ่มลูกศรชี้ลงของเดิมให้แสดงผลในโหมด Multiple */
+.select2-container--bootstrap-5 .select2-selection--multiple {
+    padding-top: 4px !important;
+    height: auto !important;
+    position: relative;
+    padding-right: 2.5rem !important; 
+}
+
+.select2-container--bootstrap-5 .select2-selection--multiple::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-color: #808080 transparent transparent transparent;
+    border-style: solid;
+    border-width: 5px 4px 0 4px;
+    height: 0;
+    width: 0;
+    pointer-events: none;
+}
+
+
+/* ==========================================================================
+   4. CSS ตกแต่งรายการดร็อปดาวน์ด้านล่าง และการแก้บั๊กเครื่องหมายถูกหาย
+   ========================================================================== */
+
+/* ปรับระยะช่องไฟของแต่ละแถวในดร็อปดาวน์ */
+.select2-container--bootstrap-5 .select2-dropdown .select2-results__option {
+    padding: 8px 12px !important;
+}
+
+/* บังคับแต่งสไตล์ Checkbox ปกติภายในรายการ */
+.select2-container--bootstrap-5 .select2-dropdown .form-check-input {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    cursor: pointer;
+    position: relative;
+}
+
+/* 🎯 [จุดสำคัญ] แก้บั๊กเมื่อรายการถูกเลือก (Active แถบน้ำเงิน) -> บังคับให้ Checkbox แสดงเครื่องหมายถูกสีขาวทันที */
+.select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
+    background-color: #0d6efd !important; /* บังคับใช้สีน้ำเงินไฮไลท์ */
+    color: #ffffff !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option[aria-selected=true] .form-check-input {
+    background-color: #ffffff !important; /* เปลี่ยนพื้นหลังตัว checkbox เป็นสีขาว */
+    border-color: #ffffff !important;
+}
+
+/* วาดเส้นเครื่องหมายถูกสีน้ำเงิน/หรือสีเข้มลงบนกล่องสีขาวตอนที่เลือกอยู่ */
+.select2-container--bootstrap-5 .select2-results__option[aria-selected=true] .form-check-input::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 2px !important;
+    left: 5px !important;
+    width: 5px !important;
+    height: 9px !important;
+    border: solid #0d6efd !important; /* สีน้ำเงินตัดกับพื้นหลัง checkbox ขาว */
+    border-width: 0 2px 2px 0 !important;
+    transform: rotate(45deg) !important;
+}
+
+/* แต่งสีแถวเวลาที่เราเอาเมาส์ไปชี้ (Hover) แต่ยังไม่ได้กดเลือก ให้ใช้สีเทาอ่อนหรูๆ สบายตา */
+.select2-container--bootstrap-5 .select2-results__option--highlighted:not([aria-selected=true]) {
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+}
