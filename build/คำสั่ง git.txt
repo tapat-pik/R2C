@@ -12,5 +12,5 @@ git pull origin main
 
 # 5. push ไฟล์ที่แก้ไขขึ้น git
 git add .
-git commit -m "update filter upcoming"
+git commit -m "update ทั้งหมด และฟลิเตอรืทั้งหมด"
 git push origin main
