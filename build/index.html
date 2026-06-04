@@ -289,7 +289,7 @@
   <div class="flex flex-wrap -mx-3">
   <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex">
     <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2 bg-white/20 rounded-t-2xl">
+      <div class="p-4 pb-2  rounded-t-2xl">
         <div class="flex flex-row justify-between">
           <div class="flex-none max-w-full">
               <p class="mb-0 font-sans text-xl font-semibold leading-normal text-slate-800">จำนวนงานรวม</p>
@@ -328,7 +328,7 @@
 <!-- card 2-->
   <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex"> 
     <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border">
-      <div class="p-4 pb-2 bg-white/20 rounded-t-2xl">
+      <div class="p-4 pb-2 rounded-t-2xl">
         <div class="flex flex-row justify-between">
           <div class="flex-none max-w-full">
               <p class="mb-0 font-sans text-xl font-semibold leading-normal text-slate-800">มูลค่างาน</p>
@@ -369,7 +369,7 @@
   <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex" >
     
     <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2 bg-purple-300/40 rounded-t-2xl">
+      <div class="p-4 pb-2  rounded-t-2xl">
         <div class="flex flex-row justify-between">
           <div class="flex-none max-w-full">
               <p class="mb-0 font-sans text-xl font-semibold leading-normal text-lime-500">Ready-to-Close 
@@ -443,7 +443,7 @@
 <!-- card 4 -->
   <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex">
     <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2 bg-purple-300/40 rounded-t-2xl">
+      <div class="p-4 pb-2  rounded-t-2xl">
         <div class="flex flex-row justify-between">
           <div class="flex-none max-w-full">
               <p class="mb-0 font-sans text-xl font-semibold leading-normal text-sky-600">Ready-to-Work
@@ -592,47 +592,129 @@
     <div class="row mb-4 g-3">
         
        <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">ไฟสัญญาณ</label>
-            <select id="setupFilterLight" class="form-select"></select>
+    <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+        <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">ไฟสัญญาณ/สถานะ</label>
+        
+        <button id="dropdownLightButton" data-dropdown-toggle="dropdownSearchLight" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+            <span>ทั้งหมด (ไฟสัญญาณ/สถานะ)</span>
+            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+        </button>
+
+        <div id="dropdownSearchLight" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+            <ul class="p-2 text-sm text-gray-700 font-medium m-0 list-none" aria-labelledby="dropdownLightButton">
+                </ul>
+            <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                <button type="button" id="clearLightFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+                    <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
+                    ล้างค่าที่เลือกทั้งหมด
+                </button>
+            </div>
         </div>
     </div>
+</div>
        
-     <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">สถานะงาน</label>
-            <select id="FilterType_WBS" class="form-select"></select>
+    <div class="col-xl col-md-4">
+    <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+        <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">สถานะงาน</label>
+        <button id="dropdownTypeWBSButton" data-dropdown-toggle="dropdownSearchTypeWBS" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+            <span class="text-slate-500 text-sm truncate">กรองสถานะงาน</span>
+            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+        </button>
+        <div id="dropdownSearchTypeWBS" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+            <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                <input type="text" id="searchTypeWBS" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหาสถานะงาน..." />
+            </div>
+            <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownTypeWBSButton"></ul>
+            <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                <button type="button" id="clearTypeWBSFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">ล้างค่าที่เลือกทั้งหมด</button>
+            </div>
         </div>
+    </div>
+</div>
+      <div class="col-xl col-md-4">
+        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+    <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">หมายเลขงาน</label>
+    
+    <button id="dropdownWBSButton" data-dropdown-toggle="dropdownSearchWBS" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+        <span class="text-slate-500 text-sm truncate">กรองหมายเลขงาน</span>
+        <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+    </button>
+
+    <div id="dropdownSearchWBS" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+        <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+            <label for="searchWBS" class="sr-only">Search</label>
+            <input type="text" id="searchWBS" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหาหมายเลขงาน..." required />
+        </div>
+        <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownWBSButton">
+            </ul>
+        <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+            <button type="button" id="clearWBSFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+                <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
+                ล้างค่าที่เลือกทั้งหมด
+            </button>
+        </div>
+    </div>
+</div>
     </div>
 
-      <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">หมายเลขงาน WBS</label>
-            <select id="FilterID_WBS" class="form-select"></select>
-        </div>
-    </div>
+
 
 <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">การไฟฟ้า</label>
-            <select id="FilterPEA_WBS" class="form-select"></select>
+    <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+        <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">การไฟฟ้า</label>
+        <button id="dropdownPEAWBSButton" data-dropdown-toggle="dropdownSearchPEAWBS" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+            <span class="text-slate-500 text-sm truncate">กรองการไฟฟ้า</span>
+            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+        </button>
+        <div id="dropdownSearchPEAWBS" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+            <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                <input type="text" id="searchPEAWBS" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหาการไฟฟ้า..." />
+            </div>
+            <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownPEAWBSButton"></ul>
+            <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                <button type="button" id="clearPEAWBSFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">ล้างค่าที่เลือกทั้งหมด</button>
+            </div>
         </div>
     </div>
+</div>
 
-     
-       <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">กลุ่มโครงการ</label>
-            <select id="FilterProjectGroup" class="form-select"></select>
+<div class="col-xl col-md-4">
+    <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+        <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">กลุ่มโครงการ</label>
+        <button id="dropdownProjGroupButton" data-dropdown-toggle="dropdownSearchProjGroup" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+            <span>กรองกลุ่มโครงการ</span>
+            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+        </button>
+        <div id="dropdownSearchProjGroup" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+            <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                <input type="text" id="searchProjGroup" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหากลุ่มโครงการ..." />
+            </div>
+            <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownProjGroupButton"></ul>
+            <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                <button type="button" id="clearProjGroupFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">ล้างค่าที่เลือกทั้งหมด</button>
+            </div>
         </div>
     </div>
+</div>
 
-        <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">งบ</label>
-            <select id="FilterBudgetCIP" class="form-select"></select>
+<div class="col-xl col-md-4">
+    <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+        <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">งบ</label>
+        <button id="dropdownBudgetButton" data-dropdown-toggle="dropdownSearchBudget" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+            <span class="text-slate-500 text-sm truncate">กรองงบ</span>
+            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+        </button>
+        <div id="dropdownSearchBudget" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+            <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                <input type="text" id="searchBudget" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหางบ..." />
+            </div>
+            <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownBudgetButton"></ul>
+            <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                <button type="button" id="clearBudgetFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">ล้างค่าที่เลือกทั้งหมด</button>
+            </div>
         </div>
     </div>
+</div>
 
 
 
@@ -759,15 +841,17 @@
             </div>
 
 
-      <div class="row mb-4 g-3">
+    
         
 
-<div class="col-xl col-md-4">
+<div class="row mb-4 g-3">
+    
+    <div class="col-xl col-md-4">
         <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
             <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">รหัสพัสดุ</label>
             
-            <button id="dropdownUsersSearchButton" data-dropdown-toggle="dropdownSearch" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white  hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
-                <span>กรองรหัสพัสดุ</span>
+            <button id="dropdownUsersSearchButton" data-dropdown-toggle="dropdownSearch" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+                <span class="text-slate-500 text-sm truncate">กรองรหัสพัสดุ</span>
                 <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
             </button>
 
@@ -788,24 +872,62 @@
         </div>
     </div>
 
-
-
     <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">ชื่อพัสดุ</label>
-            <select id="FilterUpcoming_MaterialName" class="form-select"></select>
+        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">ชื่อพัสดุ</label>
+            
+            <button id="dropdownMaterialNameButton" data-dropdown-toggle="dropdownSearchName" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+                <span class="text-slate-500 text-sm truncate">กรองชื่อพัสดุ</span>
+                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+            </button>
+
+            <div id="dropdownSearchName" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+                <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                    <label for="searchMaterialName" class="sr-only">Search</label>
+                    <input type="text" id="searchMaterialName" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหาชื่อพัสดุ..." required />
+                </div>
+                <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownMaterialNameButton">
+                    </ul>
+                <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                    <button type="button" id="clearMaterialNameFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+                        <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
+                        ล้างค่าที่เลือกทั้งหมด
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="col-xl col-md-4">
-        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1">กลุ่มการจัดซื้อ</label>
-            <select id="FilterUpcoming_PurchaseGroup" class="form-select"></select>
+        <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">กลุ่มการจัดซื้อ</label>
+            
+            <button id="dropdownPurchaseGroupButton" data-dropdown-toggle="dropdownSearchGroup" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+                <span class="text-slate-500 text-sm truncate">กรองกลุ่มการจัดซื้อ</span>
+                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+            </button>
+
+            <div id="dropdownSearchGroup" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+                <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                    <label for="searchPurchaseGroup" class="sr-only">Search</label>
+                    <input type="text" id="searchPurchaseGroup" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหากลุ่มการจัดซื้อ..." required />
+                </div>
+                <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownPurchaseGroupButton">
+                    </ul>
+                <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                    <button type="button" id="clearPurchaseGroupFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+                        <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
+                        ล้างค่าที่เลือกทั้งหมด
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+
+</div>
 
             
-        </div>
+      
 
 
 
@@ -1023,7 +1145,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- <script src="script_new.js"></script> -->
 <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
-<script src="script_test.js"></script>
+<script src="script_update.js"></script>
 
 
 

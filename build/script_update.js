@@ -64,6 +64,19 @@ const STATUS_COLORS = {
 };
 
 // ==================== Utility Functions ====================
+const debounceTimers = new Map();
+
+function debounce(key, fn, delay = 300) {
+    if (debounceTimers.has(key)) {
+        clearTimeout(debounceTimers.get(key));
+    }
+    const timer = setTimeout(() => {
+        fn();
+        debounceTimers.delete(key);
+    }, delay);
+    debounceTimers.set(key, timer);
+}
+
 /**
  * ดึงค่าจาก Cell ของ Google Sheets
  */
@@ -111,7 +124,6 @@ const DataService = {
 //         const url = `api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
 
 //         // 🔗 log บอกเมื่อระบบฝั่ง JavaScript เริ่มทำการเชื่อมต่อไปยัง API เพื่อดึงข้อมูลจาก MySQL
-//         console.log(`🌐 [MySQL DB] Connecting to API for table: "${sheetName}"...`);
 
 //         try {
 //             const response = await fetch(url);
@@ -121,13 +133,11 @@ const DataService = {
             
 //             // ✅ log บอกเมื่อดึงข้อมูลสำเร็จจาก MySQL พร้อมบอกจำนวนแถวข้อมูลที่ได้กลับมา
 //             const rowCount = (jsonData.table && jsonData.table.rows) ? jsonData.table.rows.length : 0;
-//             console.log(`✅ [MySQL DB] Successfully connected to "${sheetName}". Fetched ${rowCount} rows.`);
             
 //             return jsonData.table;
 
 //         } catch (err) {
 //             // ❌ log แจ้งเตือนกรณีที่ระบบเกิด Error หรือติดต่อ API ของ MySQL ไม่สำเร็จ
-//             console.error(`❌ [MySQL DB] Failed to connect or fetch table "${sheetName}":`, err);
 //             return { cols: [], rows: [] };
 //         }
 //     },
@@ -140,7 +150,6 @@ const DataService = {
         const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
 
         // 🔗 log บอกเมื่อระบบเริ่มทำการยิงไปเชื่อมต่อกับ Google Sheet
-        console.log(`🌐 [Google Sheet DB] Connecting to table: "${sheetName}"...`);
 
         try {
             const response = await fetch(url);
@@ -185,7 +194,6 @@ const DataService = {
             });
 
             // ✅ log บอกเมื่อเชื่อมต่อสำเร็จและแปลงข้อมูลเสร็จเรียบร้อย พร้อมบอกจำนวนแถวที่ได้มา
-            console.log(`✅ [Google Sheet DB] Successfully connected to "${sheetName}". Fetched ${formattedRows.length} rows.`);
 
             // ส่งข้อมูลกลับไปในโครงสร้างแบบเดิมที่โค้ดเก่าต้องการ
             return {
@@ -195,7 +203,6 @@ const DataService = {
 
         } catch (err) {
             // ❌ log แจ้งเตือนกรณีที่การเชื่อมต่อเกิดการพังหรือดึงข้อมูลไม่ได้
-            console.error(`❌ [Google Sheet DB] Failed to connect or parse table "${sheetName}":`, err);
             return { cols: [], rows: [] };
         }
     },
@@ -251,7 +258,6 @@ const DataService = {
             }
         });
     }
-    console.log(`💰 [Budget Data] Mapped ${Object.keys(mapping).length} WBS codes. Sample:`, Object.entries(mapping).slice(0, 3));
     return mapping;
 }
     
@@ -265,7 +271,6 @@ const DataService = {
 function renderUpcomingTable(data) {
     // แก้ไขจุดเสี่ยงที่ 1: ใช้ == null แทนการใช้เครื่องหมาย !
     if (data == null || data.rows == null) {
-        console.warn("⚠️ No rows for Upcoming_Item table");
         return null;
     }
 
@@ -445,10 +450,6 @@ const ScoringService = {
             else if (diffDays !== null && diffDays > 30) timingDetail = `เกิน 30 วัน (Fix 500)`;
             else timingDetail = 'เงื่อนไขอื่นๆ / ไม่ระบุวัน';
 
-            console.log(`     ↳ 📋 [รายละเอียดคะแนน]`);
-            console.log(`        👉 กลยุทธ์: +${strategicPoints} | เวลา [${timingDetail}]: +${timingPoints} | ค้างระบบ (${agingDays} วัน): +${agingPoints.toFixed(4)}`);
-            console.log(`        👉 ความพร้อม: +${readinessPoints} แต้ม ${isFullyAllocated ? '➔ 🟢 [ได้รับพัสดุครบถ้วน Fully Allocated โบนัสบวกเต็ม 2,000]' : `[คำนวณจากปริมาณพัสดุ ${rowCount} ชิ้น]`}`);
-            console.log(`     ---------------------------------------------------------------------------------------------------------------------------`);
         }
         return { totalScore: score, daysRemaining: diffDays };
     },
@@ -546,14 +547,21 @@ const AllocationService = {
         );
         const uniqueWBS = Array.from(uniqueWBSSet);
 
+        const rowsByWBS = new Map();
+        rawDatabase.rows.forEach(row => {
+            const wbs = getCellValue(row.c[0]).toString().trim();
+            if (!rowsByWBS.has(wbs)) {
+                rowsByWBS.set(wbs, []);
+            }
+            rowsByWBS.get(wbs).push(row);
+        });
+
         // ================================================================================================
         // STEP 1: เตรียมคิวงานรอบแรก (ใช้คะแนนตั้งต้นก่อนแจกของเพื่อจัดลำดับความสำคัญ)
         // ================================================================================================
         const queue = rawDatabase.rows.map(row => {
             const wbs = getCellValue(row.c[0]).toString().trim();
-            const rowsOfWbs = rawDatabase.rows.filter(
-                r => getCellValue(r.c[0]).toString().trim() === wbs
-            );
+            const rowsOfWbs = rowsByWBS.get(wbs) || [];
 
             const openDateValue = getCellValue(row.c[26]);
             const wbsBudget = budgetMapping[wbs] || 0;
@@ -610,9 +618,17 @@ const AllocationService = {
         // STEP 3: สรุปผลลัพธ์และบันทึกข้อมูลเพื่อเตรียมจัดอันดับสุดท้าย
         // ================================================================================================
         const finalRankPrepList = [];
+        const allocatedByWBS = new Map();
+
+        allocatedResults.forEach(item => {
+            if (!allocatedByWBS.has(item.wbs)) {
+                allocatedByWBS.set(item.wbs, []);
+            }
+            allocatedByWBS.get(item.wbs).push(item);
+        });
 
         uniqueWBS.forEach(wbs => {
-            const items = allocatedResults.filter(r => r.wbs === wbs);
+            const items = allocatedByWBS.get(wbs) || [];
             
             // 1. แยกกลุ่มตรวจสอบพัสดุตามประเภทก่อนคิดไฟจราจร
             let hasLockedMaterial = false;
@@ -716,37 +732,22 @@ const AllocationService = {
             return b.budget - a.budget;
         });
 
-        console.log("================================================================================================================================================");
-        console.log(`🏆 [FINAL RANKING REPORT] รายงานสรุปคะแนนสุทธิและจัดอันดับงาน (WBS) เรียงจากอันดับ 1 ถึงสุดท้าย (${finalRankPrepList.length} รายการ)`);
-        console.log("👉 เกณฑ์การจัดอันดับ: 1. คะแนนสุทธิสูงสุด ➔ 2. รายการพัสดุน้อยที่สุด ➔ 3. มูลค่างานสูงสุด");
-        console.log("================================================================================================================================================");
 
         finalRankPrepList.forEach((item, index) => {
             const rank = index + 1;
-            const statusLabel = item.status === "lock" ? "🔒 LOCKED " : 
-                                item.status === "green" ? "🟢 FULLY  " : 
-                                (item.status === "blue" ? "🔵 MAIN   " : 
+            const statusLabel = item.status === "lock" ? "🔒 LOCKED " :
+                                item.status === "green" ? "🟢 FULLY  " :
+                                (item.status === "blue" ? "🔵 MAIN   " :
                                 (item.status === "yellow" ? "🟡 PARTIAL" : "🔴 NONE   "));
-                                
-            const budgetStr = item.budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            
-            console.log(
-                `อันดับที่ ${rank.toString().padEnd(2)} | ` +
-                `WBS: ${item.wbs.padEnd(15)} | ` +
-                `สถานะ: [${statusLabel}] | ` +
-                `คะแนนสุทธิสุดท้าย: ${item.finalScore.toFixed(4).padStart(10)} แต้ม | ` +
-                `จำนวนพัสดุ: ${item.rowCount.toString().padStart(2)} รายการ | ` +
-                `มูลค่างาน: ${budgetStr.padStart(14)} บาท`
-            );
 
-            // แสดงรายละเอียด Breakdown รายบรรทัด
+            const budgetStr = item.budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
             ScoringService.calculateScoreDetails(
                 item.raw.valA, item.raw.valY, item.raw.valX,
                 item.rowCount, vvipData, item.isFullyAllocated, item.raw.valOpenDate, true
             );
         });
 
-        console.log("================================================================================================================================================");
         return { allocatedResults, finalWbsScores, wbsStatusMap };
     },
 
@@ -785,11 +786,6 @@ updateDashboardCharts: function(tableSelector) {
 // ====================================================================
     // 🔥 [จุดที่ต้องแปะเพิ่ม] ปล่อยพลัง Console Check ส่องข้อมูลก่อนวิ่งเข้ากราฟ
     // ====================================================================
-    console.log("=== 📊 ตรวจสอบข้อมูลดิบที่กวาดได้จากตาราง ===");
-    console.log("จำนวนแถวทั้งหมดที่กวาดเจอ:", allRowsData.length);
-    console.log("รายการสถานะทั้งหมดในตาราง ณ ตอนนี้:", allRowsData.map(d => d.status));
-    console.log("มีคำว่า lock ปรากฏในระบบบ้างไหม?:", allRowsData.some(d => d.status === 'lock'));
-    console.log("=================================================");
         // 🚀 ส่งกองทัพข้อมูลก้อนเดียวกันนี้ แยกไปให้ฟังก์ชันย่อยของกราฟแต่ละตัวทำงานต่อ
         this.updatePieChart(allRowsData);
         this.updateBarChart(allRowsData);
@@ -1089,7 +1085,11 @@ const GraphRender = {
 function updateDashboardCards(tableSelector) {
     // ส่งตาราง Instance เข้าไปตรงๆ เพื่อให้ฟังก์ชันย่อยเอาไปจัดการฟิลเตอร์ต่อได้
     const table = $(tableSelector).DataTable();
-    ShowTotalJobs(table); 
+    ShowTotalJobs(table);
+}
+
+function updateDashboardCardsDebounced(tableSelector) {
+    debounce('updateCards', () => updateDashboardCards(tableSelector), 250);
 }
 
 function ShowTotalJobs(tableInstance) {
@@ -1259,12 +1259,8 @@ function getWBSProgressMap(allocatedData) {
 // ==================== Event Handlers ====================//
 function renderInitialStockMatch(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) {
-        console.warn("⚠️ No allocated data provided");
         return;
     }
-// 1. สั่งคำนวณ % พัสดุรายตัวให้ครบทุกแถว
-    allocatedData = updateProgressData(allocatedData, materialTypeMap);
-    // 🎯 [จุดแก้ไข] กรองเฉพาะข้อมูลที่ตัวแปร assigned มีค่ามากกว่า 0 เท่านั้น
     const filteredAllocatedData = allocatedData.filter(res => {
         const assignedValue = parseFloat(res.assigned) || 0;
         return assignedValue > 0;
@@ -1311,7 +1307,6 @@ const TableRenderer = {
     //===== ตาราง match stock=============//
     renderStockTable(target, tableData, materialTypeMap = {}, mode = "stock") {
         if (!tableData || !tableData.rows || !tableData.cols) {
-            console.warn("⚠️ No data for table:", target);
             return null;
         }
 
@@ -1589,21 +1584,14 @@ return RequirementTable;
         const uniqueMap = new Map();
         const countMap = new Map();
 
-        // นับรายการ
         data.rows.forEach(row => {
             if (!row || !row.c) return;
             let valA = getCellValue(row.c[0]).toString().trim();
             if (valA !== "") {
                 countMap.set(valA, (countMap.get(valA) || 0) + 1);
-            }
-        });
-
-        // Unique map
-        data.rows.forEach(row => {
-            if (!row || !row.c) return;
-            let valA = getCellValue(row.c[0]).toString().trim();
-            if (valA !== "" && !uniqueMap.has(valA)) {
-                uniqueMap.set(valA, row);
+                if (!uniqueMap.has(valA)) {
+                    uniqueMap.set(valA, row);
+                }
             }
         });
 
@@ -2143,7 +2131,7 @@ const FilterModule =
             // ถ้าไม่ได้ติ๊กอะไรเลย ให้แสดงข้อมูลทั้งหมดในคอลัมน์ที่ 1
             tableInstance.column(1).search('').draw();
         }
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 
     // ==========================================
@@ -2154,7 +2142,7 @@ const FilterModule =
         $searchContainer.find('.light-checkbox').prop('checked', false); 
         // รีเซ็ตตารางกลับมาโชว์ข้อมูลทั้งหมดเหมือนเดิม
         tableInstance.column(1).search('').draw(); 
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 },
    setupFilterID_WBS(table, data) {
@@ -2246,7 +2234,7 @@ const FilterModule =
             // ถ้าไม่ได้ติ๊กอะไรเลย ให้แสดงข้อมูลทั้งหมดในคอลัมน์ที่ 2
             table.column(2).search('').draw();
         }
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 
     // ==========================================
@@ -2259,7 +2247,7 @@ const FilterModule =
         // รีเซ็ตคอลัมน์ที่ 2 กลับมาโชว์ข้อมูลทั้งหมดเหมือนเดิม
         table.column(2).search('').draw(); 
     });
-    updateDashboardCards('#tableRequirement_Data');
+    updateDashboardCardsDebounced('#tableRequirement_Data');
 },
 setupFilterType_WBS(table, data) {
     const $dropdownMenu = $('#dropdownSearchTypeWBS'); 
@@ -2318,7 +2306,7 @@ setupFilterType_WBS(table, data) {
         } else {
             table.column(5).search('').draw();
         }
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 
     $clearButton.off('click').on('click', function() {
@@ -2326,7 +2314,7 @@ setupFilterType_WBS(table, data) {
         $searchInput.val('');
         $searchContainer.find('.typewbs-filter-item').attr('style', 'display: flex !important');
         table.column(5).search('').draw(); 
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 },
 
@@ -2387,7 +2375,7 @@ setupFilterType_WBS(table, data) {
         } else {
             table.column(4).search('').draw();
         }
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 
     $clearButton.off('click').on('click', function() {
@@ -2395,7 +2383,7 @@ setupFilterType_WBS(table, data) {
         $searchInput.val('');
         $searchContainer.find('.peawbs-filter-item').attr('style', 'display: flex !important');
         table.column(4).search('').draw(); 
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 },
 
@@ -2458,7 +2446,7 @@ setupFilterType_WBS(table, data) {
         } else {
             table.column(10).search('').draw();
         }
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 
     $clearButton.off('click').on('click', function() {
@@ -2466,7 +2454,7 @@ setupFilterType_WBS(table, data) {
         $searchInput.val('');
         $searchContainer.find('.projgroup-filter-item').attr('style', 'display: flex !important');
         table.column(10).search('').draw(); 
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 },
  setupFilterBudgetCIP(table, data) {
@@ -2526,7 +2514,7 @@ setupFilterType_WBS(table, data) {
         } else {
             table.column(12).search('').draw();
         }
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 
     $clearButton.off('click').on('click', function() {
@@ -2534,7 +2522,7 @@ setupFilterType_WBS(table, data) {
         $searchInput.val('');
         $searchContainer.find('.budget-filter-item').attr('style', 'display: flex !important');
         table.column(12).search('').draw();
-        updateDashboardCards('#tableRequirement_Data');
+        updateDashboardCardsDebounced('#tableRequirement_Data');
     });
 },
 
@@ -2859,7 +2847,6 @@ function setupRowClickEvent() {
         const selectedWBS = $(this).data('wbs');
 
         if (!selectedWBS) {
-            console.warn("⚠️ WBS not found");
             return;
         }
 
@@ -2880,7 +2867,7 @@ function setupRowClickEvent() {
 
         // ✨ ดักฟังหลังจากคลิกแถวแล้ว: สั่งให้อัปเดต Dashboard ของตารางนั้นๆ ทันที
         // สมมติว่าตารางที่คุณใช้คือ #tableRequirement_Data ให้ส่ง Selector ของตารางนั้นเข้าไปครับ
-        updateDashboardCards('#tableRequirement_Data'); 
+        updateDashboardCardsDebounced('#tableRequirement_Data'); 
     });
 }
 
@@ -2896,9 +2883,8 @@ function setupGlobalEvents() {
         $('.filter-select').val('');
         
         // ✨ ดักฟังตอนรีเซ็ตค่า: สั่งให้อัปเดตตัวเลขกลับมาเป็นค่าเริ่มต้นทั้งหมด
-        updateDashboardCards('#tableRequirement_Data'); 
+        updateDashboardCardsDebounced('#tableRequirement_Data'); 
         
-        console.log("✅ All filters cleared & Dashboard updated");
     });
 
     setupRowClickEvent();
@@ -2951,13 +2937,15 @@ function showR2WCardInfo() {
 // ==================== Main Initialization ====================
 async function initDashboard() {
     const startTime = performance.now();
-    console.log("🚀 Starting dashboard...");
+    
+    // เริ่มต้น Render โครงร่างกราฟล่วงหน้า
     GraphRender.Piegraph();
     GraphRender.BarGraph();
+    
     try {
         const fetchStart = performance.now();
 
-        // ดึงข้อมูล Parallel
+        // 1. ดึงข้อมูลแบบ Parallel (Asynchronous) เพื่อความรวดเร็ว
         const vvipPromise = DataService.fetchVVIPData();
         const peaPromise = DataService.fetchPEANameData();
         const budgetPromise = DataService.fetchBudgetData();
@@ -2965,11 +2953,9 @@ async function initDashboard() {
             const data = await DataService.fetchSheetData(sheet.name);
             return { sheet, data };
         });
-
-      // ดึงข้อมูล Upcoming ควบคู่ไปด้วย
         const upcomingPromise = DataService.fetchUpcomingItemData(); 
 
-        // รอมัดรวมพร้อมกัน โดยเอา upcomingPromise ไว้ตูดสุดเพื่อไม่ให้ลำดับ config เพี้ยน
+        // รอมัดรวมพร้อมกันทั้งหมดเพื่อไม่ให้เกิดคอขวด
         const [vvipData, peaMapping, budgetMapping, ...restWithUpcoming] = await Promise.all([
             vvipPromise,
             peaPromise,
@@ -2978,63 +2964,61 @@ async function initDashboard() {
             upcomingPromise 
         ]);
 
-        // ดึงเอาตัวแปรตัวสุดท้าย (Upcoming) แยกออกมาเก็บไว้
+        const fetchEnd = performance.now();
+        console.group("📊 Dashboard Performance Tracker");
+        console.log(`⏱️ 1. Fetching Data Time: ${((fetchEnd - fetchStart) / 1000).toFixed(2)} seconds`);
+
+        // แยกข้อมูล Upcoming ออกจากชุด Config Sheets
         const upcomingData = restWithUpcoming.pop(); 
         const results = restWithUpcoming;
 
         globalVVIP = vvipData;
         peaNameMapping = peaMapping;
 
-        console.log(`📡 Data loaded: ${((performance.now() - fetchStart) / 1000).toFixed(2)}s`);
-
         const processStart = performance.now();
 
-        // สร้าง Map ข้อมูล
+        // แปลงผลลัพธ์ให้อยู่ในรูปของ Map Array
         const dataMap = results.reduce((acc, curr) => {
             acc[curr.sheet.name] = curr.data;
             return acc;
         }, {});
 
-        // เตรียม Material Master Map
-        let materialTypeMap = {};
+        // เตรียมข้อมูล Material Master Map
+        const materialTypeMap = {};
+        const materialNoteMap = {};
         const masterKey = Object.keys(dataMap).find(key => key.toLowerCase().includes('material_master'));
         const masterData = dataMap[masterKey];
 
-        let materialNoteMap = {};
-        if (masterData && masterData.rows) {
-            const idIdx = masterData.cols.findIndex(c => c.label.includes("รหัสพัสดุ") || c.label.includes("Part"));
-            const typeIdx = masterData.cols.findIndex(c => c.label.includes("ประเภทพัสดุ") );
-            const noteIdx = masterData.cols.findIndex(c => c.label === "Not");
-
-            const finalIdIdx = idIdx !== -1 ? idIdx : 0;
-            const finalTypeIdx = typeIdx !== -1 ? typeIdx : 2;
-            const finalNoteIdx = noteIdx !== -1 ? noteIdx : 7;
+        if (masterData?.rows) {
+            const cols = masterData.cols;
+            const finalIdIdx = Math.max(cols.findIndex(c => c.label.includes("รหัสพัสดุ") || c.label.includes("Part")), 0);
+            const finalTypeIdx = Math.max(cols.findIndex(c => c.label.includes("ประเภทพัสดุ")), 2);
+            const finalNoteIdx = Math.max(cols.findIndex(c => c.label === "Not"), 7);
 
             masterData.rows.forEach(row => {
+                if (!row?.c) return;
                 const partID = getCellValue(row.c[finalIdIdx])?.toString().trim();
-                const matType = getCellValue(row.c[finalTypeIdx])?.toString().trim();
-                const matNote = getCellValue(row.c[finalNoteIdx])?.toString().trim();
-
                 if (partID) {
-                    materialTypeMap[partID] = matType;
-                    materialNoteMap[partID] = matNote || "";
+                    materialTypeMap[partID] = getCellValue(row.c[finalTypeIdx])?.toString().trim() || "";
+                    materialNoteMap[partID] = getCellValue(row.c[finalNoteIdx])?.toString().trim() || "";
                 }
             });
         }
 
-        // คำนวณ Stock
+        // สรุปยอดคำนวณคลังสินค้า (Stock)
         totalStockSummary = {};
         if (dataMap['Stock_Data']?.rows) {
             dataMap['Stock_Data'].rows.forEach(row => {
-                let partID = getCellValue(row.c[0])?.toString().trim();
-                let quantity = parseFloat(getCellValue(row.c[8])) || 0;
+                if (!row?.c) return;
+                const partID = getCellValue(row.c[0])?.toString().trim();
+                const quantity = parseFloat(getCellValue(row.c[8])) || 0;
                 if (partID) {
                     totalStockSummary[partID] = (totalStockSummary[partID] || 0) + quantity;
                 }
             });
         }
 
-        // จัดสรร
+        // คำนวณระบบจัดสรรพัสดุ
         rawRequirementDatabase = dataMap['Requirement_Data'];
         const alloc = AllocationService.calculateAllocation(
             rawRequirementDatabase,
@@ -3043,29 +3027,37 @@ async function initDashboard() {
             materialTypeMap,
             budgetMapping
         );
+        
         const processedAllocData = updateProgressData(alloc.allocatedResults, materialTypeMap);
         const wbsProgressMap = getWBSProgressMap(processedAllocData);
-        //================วาดตาราง เรียกฟังก์ชันมาใช้งาน=================//
+
+        // ================= วาดตารางและผูกโมดูลการทำงานต่างๆ ================= //
         config.forEach(sheet => {
             const data = dataMap[sheet.name];
             if (!data) return;
 
             if (sheet.name === 'Requirement_Data') {
+                // Render ตารางพัสดุหลัก
                 parcelTable = TableRenderer.renderRequirementTable(
                     sheet.target, data, globalVVIP, peaNameMapping,
                     alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
                 );
-                renderInitialStockMatch(alloc.allocatedResults, materialTypeMap);
-                                // หลังจาก renderInitialStockMatch เพิ่มบรรทัด
-                // --- [เพิ่มจุดที่ 1] เรียกอัปเดต Card ทันทีหลังจากตารางถูกสร้างเสร็จ ---
+                
+                renderInitialStockMatch(processedAllocData, materialTypeMap);
                 updateDashboardCards(sheet.target); 
 
-                // --- [เพิ่มจุดที่ 2] ผูก Event ให้ทำงานเมื่อมีการค้นหาหรือเปลี่ยนหน้า ---
-                $(sheet.target).on('draw.dt search.dt', function() {
-                    updateDashboardCards(sheet.target);
+                // ผูก Event การ Search, Draw ตาราง และอัปเดตชาร์ตเข้าด้วยกันเพื่อลดภาระ CPU
+                $(sheet.target).on('draw.dt search.dt', function(e) {
+                    updateDashboardCardsDebounced(sheet.target);
+                    if (e.type === 'search') {
+                        AllocationService.updateDashboardCharts(sheet.target);
+                    }
                 });                
+                
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
                 obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
+                
+                // ติดตั้งระบบฟิลเตอร์ค้นหาขั้นสูง
                 FilterModule.setupFilterID_WBS(parcelTable, data);
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
@@ -3073,14 +3065,8 @@ async function initDashboard() {
                 FilterModule.setupFilterProjectGroup(parcelTable, data);
                 FilterModule.setupFilterBudgetCIP(parcelTable, data);
 
-                // 🎯 [จุดที่เพิ่มคำสั่ง 1] สั่งอัปเดตกราฟวงกลมทันทีหลังสร้างตารางนี้เสร็จ
-                // โดยใช้ตัวแปร sheet.target ซึ่งเป็น ID ตารางพัสดุหลัก
+                // สั่งอัปเดตกราฟวงกลมทันทีหลังสร้างตารางเสร็จ
                 AllocationService.updateDashboardCharts(sheet.target);
-
-                // ตอนพิมพ์ค้นหา (Search) ก็สั่งรันตัวแม่ตัวเดียวเหมือนกัน
-                $(sheet.target).on('search.dt', function() {
-                    AllocationService.updateDashboardCharts(sheet.target);
-                });
 
             } else if (sheet.name === 'Stock_Data') {
                 mb52Table = TableRenderer.renderStockTable(sheet.target, data, materialTypeMap, "stock");
@@ -3089,38 +3075,33 @@ async function initDashboard() {
                 TableRenderer.renderGenericTable(sheet.target, data);
             }
         });
-            if (upcomingData && upcomingData.rows && upcomingData.rows.length > 0) {
-                // 1. ส่งข้อมูลไป render ตาราง และรับค่า DataTable Instance กลับมาเก็บไว้ในตัวแปร
-                const upcomingTableInstance = renderUpcomingTable(upcomingData);
-                // 2. ตรวจสอบว่ามี Instance ของตารางจริง และข้อมูลถูกต้อง จึงจะเริ่มผูกตัวกรอง (Filter)
-                if (upcomingTableInstance) {
-                    // เรียกฟังก์ชันฟิลเตอร์สถานะงาน (ตัวเดิมที่คุณมี)
-                    FilterModule.setupFilterUpcoming_MaterialID(upcomingTableInstance, upcomingData);
-                    // เรียกฟังก์ชันฟิลเตอร์รหัสพัสดุ (ตัวใหม่ที่สร้างขึ้น)
-                    FilterModule.setupFilterUpcoming_MaterialName(upcomingTableInstance, upcomingData);
-                    FilterModule.setupFilterUpcoming_PurchaseGroup(upcomingTableInstance, upcomingData);
-                
-                console.log("🔍 Filters for Upcoming Table initialized!");
-                 }
-                console.log("📦 Upcoming Item Table Rendered successfully!");
-            } else {
-                console.warn("⚠️ No rows found in Upcoming_Item data");
+
+        // ตรวจสอบและ Render ตารางงานแผนงานล่วงหน้า (Upcoming)
+        if (upcomingData?.rows?.length > 0) {
+            const upcomingTableInstance = renderUpcomingTable(upcomingData);
+            if (upcomingTableInstance) {
+                FilterModule.setupFilterUpcoming_MaterialID(upcomingTableInstance, upcomingData);
+                FilterModule.setupFilterUpcoming_MaterialName(upcomingTableInstance, upcomingData);
+                FilterModule.setupFilterUpcoming_PurchaseGroup(upcomingTableInstance, upcomingData);
             }
+        }
+
         setupGlobalEvents();
 
-        console.log(`⚙️ Processing: ${((performance.now() - processStart) / 1000).toFixed(2)}s`);
-     $('#main-page-loader').fadeOut(300, function() {
-            $(this).remove(); // สั่งทำลาย Element ทิ้งไปเลยไม่ให้โผล่มาหลอนซ้ำสอง
+        // สิ้นสุดกระบวนการปิดม่าน Loader
+        $('#main-page-loader').fadeOut(300, function() {
+            $(this).remove();
         });
-//==============================  end code===============================//
+
+        const processEnd = performance.now();
+        console.log(`⏱️ 2. Processing & Rendering Time: ${((processEnd - processStart) / 1000).toFixed(2)} seconds`);
+        console.log(`🚀 Total Execution Time: ${((processEnd - startTime) / 1000).toFixed(2)} seconds`);
+        console.groupEnd();
       
     } catch (err) {
-        console.error("❌ Error:", err);
-        // หากระบบพัง ดึงข้อมูลไม่ได้ ให้เอาม่านออกทันทีหน้าจอจะได้ไม่ขาวค้าง
+        console.error("❌ Dashboard Initialization Error:", err);
         $('#main-page-loader').remove();
     }
-
-    console.log(`✅ Ready in ${((performance.now() - startTime) / 1000).toFixed(2)}s`);
 }
 
 // Document Ready

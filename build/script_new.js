@@ -1298,7 +1298,7 @@ return RequirementTable;
             let valW = getCellValue(row.c[22]) || "";
             let valX = getCellValue(row.c[23]);
             let valY = getCellValue(row.c[24]);
-
+            let ProjectPlan = getCellValue(row.c[12]);
             let peaName = peaNameMapping[valW] || valW || "-";
 
             // 2. 🎯 สำหรับแสดงผลหน้าจอ: ปัดเศษตัวเลขให้เป็นเลขถ้วน ไม่มีทศนิยม
@@ -1336,6 +1336,7 @@ return RequirementTable;
                 <td class="${TABLE_STYLES.cellClass} text-center"><span class="text-m font-bold leading-tight ${dayClass}">${dayDisplay}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><span ${textBoldStyle}>${displayScore}</span></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><span class="badge rounded-pill  text-right bg-purple ">${rowCount} รายการ</span></td>
+                <td class="hidden-col" style="display:none;">${valY}</td>
             </tr>`;
         });
 
