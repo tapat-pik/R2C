@@ -25,7 +25,6 @@ let totalStockSummary = {};
 let noStockTableInstance = null;
 let obsoleteTableInstance = null;
 let myPieChart = null;
-let upcomingTableInstance = null;
 // ==================== Constants ====================
 const TABLE_STYLES = {
     headerStyle: 'color: #344767 !important;',
@@ -311,7 +310,7 @@ function renderUpcomingTable(data) {
     });
 
     
-   upcomingTableInstance = $el.DataTable({
+    return $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "pageLength": 10,
@@ -406,7 +405,6 @@ function renderUpcomingTable(data) {
         $(thead).find('th').eq(8).addClass('text-center');
     }
 });
-return upcomingTableInstance;
 }
 // ==================== Scoring Service ====================
 const ScoringService = {
@@ -1935,7 +1933,7 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
         { title: "ชื่อพัสดุ", width: "52%" },  
         { title: "ประเภท", width: "1%" },      
         { title: "ค้างเบิก", width: "1%" },    
-        { title: "หมายเหตุ", width: "44%" }       
+        { title: "Note", width: "44%" }       
     ];
 
     const dataSet = obsoleteData.map(res => {
@@ -2887,87 +2885,19 @@ function setupRowClickEvent() {
 }
 
 function setupGlobalEvents() {
-   // 🎯 ปุ่มรีเซ็ตสำหรับตารางหลัก (ปรับโครงสร้างมัดรวมแบบเดียวกับ upcoming)
- $('#resetMB52').on('click', function () {
-        // 1. ล้างการค้นหาและการกรองในตารางหลักทั้งหมดออก แล้ววาดตารางใหม่ (โค้ดดั้งเดิมของคุณ)
+    $('#resetMB52').on('click', function () {
         if (parcelTable) parcelTable.search('').columns().search('').draw();
         if (stockMatchTableInstance) stockMatchTableInstance.search('').columns().search('').draw();
         if (noStockTableInstance) noStockTableInstance.search('').columns().search('').draw();
         if (obsoleteTableInstance) obsoleteTableInstance.search('').columns().search('').draw();
         if (mb52Table) mb52Table.search('').draw();
         
-        // ====================================================================
-        // 🎯 เคลียร์ 6 ตัวกรองหลักตามโครงสร้างและเงื่อนไขของคุณเป๊ะๆ
-        // ====================================================================
-
-        // 2. เคลียร์ข้อความในช่องพิมพ์ค้นหา (Dropdown) ทั้งหมดให้กลับเป็นค่าว่าง
-        $(
-            '#searchTypeWBS, #searchWBS, #searchPEAWBS, ' +
-            '#searchProjGroup, #searchBudget'
-        ).val('');
-        // หมายเหตุ: หากตัวกรอง Light มีไอดีช่องเสิร์ช สามารถนำมาใส่เพิ่มในกลุ่มด้านบนนี้ได้เลยครับ
-        
-        // 3. รีเซ็ตข้อความบนหน้าปุ่มกดเลือกตัวกรองให้กลับเป็นสถานะเริ่มต้น
-        $('#dropdownLightButton span').text('ทั้งหมด (สัญญาณไฟ)'); // ปรับเปลี่ยนข้อความเริ่มต้นตามจริงของคุณได้เลยครับ
-        $('#dropdownTypeWBSButton span').text('ทั้งหมด (สถานะงาน)');
-        $('#dropdownWBSButton span').text('ทั้งหมด (หมายเลขงาน)');
-        $('#dropdownPEAWBSButton span').text('ทั้งหมด (การไฟฟ้า)');
-        $('#dropdownProjGroupButton span').text('ทั้งหมด (กลุ่มโครงการ)');
-        $('#dropdownBudgetButton span').text('ทั้งหมด (งบ)');
-
-        // 🎯 สั่งเอาเครื่องหมายติ๊กถูก (Checkbox) ออกทั้งหมด! (ตามคลาสที่คุณระบุ)
-        $('.typewbs-checkbox').prop('checked', false);
-        $('.wbs-checkbox').prop('checked', false);
-        $('.peawbs-checkbox').prop('checked', false);
-        $('.projgroup-checkbox').prop('checked', false);
-        $('.budget-checkbox').prop('checked', false);
-        // สำหรับกล่องไฟ ใช้ ID คอนเทนเนอร์ในการล้าง checkbox ด้านใน
-        $('#dropdownSearchLight input[type="checkbox"]').prop('checked', false);
-
-        // 🎯 สั่งให้รายการตัวกรองที่เคยถูกซ่อนตอนพิมพ์ค้นหา กลับมาแสดงทั้งหมดด้วย (display: flex)
-        $(
-            '#dropdownSearchLight li, #dropdownSearchTypeWBS li, ' +
-            '#dropdownSearchWBS li, #dropdownSearchPEAWBS li, ' +
-            '#dropdownSearchProjGroup li, #dropdownSearchBudget li'
-        ).attr('style', 'display: flex !important');
-
-        // ====================================================================
-
-        // 4. รีเซ็ตคลาสแถวตารางหลักและอัปเดตหน้า Dashboard (โค้ดดั้งเดิมของคุณ)
         $('#tableRequirement_Data tbody tr').removeClass('table-primary selected-row');
         $('.filter-select').val('');
+        
+        // ✨ ดักฟังตอนรีเซ็ตค่า: สั่งให้อัปเดตตัวเลขกลับมาเป็นค่าเริ่มต้นทั้งหมด
         updateDashboardCardsDebounced('#tableRequirement_Data'); 
-    });
-    // 🎯 ✨ จุดที่เพิ่มใหม่: เพิ่มฟังก์ชันรีเซ็ตแยกเฉพาะของตาราง Upcoming ล่วงหน้า
-  // 🎯 ส่วนของปุ่มรีเซ็ตแยกเฉพาะของตาราง Upcoming
-    $('#resetUpcoming').on('click', function () {
-        if (upcomingTableInstance) {
-            // 1. ล้างการค้นหาและการกรองทั้งหมดในตาราง Upcoming แล้ววาดใหม่
-            upcomingTableInstance.search('').columns().search('').draw();
-        }
         
-        // 2. เคลียร์ข้อความในช่องค้นหา (Dropdown) ทั้ง 3 ช่องให้กลับเป็นค่าว่าง
-        $('#search, #searchMaterialName, #searchPurchaseGroup').val('');
-        
-        // 3. รีเซ็ตข้อความบนหน้าปุ่มกดเลือกตัวกรองให้กลับเป็นสถานะเริ่มต้น
-        $('#dropdownUsersSearchButton span').text('ทั้งหมด (รหัสพัสดุ)');
-        $('#dropdownMaterialNameButton span').text('ทั้งหมด (ชื่อพัสดุ)');
-        $('#dropdownPurchaseGroupButton span').text('ทั้งหมด (กลุ่มการจัดซื้อ)');
-
-        // 🎯 ✨ จุดที่เพิ่มใหม่: สั่งเอาเครื่องหมายติ๊กถูก (Checkbox) ออกทั้งหมด!
-        // ล้าง Checkbox ของรหัสพัสดุ (ถ้ามีคลาสเฉพาะ ให้เปลี่ยนตามจริง หรือใช้ตัวเลือกนี้ครอบคลุมทั้งหมด)
-        $('#dropdownSearch input[type="checkbox"]').prop('checked', false);
-        
-        // ล้าง Checkbox ของชื่อพัสดุ (อ้างอิงจากคลาส .matname-checkbox ที่คุณเขียนไว้)
-        $('.matname-checkbox').prop('checked', false);
-        
-        // ล้าง Checkbox ของกลุ่มการจัดซื้อ (ค้นหาอินพุตประเภท checkbox ทั้งหมดในดรอปดาวน์กลุ่มจัดซื้อ)
-        $('#dropdownSearchGroup input[type="checkbox"]').prop('checked', false);
-
-        // 🎯 ✨ แถมเพิ่มเติม: สั่งให้รายการตัวกรองที่เคยถูกซ่อนตอนพิมพ์ค้นหา กลับมาแสดงทั้งหมดด้วย
-        $('.matname-filter-item').attr('style', 'display: flex !important');
-        // (ถ้าของรหัสพัสดุและกลุ่มจัดซื้อมีคลาสคล้ายกัน สามารถใส่เพิ่มตรงนี้ได้เลยครับ)
-        $('#dropdownSearch li, #dropdownSearchGroup li').attr('style', 'display: flex !important');
     });
 
     setupRowClickEvent();
@@ -2991,8 +2921,7 @@ function showR2CCardInfo() {
         confirmButtonText: 'รับทราบ',
         confirmButtonColor: '#8a73cd', // ใช้โทนสีม่วงให้เข้ากับ Card ของคุณ
         customClass: {
-             popup: 'rounded-2xl', // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
-            confirmButton: 'swal-purple-btn'
+            popup: 'rounded-2xl' // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
         }
     });
 }
@@ -3014,8 +2943,7 @@ function showR2WCardInfo() {
         confirmButtonText: 'รับทราบ',
         confirmButtonColor: '#8a73cd', // ใช้โทนสีม่วงให้เข้ากับ Card ของคุณ
         customClass: {
-            popup: 'rounded-2xl', // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
-            confirmButton: 'swal-purple-btn'
+            popup: 'rounded-2xl' // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
         }
     });
 }
@@ -3163,7 +3091,7 @@ async function initDashboard() {
 
         // ตรวจสอบและ Render ตารางงานแผนงานล่วงหน้า (Upcoming)
         if (upcomingData?.rows?.length > 0) {
-             upcomingTableInstance = renderUpcomingTable(upcomingData);
+            const upcomingTableInstance = renderUpcomingTable(upcomingData);
             if (upcomingTableInstance) {
                 FilterModule.setupFilterUpcoming_MaterialID(upcomingTableInstance, upcomingData);
                 FilterModule.setupFilterUpcoming_MaterialName(upcomingTableInstance, upcomingData);

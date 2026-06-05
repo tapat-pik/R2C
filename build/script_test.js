@@ -1768,7 +1768,9 @@ renderNoStockTable(allocatedData, materialTypeMap) {
         { title: "รหัสพัสดุ" },     // index 1
         { title: "ชื่อพัสดุ" },     // index 2
         { title: "ประเภท" },        // index 3 (เพิ่มใหม่ ก่อนค้างเบิก)
-        { title: "ที่ได้ / ค้างเบิก" }
+        { title: "ที่ได้ / ค้างเบิก" },
+        { title: "ที่ได้" },
+        { title: "ค้างเบิก" }
     ];
  
     const dataSet = noStockData.map(res => {
@@ -1778,7 +1780,9 @@ renderNoStockTable(allocatedData, materialTypeMap) {
             res.partID  || "-",   // 1
             res.partName|| "-",   // 2
             partType,             // 3 ประเภท
-           { assigned: res.assigned || 0, pending: res.pending || 0 }
+           { assigned: res.assigned || 0, pending: res.pending || 0 },
+           res.assigned || 0,
+           res.pending || 0
         ];
     });
  
@@ -1864,7 +1868,8 @@ const NoStockTable = $el.DataTable({
                         //     <span class="text-slate-700 font-bold">${pendingFormated}</span>
                         // </div>`;
                 }
-            }
+            },
+            //  { "targets": [5, 6], "visible": false }
         
     ],
    "headerCallback": function (thead) {
