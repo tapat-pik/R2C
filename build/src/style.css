@@ -624,3 +624,26 @@ body {
 .swal-purple-btn:hover {
     background-color: #765eb3 !important; 
 }
+
+/* สไตล์เริ่มต้นของลิงก์ */
+        .hover-link {
+            font-size: 20px;
+            color: #333333;
+            text-decoration: none; /* ซ่อนเส้นใต้ลิงก์ปกติ */
+            padding: 10px 20px;    /* เพิ่มพื้นที่รอบข้อความเพื่อให้กรอบไม่ชิดตัวอักษรเกินไป */
+            border: 2px solid transparent; /* ใส่กรอบแบบโปร่งใสไว้ก่อน เพื่อไม่ให้ตัวอักษรกระตุกตอนชี้ */
+            transition: all 0.3s ease;    /*ทำให้เอฟเฟกต์ตอนชี้ดูสมูทขึ้น */
+            display: inline-block;        /* ทำให้สามารถกำหนด padding ได้ถูกต้อง */
+        }
+
+        /* สไตล์ตอนที่เอาเมาส์ไปชี้ (Hover) */
+        .hover-link:hover {
+            color: #007bff;            /* เปลี่ยนสีข้อความตอนชี้ (ถ้าไม่ชอบลบออกได้ครับ) */
+            border: 2px solid #007bff; /* แสดงกรอบสีน้ำเงินหนา 2px */
+            border-radius: 5px;        /* ทำมุมกรอบให้มนเล็กน้อย */
+            background-color: #f8f9fa; /* เพิ่มสีพื้นหลังจางๆ ตอนชี้ */
+        }
+
+#tableNoStock tbody tr.clickable-requirement td {
+    cursor: pointer;
+}
