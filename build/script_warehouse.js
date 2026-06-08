@@ -971,18 +971,51 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
         });
     }
     // 4. Group ข้อมูล allocatedData (กรองเฉพาะที่ assigned == 0)
+    // const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+    // const groupedData = allocatedData.reduce((acc, res) => {
+    //     if (res.assigned !== 0) return acc;
+        
+    //     const partID = res.partID?.toString().trim();
+    //     const partType = materialTypeMap[partID] || "-";
+    //     if (EXCLUDED_TYPES.includes(partType)) return acc;
+
+    //     if (!acc[partID]) {
+    //         acc[partID] = { partID: partID, partName: res.partName || "-", type: partType, totalPending: 0 };
+    //     }
+    //     acc[partID].totalPending += (res.pending || 0);
+    //     return acc;
+    // }, {});
+
+    // const noStockData = Object.values(groupedData);
+    // if (noStockData.length === 0) return null;
+
+
+
+    //4.Group ข้อมูล: กรองเอาเฉพาะที่ assigned < pending และนำส่วนที่เหลือ (remaining) มาบวกกัน
     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
     const groupedData = allocatedData.reduce((acc, res) => {
-        if (res.assigned !== 0) return acc;
+        const assigned = res.assigned || 0;
+        const pending = res.pending || 0;
+        
+        // เงื่อนไข: เอาเฉพาะรายการที่ได้ไม่ครบ
+        if (assigned >= pending) return acc;
         
         const partID = res.partID?.toString().trim();
         const partType = materialTypeMap[partID] || "-";
         if (EXCLUDED_TYPES.includes(partType)) return acc;
 
+        // คำนวณส่วนที่เหลือของรายการนี้
+        const remaining = pending - assigned;
+
         if (!acc[partID]) {
-            acc[partID] = { partID: partID, partName: res.partName || "-", type: partType, totalPending: 0 };
+            acc[partID] = { 
+                partID: partID, 
+                partName: res.partName || "-", 
+                type: partType, 
+                totalRemaining: 0 // เปลี่ยนจาก totalPending เป็น totalRemaining
+            };
         }
-        acc[partID].totalPending += (res.pending || 0);
+        acc[partID].totalRemaining += remaining;
         return acc;
     }, {});
 
@@ -1009,13 +1042,13 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
 
     // 2. คำนวณความต้องการ: ถ้ามีของ 100 ต้องการ 71 ก็จะเหลือติดลบ 29 
     // เราใช้ Math.abs เพื่อให้แสดงเป็นเลข 29 (แสดงว่าขาดอยู่ 29)
-    const totalRequire = Math.abs(res.totalPending - available);
+    const totalRequire = Math.abs(res.totalRemaining - available);
    
         return [
             res.partID, 
             res.partName, 
             res.type, 
-            res.totalPending, 
+            res.totalRemaining, 
             stockMap[res.partID] || 0,
             upcomingMap[res.partID] || 0,
             totalRequire || 0,

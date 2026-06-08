@@ -1625,16 +1625,65 @@ return RequirementTable;
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
-renderNoStockTable(allocatedData, materialTypeMap) {
+// renderNoStockTable(allocatedData, materialTypeMap) {
+//     if (!allocatedData || !Array.isArray(allocatedData)) return null;
+    
+//     // ประเภทพัสดุที่ไม่ต้องการแสดงในตาราง
+//     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+ 
+//     const noStockData = allocatedData.filter(res => {
+//         if (res.assigned !== 0) 
+//             return false;
+//         const partType = materialTypeMap[res.partID?.toString().trim()] || "";
+//         return !EXCLUDED_TYPES.includes(partType);
+//     });
+
+//     if (noStockData.length === 0) return null;
+ 
+//     const $el = $('#tableNoStock');
+//     if ($.fn.DataTable.isDataTable('#tableNoStock')) {
+//         $el.DataTable().destroy();
+//         $el.empty();
+//     }
+ 
+//     const colHeaders = [
+//         { title: "หมายเลขงาน" },   // index 0
+//         { title: "รหัสพัสดุ" },     // index 1
+//         { title: "ชื่อพัสดุ" },     // index 2
+//         { title: "ประเภท" },        // index 3 (เพิ่มใหม่ ก่อนค้างเบิก)
+//         { title: "ที่ได้ / ค้างเบิก" },
+//         { title: "ค้างเบิก" },
+//         { title: "จำนวนที่ได้" }
+        
+//     ];
+ 
+//     const dataSet = noStockData.map(res => {
+//         const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
+//         return [
+//             res.wbs     || "-",   // 0
+//             res.partID  || "-",   // 1
+//             res.partName|| "-",   // 2
+//             partType,             // 3 ประเภท
+//            { assigned: res.assigned || 0, pending: res.pending || 0 },
+//             res.pending || 0,
+//             res.assigned || 0
+            
+//         ];
+//     });
+
+    renderNoStockTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
     
-    // ประเภทพัสดุที่ไม่ต้องการแสดงในตาราง
     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
  
+    // 1. ปรับ Filter: เอาเฉพาะที่ assigned < pending
     const noStockData = allocatedData.filter(res => {
-        if (res.assigned !== 0) return false;
+        const assigned = res.assigned || 0;
+        const pending = res.pending || 0;
         const partType = materialTypeMap[res.partID?.toString().trim()] || "";
-        return !EXCLUDED_TYPES.includes(partType);
+        
+        // กรองเอาเฉพาะที่ของยังไม่ครบ และไม่ถูกยกเว้น
+        return (assigned < pending) && !EXCLUDED_TYPES.includes(partType);
     });
 
     if (noStockData.length === 0) return null;
@@ -1646,27 +1695,32 @@ renderNoStockTable(allocatedData, materialTypeMap) {
     }
  
     const colHeaders = [
-        { title: "หมายเลขงาน" },   // index 0
-        { title: "รหัสพัสดุ" },     // index 1
-        { title: "ชื่อพัสดุ" },     // index 2
-        { title: "ประเภท" },        // index 3 (เพิ่มใหม่ ก่อนค้างเบิก)
-        { title: "ที่ได้ / ค้างเบิก" },
+        { title: "หมายเลขงาน" },
+        { title: "รหัสพัสดุ" },
+        { title: "ชื่อพัสดุ" },
+        { title: "ประเภท" },
+        { title: "ที่ได้ / ค้างเบิก" }, // คอลัมน์ที่เปลี่ยนวิธีแสดง
         { title: "ค้างเบิก" },
         { title: "จำนวนที่ได้" }
-        
     ];
  
     const dataSet = noStockData.map(res => {
         const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
+        const assigned = res.assigned || 0;
+        const pending = res.pending || 0;
+        
+        // 2. คำนวณส่วนที่เหลือ
+        const remaining = pending - assigned;
+        
         return [
-            res.wbs     || "-",   // 0
-            res.partID  || "-",   // 1
-            res.partName|| "-",   // 2
-            partType,             // 3 ประเภท
-           { assigned: res.assigned || 0, pending: res.pending || 0 },
-            res.pending || 0,
-            res.assigned || 0
-            
+            res.wbs       || "-",
+            res.partID    || "-",
+            res.partName  || "-",
+            partType,
+            // `${assigned}/${remaining}`, // แสดงผลเป็น "ที่ได้ / ส่วนที่เหลือ"
+            { assigned: 0, pending: remaining },
+            remaining, //ค้างเบิก
+            0 //assigned // จำนวนที่ได้
         ];
     });
  
