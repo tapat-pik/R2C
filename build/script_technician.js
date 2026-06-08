@@ -1153,11 +1153,11 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
             { label: "รหัสพัสดุ" },
             { label: "ชื่อพัสดุ" },
             { label: "ประเภท" },
-            { label: "ทั้งหมด" },
+            { label: "สต็อก<br>ทั้งหมด" },
             { label: "ที่ได้/ค้างเบิก" },
             { label: "ค้างเบิก" },
             { label: "จำนวนที่ได้" },
-            { label: "คงเหลือ" },
+            { label: "สต็อก<br>คงเหลือ" },
             
         ],
         rows: allocatedData.map(res => {
