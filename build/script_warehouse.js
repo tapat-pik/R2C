@@ -14,12 +14,15 @@ let peaNameMapping = {};
 let totalStockSummary = {};
 // ประกาศเพิ่มคู่กับพวก parcelTable, stockMatchTableInstance
 
-let myPieChart = null;
-let upcomingTableInstance = null;
-let stockMatchTableInstance = null;
+// let myPieChart = null;
+// let upcomingTableInstance = null;
+// let stockMatchTableInstance = null;
 let noStockTableInstance = null;
-let obsoleteTableInstance = null;
+// let obsoleteTableInstance = null;
 let UpcomingTabInstance = null; // ตัวแปรเก็บอินสแตนซ์ของตาราง Upcoming (เพิ่มใหม่)
+let StockN2TabInstance = null;
+let N2POTabInstance = null;
+
 // ==================== Constants ====================
 
 
@@ -620,6 +623,8 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
     "deferRender": true,
     "pageLength": 10,
     "responsive": true,
+    "scrollX": false, // ตั้งเป็น false เพื่อป้องกันไม่ให้ DataTable พยายามสร้าง scrollbar เอง
+    "autoWidth": false,
     
     "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
     
@@ -639,7 +644,7 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
         "columnDefs": [
 
               {
-                "targets": 0,
+                "targets": [0,1],
                 "className": "whitespace-nowrap",
                 // "render": $.fn.dataTable.render.number(',', '.', 0)
             },
@@ -669,6 +674,7 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
 
        {
             "targets": 7,
+            "className": "whitespace-nowrap",
             "render": function (data, type, row) {
                 return `<select class="form-control" onchange="updateStatus(this, '${row[0]}')">
                     <option value="" ${data === "" ? "selected" : ""}>- เลือก -</option>
@@ -931,18 +937,22 @@ function syncAllTables(mainTable) {
     const stockRegex = uniqueWBS.length > 0 ? uniqueWBS.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') : '^$|🚫';
 
     // 1. ซิงค์ตาราง Stock Match (คอลัมน์ 0)
-    if (typeof stockMatchTableInstance !== 'undefined' && stockMatchTableInstance) {
-        stockMatchTableInstance.column(0).search(stockRegex, true, false).draw();
+    if (typeof UpcomingTabInstance !== 'undefined' && UpcomingTabInstance) {
+        UpcomingTabInstance.column(0).search(stockRegex, true, false).draw();
     }
     // 2. ซิงค์ตาราง No Stock (คอลัมน์ 0)
     if (typeof noStockTableInstance !== 'undefined' && noStockTableInstance) {
         noStockTableInstance.column(0).search(stockRegex, true, false).draw();
     }
     // 3. ซิงค์ตาราง Obsolete (คอลัมน์ 0)
-    if (typeof obsoleteTableInstance !== 'undefined' && obsoleteTableInstance) {
-        obsoleteTableInstance.column(0).search(stockRegex, true, false).draw();
+    if (typeof N2POTabInstance !== 'undefined' && N2POTabInstance) {
+        N2POTabInstance.column(0).search(stockRegex, true, false).draw();
     }
-    
+       // 3. ซิงค์ตาราง Obsolete (คอลัมน์ 0)
+    if (typeof StockN2TabInstance !== 'undefined' && StockN2TabInstance) {
+        StockN2TabInstance.column(0).search(stockRegex, true, false).draw();
+    }
+
 }
 // ==================== Filter Module ====================
 const FilterModule = {
@@ -1116,11 +1126,28 @@ function setupRowClickEvent() {
 
 function setupGlobalEvents() {
  
+ $('#resetMB52').on('click', function () {
+        // 1. ล้างการค้นหาและการกรองในตารางหลักทั้งหมดออก แล้ววาดตารางใหม่ (โค้ดดั้งเดิมของคุณ)
+        if (noStockTableInstance) noStockTableInstance.search('').columns().search('').draw();
+        if (UpcomingTabInstance) UpcomingTabInstance.search('').columns().search('').draw();
+        if (StockN2TabInstance) StockN2TabInstance.search('').columns().search('').draw();
+        if (N2POTabInstance) N2POTabInstance.search('').columns().search('').draw();
+         });
 
+    
     setupRowClickEvent();
 }
 
+// const range = document.getElementById('rangeInput');
+//   const numInput = document.getElementById('numInput');
+//   const tooltip = document.getElementById('tooltip');
 
+//   range.addEventListener('input', function() {
+//     // อัปเดตตัวเลขในช่อง Input
+//     numInput.value = this.value;
+//     // อัปเดต Tooltip
+//     tooltip.innerText = '$' + this.value;
+//   });
 
 async function initDashboard() {
     const startTime = performance.now();

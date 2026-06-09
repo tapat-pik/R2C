@@ -647,3 +647,26 @@ body {
 #tableNoStock tbody tr.clickable-requirement td {
     cursor: pointer;
 }
+
+/* Range Slider */
+
+.slider-container { width: 300px; margin: 50px; font-family: sans-serif; }
+  
+  /* ปรับหน้าตา Slider */
+  input[type=range] { width: 100%; cursor: pointer; }
+  
+  /* ส่วนกล่องตัวเลข */
+  .inputs { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; }
+  input[type=number] { width: 80px; padding: 5px; border: 1px solid #ccc; border-radius: 5px; text-align: center; }
+  
+  /* Tooltip ด้านบน */
+  #tooltip { background: #007bff; color: white; padding: 5px 10px; border-radius: 15px; position: relative; display: inline-block; margin-bottom: 10px; }
+
+
+  /* NoStocktable */
+/* บังคับให้ตารางยืดหยุ่น ห้ามดัน Container */
+.dataTables_wrapper {
+    width: 100% !important;
+    overflow-x: hidden !important; 
+}
+
