@@ -957,9 +957,103 @@ function syncAllTables(mainTable) {
 // ==================== Filter Module ====================
 const FilterModule = {
 
+    // =================================================================
+// [1/5] ฟังก์ชันกรอง ประเภท (คอลัมน์ที่ 2 ในตาราง Nostcok)
 // =================================================================
-// [1/5] ฟังก์ชันกรอง หมายเลขงาน WBS (คอลัมน์ที่ 2 ในตารางหลัก)
+
+    // 1. ฟิลเตอร์สำหรับตาราง NoStock (Material Group)
+   setupNoStockFilter: function(tableId, checkboxClass) {
+    // ลงทะเบียน Custom Filter ให้ DataTable
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        // เช็ค ID ตารางให้ถูกต้อง (ถ้าใช้ $ ใน tableId ให้ตัดออกตอนเทียบ)
+        if (settings.nTable.id !== tableId.replace('#', '')) return true;
+
+        const selected = $(checkboxClass + ':checked').map(function() { 
+            return $(this).val().trim(); // ใช้ .trim() เพื่อกันช่องว่างเกิน
+        }).get();
+
+        const rowType = data[2].trim(); // ใช้ .trim() กันพลาดเหมือนกัน
+
+        // ถ้าไม่มีการเลือก ให้แสดงทั้งหมด
+        if (selected.length === 0) return true;
+        
+        // คืนค่าผลการตรวจสอบ
+        return selected.includes(rowType);
+    });
+
+    // Event Listener
+    $(document).off('change', checkboxClass).on('change', checkboxClass, function() {
+        $(tableId).DataTable().draw();
+    });
+},
+
 // =================================================================
+// [2/5] ฟังก์ชันกรอง รหัสพัสดุ (คอลัมน์ที่ 0 ในตาราง Nostcok)
+// =================================================================
+
+setupBulkMaterialFilter: function(tableId) {
+        const $textarea = $('#bulkMaterialInput');
+        const $button = $('#applyBulkFilter');
+
+        $button.on('click', function() {
+            const table = $(tableId).DataTable();
+            
+            // 1. ดึงค่าจาก textarea เปลี่ยนขึ้นบรรทัดใหม่หรือ comma ให้เป็น Array
+            // .split(/[\n,]+/) หมายถึงตัดด้วยขึ้นบรรทัดใหม่ หรือ เครื่องหมายจุลภาค
+            let rawInput = $textarea.val().trim();
+            
+            if (rawInput === "") {
+                table.column(0).search("").draw();
+                return;
+            }
+
+            // 2. แปลงเป็น array และลบช่องว่าง
+            const codes = rawInput.split(/[\n,]+/).map(item => item.trim()).filter(item => item !== "");
+
+            // 3. สร้าง Regex สำหรับ DataTable (ใช้เครื่องหมาย ^ และ $ เพื่อความแม่นยำ)
+            // ตัวอย่าง: ^(e0001|e0002|e0003)$
+            const regex = codes.map(code => `^${$.fn.dataTable.util.escapeRegex(code)}$`).join('|');
+
+            // 4. สั่งค้นหาในคอลัมน์ที่ 0 (ใช้ regex=true)
+            table.column(0).search(regex, true, false).draw();
+        });
+    },
+
+// =================================================================
+// [3/5] ฟังก์ชันกรอง ยกเว้นรหัสพัสดุ เหล่านี้ (คอลัมน์ที่ 0 ในตาราง Nostcok)
+// =================================================================
+
+/**
+     * ฟิลเตอร์ยกเว้นรายการที่ระบุ (Exclude)
+     * @param {string} tableId - ID ของตาราง
+     * @param {string} textareaId - ID ของ textarea ที่ใส่รหัส
+     */
+   setupExcludeBulkMaterialFilter: function(tableId) {
+    const $textarea = $('#excludeMaterialInput'); // เปลี่ยน ID ตาม HTML ของคุณ
+    const $button = $('#btnExcludeFilter');       // เปลี่ยน ID ตาม HTML ของคุณ
+
+    $button.on('click', function() {
+        const table = $(tableId).DataTable();
+        let rawInput = $textarea.val().trim();
+        
+        if (rawInput === "") {
+            table.column(0).search("").draw();
+            return;
+        }
+
+        const codes = rawInput.split(/[\n,]+/).map(item => item.trim()).filter(item => item !== "");
+
+        // --- จุดเปลี่ยนสำคัญอยู่ตรงนี้ครับ ---
+        // เดิม: `^${รหัส}$` -> (เอาตัวที่ตรงเป๊ะ)
+        // ใหม่: `^(?!(${รหัส})$).*$` -> (เอาตัวที่ไม่ตรงกับรหัสเหล่านี้)
+        
+        const escapedCodes = codes.map(code => $.fn.dataTable.util.escapeRegex(code)).join('|');
+        const regex = `^(?!(${escapedCodes})$).*$`;
+
+        // สั่งค้นหา
+        table.column(0).search(regex, true, false).draw();
+    });
+},
 setupFilterID_WBS(table, data) {
     const $dropdownMenu = $('#dropdownSearchWBS'), $searchContainer = $dropdownMenu.find('ul'), $searchInput = $('#searchWBS'), $clearButton = $('#clearWBSFilter'); 
     $searchContainer.empty(); 
@@ -1095,7 +1189,11 @@ setupFilterPEA_WBS(table, peaNameMapping) {
     });
 },
 
-
+// ฟังก์ชันสำหรับเคลียร์ค่า
+ initClearButtons: function() {
+        $('#clearBulkFilter').on('click', () => $('#bulkMaterialInput').val(''));
+        $('#clearExcludeFilter').on('click', () => $('#excludeMaterialInput').val(''));
+    }
 
 
 };
@@ -1236,11 +1334,19 @@ async function initDashboard() {
                 StockN2TabInstance =TableRenderer.renderStockN2Tab(dataMap['StockN2_Data']);
                 N2POTabInstance =TableRenderer.renderN2POTab(dataMap['N2PO_Data']);
 
-            
+                // 1. เรียกใช้ฟิลเตอร์ประเภทวัสดุ
+                FilterModule.setupNoStockFilter('#tableNoStock', '.filter-type');
+                FilterModule.setupBulkMaterialFilter('#tableNoStock');
                 FilterModule.setupFilterID_WBS(parcelTable, data);
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
                
+                 // ตัวอย่างการใช้งานเมื่อกดปุ่ม "ยกเว้นรหัส"
+                $('#btnExcludeFilter').on('click', function() {
+                    FilterModule.setupExcludeBulkMaterialFilter('#tableNoStock', '#bulkMaterialInput');
+                });
+
+                FilterModule.initClearButtons();
 
             }
            

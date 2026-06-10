@@ -330,14 +330,31 @@
         <p class="text-[10px] text-gray-400 mt-1">(leaver total deficit)</p>
       </div>
 
-      <div class="border-r border-gray-200 pr-4">
-        <label class="block font-bold text-sm mb-2">Material Group</label>
-        <div class="text-xs space-y-1">
-          <label class="flex items-center gap-2 text-lg"><input type="checkbox" checked> พัสดุหลัก</label>
-          <label class="flex items-center gap-2 text-lg"><input type="checkbox"> พัสดุ รอง</label>
-          <label class="flex items-center gap-2 text-lg"><input type="checkbox" checked> ผลิตภัณฑ์คอนกรีต</label>
-        </div>
-      </div>
+    <div class="border-r border-gray-200 pr-4">
+  <label class="block font-bold text-sm mb-2">Material Group</label>
+  <div class="text-xs space-y-1">
+    
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" class="filter-type" value="พัสดุหลัก" > 
+      พัสดุหลัก
+    </label>
+
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" class="filter-type" value="พัสดุรอง"> 
+      พัสดุรอง
+    </label>
+
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" class="filter-type" value="ผลิตภัณฑ์คอนกรีต" > 
+      ผลิตภัณฑ์คอนกรีต
+    </label>
+     <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" class="filter-type" value="พัสดุเคลื่อนไหวช้า" > 
+      พัสดุเคลื่อนไหวช้า
+    </label>
+
+  </div>
+</div>
 
       <div class="border-r border-gray-200 pr-4">
         <label class="block font-bold text-sm mb-2">Project Filter</label>
@@ -348,19 +365,50 @@
         </select>
       </div>
 
-      <div class="border-r border-gray-200 pr-4">
+      <!-- <div class="border-r border-gray-200 pr-4">
         <label class="block font-bold text-sm mb-1">Bulk Text Area</label>
         <p class="text-[10px] text-gray-400 mb-1">Include Material Codes</p>
         <textarea class="w-full p-2 border rounded-md text-[10px] h-16"></textarea>
         <button class="w-full mt-2 bg-slate-800 text-white text-xs py-1 rounded">บังคับประมวลผล</button>
-      </div>
+      </div> -->
 
-      <div>
-        <label class="block font-bold text-sm mb-1">Exclude Material</label>
-        <p class="text-[10px] text-gray-400 mb-1">Exclude Material Codes</p>
-        <textarea class="w-full p-2 border rounded-md text-[10px] h-16"></textarea>
-        <button class="w-full mt-2 bg-red-600 text-white text-xs py-1 rounded">ตั้งแผน/ตัดทิ้ง</button>
-      </div>
+      <!-- <div class="border-r border-gray-200 pr-4">
+    <label class="block font-bold text-sm mb-1">Bulk Search</label>
+    <p class="text-[10px] text-gray-400 mb-1">Include Material Codes</p>
+    <textarea id="bulkMaterialInput" class="w-full p-2 border rounded-md text-sm h-16" placeholder="e0001,e0002..."></textarea>
+    <button id="applyBulkFilter" class="w-full mt-2 bg-slate-800 text-white text-xs py-1 rounded">บังคับประมวลผล</button>
+    <button id="clearBulkFilter" class="mt-2 bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded">Clear</button>
+</div>
+
+
+    <div>
+  <label class="block font-bold text-sm mb-1">Exclude Material</label>
+  <p class="text-[10px] text-gray-400 mb-1">Exclude Material Codes</p>
+  <textarea id="excludeMaterialInput" class="w-full p-2 border rounded-md text-[10px] h-16"></textarea>
+  
+  <button id="btnExcludeFilter" class="w-full mt-2 bg-red-600 text-white text-xs py-1 rounded">
+    
+    ตั้งแผน/ตัดทิ้ง
+  </button>
+</div> -->
+
+<div class="border-r border-gray-200 pr-4">
+    <label class="block font-bold text-sm mb-1">Material ID</label>
+    <textarea id="bulkMaterialInput" class="w-full p-2 border rounded-md text-sm h-16"></textarea>
+    <div class="flex gap-2">
+        <button id="applyBulkFilter" class="flex-1 mt-2 bg-slate-800 text-white text-xs py-1 rounded">บังคับประมวลผล</button>
+        <button id="clearBulkFilter" class="mt-2 bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded">Clear</button>
+    </div>
+</div>
+
+<div>
+    <label class="block font-bold text-sm mb-1">Exclude Material ID</label>
+    <textarea id="excludeMaterialInput" class="w-full p-2 border rounded-md text-sm h-16"></textarea>
+    <div class="flex gap-2">
+        <button id="btnExcludeFilter" class="flex-1 mt-2 bg-red-600 text-white text-xs py-1 rounded">ตั้งแผน/ตัดทิ้ง</button>
+        <button id="clearExcludeFilter" class="mt-2 bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded">Clear</button>
+    </div>
+</div>
 
     </div>
   </div>
@@ -394,7 +442,7 @@
         
    
        
-    <div class="col-xl col-md-4">
+    <!-- <div class="col-xl col-md-4">
     <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
         <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">สถานะงาน</label>
         <button id="dropdownTypeWBSButton" data-dropdown-toggle="dropdownSearchTypeWBS" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
@@ -457,7 +505,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 
     </div>
 
