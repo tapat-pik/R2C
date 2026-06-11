@@ -695,6 +695,7 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
     return NoStockTable;
 },
 
+
 renderUpcomingTab(upcomingData) {
     const $el = $('#tabUpcoming');
     
@@ -1189,6 +1190,42 @@ setupFilterPEA_WBS(table, peaNameMapping) {
     });
 },
 
+// =================================================================
+// [4/5] ฟังก์ชันกรอง  WBS (คอลัมน์ที่ 4 ในตารางหลัก)
+// =================================================================
+setupFilterID_WBS(table, allocatedData, materialTypeMap, stockData, upcomingData, stockN2Data) {
+    const $searchContainer = $('#dropdownSearchWBS').find('ul'),
+          $searchInput = $('#searchWBS'),
+          $clearButton = $('#clearWBSFilter');
+
+    // ... (โค้ดสร้าง Checkbox คงเดิม) ...
+
+    // เปลี่ยนมาใช้ Closure เพื่อให้มองเห็น 'table'
+    const applyFilter = () => {
+        let selected = [];
+        $searchContainer.find('.wbs-checkbox:checked').each(function () { selected.push($(this).val()); });
+        
+        // กรองตารางหลัก
+        const regex = selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+        table.column(2).search(regex, true, false).draw();
+        
+        // สั่งวาดตาราง NoStock ใหม่โดยส่งค่า selected ไปด้วย
+        // (ใช้ชื่อฟังก์ชันเดิมของคุณ)
+        this.renderNoStockTable(allocatedData, materialTypeMap, stockData, upcomingData, stockN2Data, selected);
+        
+        syncAllTables(table);
+    };
+
+    // ปรับการผูก Event ให้ทำงานถูกต้อง
+    $searchContainer.off('change', '.wbs-checkbox').on('change', '.wbs-checkbox', applyFilter.bind(this));
+    $clearButton.off('click').on('click', () => {
+        $searchContainer.find('.wbs-checkbox').prop('checked', false); 
+        $searchInput.val('').trigger('input');
+        applyFilter.call(this);
+    });
+},
+
+
 // ฟังก์ชันสำหรับเคลียร์ค่า
  initClearButtons: function() {
         $('#clearBulkFilter').on('click', () => $('#bulkMaterialInput').val(''));
@@ -1330,6 +1367,8 @@ async function initDashboard() {
                 
                
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap,dataMap['Stock_Data'],upcomingData,dataMap['StockN2_Data']);
+                // เพิ่ม [] เป็นพารามิเตอร์ตัวสุดท้าย (สำหรับ selectedWBS)
+                // noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap, dataMap['Stock_Data'], upcomingData, dataMap['StockN2_Data'], []);
                 UpcomingTabInstance = TableRenderer.renderUpcomingTab(upcomingData);
                 StockN2TabInstance =TableRenderer.renderStockN2Tab(dataMap['StockN2_Data']);
                 N2POTabInstance =TableRenderer.renderN2POTab(dataMap['N2PO_Data']);
@@ -1337,7 +1376,15 @@ async function initDashboard() {
                 // 1. เรียกใช้ฟิลเตอร์ประเภทวัสดุ
                 FilterModule.setupNoStockFilter('#tableNoStock', '.filter-type');
                 FilterModule.setupBulkMaterialFilter('#tableNoStock');
-                FilterModule.setupFilterID_WBS(parcelTable, data);
+                // เปลี่ยนจากบรรทัดเดิมของคุณเป็น:
+                FilterModule.setupFilterID_WBS(
+                    parcelTable, 
+                    alloc.allocatedResults,  // ข้อมูลการจัดสรร (ต้องส่งตัวนี้ไปเพื่อให้ฟิลเตอร์กรองได้)
+                    materialTypeMap,         // ประเภทพัสดุ
+                    dataMap['Stock_Data'],   // ข้อมูลสต็อก
+                    upcomingData,            // ข้อมูลของที่กำลังมา
+                    dataMap['StockN2_Data']  // ข้อมูลคลัง น.2
+                );
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
                
