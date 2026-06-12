@@ -22,7 +22,7 @@ let noStockTableInstance = null;
 let UpcomingTabInstance = null; // ตัวแปรเก็บอินสแตนซ์ของตาราง Upcoming (เพิ่มใหม่)
 let StockN2TabInstance = null;
 let N2POTabInstance = null;
-
+let InfoPOTableInstance = null;
 // ==================== Constants ====================
 
 
@@ -548,69 +548,44 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
 
 
     //4.Group ข้อมูล: กรองเอาเฉพาะที่ assigned < pending และนำส่วนที่เหลือ (remaining) มาบวกกัน
+ // 2. Group ข้อมูล
     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
     const groupedData = allocatedData.reduce((acc, res) => {
         const assigned = res.assigned || 0;
         const pending = res.pending || 0;
-        
-        // เงื่อนไข: เอาเฉพาะรายการที่ได้ไม่ครบ
         if (assigned >= pending) return acc;
         
         const partID = res.partID?.toString().trim();
-        const partType = materialTypeMap[partID] || "-";
-        if (EXCLUDED_TYPES.includes(partType)) return acc;
-
-        // คำนวณส่วนที่เหลือของรายการนี้
-        const remaining = pending - assigned;
+        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+        if (EXCLUDED_TYPES.includes(materialInfo.type)) return acc;
 
         if (!acc[partID]) {
-            acc[partID] = { 
-                partID: partID, 
-                partName: res.partName || "-", 
-                type: partType, 
-                totalRemaining: 0 // เปลี่ยนจาก totalPending เป็น totalRemaining
-            };
+            acc[partID] = { partID, partName: res.partName || "-", type: materialInfo.type, totalRemaining: 0 };
         }
-        acc[partID].totalRemaining += remaining;
+        acc[partID].totalRemaining += (pending - assigned);
         return acc;
     }, {});
 
     const noStockData = Object.values(groupedData);
     if (noStockData.length === 0) return null;
-   
-    // 5. แยกส่วน Config หัวตาราง (ไว้ข้างนอก DataTable)
-    const colHeaders = [
-        { title: "รหัสพัสดุ" },
-        { title: "ชื่อพัสดุ" },
-        { title: "ประเภท" },
-        { title: "ค้างเบิก" },
-        { title: "ปริมาณที่สั่ง" },
-        { title: "ความต้องการสุทธิ" },
-        { title: "สต็อก (น.2)" },
-        { title: "สถานะ" }
-    ];
 
-    // 6. เตรียมข้อมูล Data สำหรับตาราง
+    // 3. เตรียม Data Set (พร้อมดึงสถานะจาก localStorage)
     const dataSet = noStockData.map(res => {
-        // 1. รวมของที่มีอยู่จริง (สต็อก + ของที่กำลังมา)
-    const upcomingStock = upcomingMap[res.partID] || 0;
+        const upcomingStock = upcomingMap[res.partID] || 0;
+        const totalRequire = Math.abs(res.totalRemaining - upcomingStock);
+        const savedStatus = localStorage.getItem('status_' + res.partID) || "จัดซื้อใหม่";
+        return [res.partID,
+             res.partName, 
+             res.type, 
+             res.totalRemaining, 
+             upcomingStock, 
+             totalRequire, 
+             stockN2Map[res.partID] || 0, 
+             savedStatus
+            ];
+    });
 
-    // 2. คำนวณความต้องการ: ถ้ามีของ 100 ต้องการ 71 ก็จะเหลือติดลบ 29 
-    // เราใช้ Math.abs เพื่อให้แสดงเป็นเลข 29 (แสดงว่าขาดอยู่ 29)
-    const totalRequire = Math.abs(res.totalRemaining - upcomingStock);
-   
-        return [
-            res.partID, 
-            res.partName, 
-            res.type, 
-            res.totalRemaining, 
-            upcomingMap[res.partID] || 0,
-            totalRequire || 0,
-            stockN2Map[res.partID] || 0,
-            ""
-        ]
-});
-    // --- (โค้ดส่วน DataTable เริ่มต้น) ---
+    // 4. Initialize DataTable
     const $el = $('#tableNoStock');
     if ($.fn.DataTable.isDataTable('#tableNoStock')) {
         $el.DataTable().destroy();
@@ -618,8 +593,12 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
     }
 
     const NoStockTable = $el.DataTable({
-      "data": dataSet,
-    "columns": colHeaders,
+        data: dataSet,
+        columns: [
+            { title: "รหัสพัสดุ" }, { title: "ชื่อพัสดุ" }, { title: "ประเภท" },
+            { title: "ค้างเบิก" }, { title: "ปริมาณที่สั่ง" }, { title: "ความต้องการสุทธิ" },
+            { title: "สต็อก (น.2)" }, { title: "สถานะ" }
+        ],
     "deferRender": true,
     "pageLength": 10,
     "responsive": true,
@@ -672,18 +651,33 @@ renderNoStockTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, 
             "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
         },
 
-       {
-            "targets": 7,
-            "className": "whitespace-nowrap",
-            "render": function (data, type, row) {
-                return `<select class="form-control" onchange="updateStatus(this, '${row[0]}')">
-                    <option value="" ${data === "" ? "selected" : ""}>- เลือก -</option>
-                    <option value="จัดซื้อใหม่" ${data === "จัดซื้อใหม่" ? "selected" : ""}>จัดซื้อใหม่</option>
-                    <option value="ขอโอน" ${data === "ขอโอน" ? "selected" : ""}>ขอโอน</option>
-                    <option value="Hold" ${data === "Hold" ? "selected" : ""}>Hold</option>
-                </select>`;
+    //    {
+    //         "targets": 7,
+    //         "className": "whitespace-nowrap",
+    //         "render": function (data, type, row) {
+    //             return `<select class="form-control" onchange="updateStatus(this, '${row[0]}')">
+                    
+    //                 <option value="จัดซื้อใหม่" ${data === "จัดซื้อใหม่" ? "selected" : ""}>จัดซื้อใหม่</option>
+    //                 <option value="ขอโอน" ${data === "ขอโอน" ? "selected" : ""}>ขอโอน</option>
+    //                 <option value="Hold" ${data === "Hold" ? "selected" : ""}>Hold</option>
+    //             </select>`;
+    //         }
+    //     }
+
+{
+                targets: 7,
+                className: "text-center",
+                render: (data, type, row) => {
+                    const val = data || "จัดซื้อใหม่";
+                    return `<select class="form-control" onchange="updateStatus_Nostock(this, '${row[0]}')">
+                        <option value="จัดซื้อใหม่" ${val === "จัดซื้อใหม่" ? "selected" : ""}>จัดซื้อใหม่</option>
+                        <option value="ขอโอน" ${val === "ขอโอน" ? "selected" : ""}>ขอโอน</option>
+                        <option value="Hold" ${val === "Hold" ? "selected" : ""}>Hold</option>
+                    </select>`;
+                }
             }
-        }
+
+
         ],
         "createdRow": function(row, data, dataIndex) {
         $(row).addClass('clickable-requirement'); // class สำหรับใช้ใน setupRowClickEvent
@@ -858,8 +852,261 @@ renderStockN2Tab(stockN2Data) {
         }
     });
     return table;
+},
+/**
+ * แสดงตารางพัสดุที่ไม่ได้รับการจัดสรร (assigned = 0)
+ * @param {Array} allocatedData - ข้อมูลการจัดสรร
+ * @param {Object} materialTypeMap - ประเภทพัสดุ
+ */
+renderInfoPOTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, stockN2Data) {
+    if (!allocatedData || !Array.isArray(allocatedData)) return null;
+
+    // 1. ประมวลผล Stock Map จาก stockData (Index 8)
+    const stockMap = {};
+    if (stockData && stockData.rows) {
+        stockData.rows.forEach(row => {
+            const partID = getCellValue(row.c[0])?.toString().trim();
+            const qty = parseFloat(getCellValue(row.c[8])) || 0;
+            if (partID) stockMap[partID] = (stockMap[partID] || 0) + qty;
+        });
+    }
+    // 2. สร้าง StockN2 Map (คงคลังภายในเขต - ดึงจาก StockN2_Data)
+   const stockN2Map = {};
+    if (stockN2Data && stockN2Data.rows) {
+        stockN2Data.rows.forEach(row => {
+            const partID = getCellValue(row.c[2])?.toString().trim(); // รหัสพัสดุ
+            const qty = parseFloat(getCellValue(row.c[10])) || 0;     // จำนวนที่ใช้ได้
+            const location = getCellValue(row.c[0])?.toString().trim(); // location
+            
+            // ใช้การบวกสะสม (Sum) เข้าไปใน partID นั้นๆ
+            if (partID && location !== 'คลังพัสดุ พิษณุโลก') {
+                stockN2Map[partID] = (stockN2Map[partID] || 0) + qty;
+            }
+        });
+    }
+    // 3. สร้าง Upcoming Map (Index 12) 👈 เพิ่มส่วนนี้
+    const upcomingMap = {};
+    if (upcomingData && upcomingData.rows) {
+        upcomingData.rows.forEach(row => {
+            const partID = getCellValue(row.c[0])?.toString().trim();
+            const qty = parseFloat(getCellValue(row.c[12])) || 0;
+            if (partID) upcomingMap[partID] = (upcomingMap[partID] || 0) + qty;
+        });
+    }
+
+
+    //4.Group ข้อมูล: กรองเอาเฉพาะที่ assigned < pending และนำส่วนที่เหลือ (remaining) มาบวกกัน
+   const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+    const groupedData = allocatedData.reduce((acc, res) => {
+        const assigned = res.assigned || 0;
+        const pending = res.pending || 0;
+        if (assigned >= pending) return acc;
+
+        const partID = res.partID?.toString().trim();
+        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+        if (EXCLUDED_TYPES.includes(materialInfo.type)) return acc;
+
+        if (!acc[partID]) {
+            acc[partID] = { 
+                partID: partID, 
+                partName: res.partName || "-", 
+                cost: materialInfo.cost || 0,
+                totalRemaining: 0 
+            };
+        }
+        acc[partID].totalRemaining += (pending - assigned);
+        return acc;
+    }, {});
+
+    const noStockData = Object.values(groupedData);
+    if (noStockData.length === 0) return null;
+
+    // 3. เตรียมข้อมูล
+    const dataSet = noStockData.map(res => {
+        const upcomingStock = upcomingMap[res.partID] || 0;
+        const totalRequire = Math.abs(res.totalRemaining - upcomingStock);
+        const savedStatus = localStorage.getItem('status_' + res.partID) || "จัดซื้อใหม่";
+        return [
+            res.partID, 
+            res.partName, 
+            totalRequire, 
+            res.cost,          // เก็บราคาไว้ใน Array เพื่อใช้คำนวณ
+            totalRequire,      // ค่าเริ่มต้นจำนวนสั่งซื้อ
+            (totalRequire * res.cost),// ราคารวม
+            savedStatus
+        ];
+    });
+
+    // 4. ตั้งค่าตาราง
+    const $el = $('#tableInfoPO');
+    if ($.fn.DataTable.isDataTable('#tableInfoPO')) {
+        $el.DataTable().destroy();
+        $el.empty();
+    }
+
+    const InfoPOTable = $el.DataTable({
+        data: dataSet,
+        columns: [
+            { title: "รหัสพัสดุ" },
+            { title: "ชื่อพัสดุ" },
+            { title: "ต้องการสุทธิ" },
+            { title: "ราคากลาง" },
+            { title: "จำนวนสั่งซื้อ" },
+            { title: "ราคารวม" },
+            { title: "สถานะ" }
+        ],
+    "deferRender": true,
+    "pageLength": 10,
+    "responsive": true,
+    "scrollX": false, // ตั้งเป็น false เพื่อป้องกันไม่ให้ DataTable พยายามสร้าง scrollbar เอง
+    "autoWidth": false,
+    
+    "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
+ "buttons": [
+    {
+        extend: 'excel',
+        text: '<i class="fas fa-file-excel mr-1"></i> Export',
+        filename: 'R2C_InfoPO_report',
+        exportOptions: {
+            modifier: { page: 'all' },
+            format: {
+                body: function (data, row, column, node) {
+                    // ถ้าเป็นคอลัมน์จำนวนสั่งซื้อ (Index 4)
+                    if (column === 4) {
+                        // ใช้การดึงจากสิ่งที่ถูก render ออกมาแล้ว
+                        // แต่ถ้าเจอ HTML ให้ใช้ Regex ตัดเอาเฉพาะตัวเลข
+                        if (typeof data === 'string' && data.includes('<input')) {
+                            let match = data.match(/value="([^"]*)"/);
+                            return match ? match[1] : data;
+                        }
+                        return data;
+                    }
+                    return data;
+                }
+            }
+        },
+     action: function (e, dt, button, config) {
+    // 1. วนลูปทุกแถวโดยใช้ข้อมูลในตาราง
+    dt.rows().every(function(rowIdx, tableLoop, rowLoop) {
+        // ใช้ dt.row(rowIdx).node() เพื่อความปลอดภัย
+        let node = dt.row(rowIdx).node();
+        
+        // ตรวจสอบก่อนว่า node มีตัวตนจริงไหม
+        if (node) {
+            let input = node.querySelector('.qty-input');
+            if (input) {
+                // อัปเดตค่าลงในตาราง
+                this.cell(rowIdx, 4).data(input.value);
+            }
+        }
+    });
+
+    // 2. เรียกฟังก์ชัน Export มาตรฐาน
+    $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+    
+    // 3. (สำคัญ) วาดตารางใหม่เพื่อให้ input กลับมาแสดงผลปกติ
+    dt.draw(false);
+}
+    }
+],
+      "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+   
+        "columnDefs": [
+
+              {
+                "targets": [0,1],
+                "className": "whitespace-nowrap",
+                // "render": $.fn.dataTable.render.number(',', '.', 0)
+            },
+                { 
+                "targets": [2,3,5], 
+                "className": "text-center ",
+                "render": function(data, type, row) {
+                    // เช็คว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใส่ลูกน้ำ ถ้าไม่ใช่ให้แสดงค่าเดิม
+                    return (typeof data === 'number') ? data.toLocaleString() : data;
+                }
+            },
+           {
+    targets: 4, // คอลัมน์จำนวนสั่งซื้อ
+    render: function(data, type, row) {
+        if (type !== 'display') return data;
+        
+        // แปลง data เป็นเลข 1 หลัก (ถ้ามีเศษ) และใช้ parseFloat เพื่อกัน Error
+        // วิธีนี้จะบังคับให้ Input แสดงค่าทศนิยมแค่ 1 หลักเสมอ
+        const num = parseFloat(data);
+        const displayValue = Number.isInteger(num) ? num : num.toFixed(1);
+
+        
+        return `<input type="number" class="qty-input" 
+                value="${displayValue}" 
+                data-cost="${row[3]}" 
+                min="0" 
+                step="1" 
+                   oninput="calculateRowTotal(this)">`;
+     }
+    },
+   {
+    "targets": 6, 
+    "className": "text-center",
+    "render": function(data, type, row) {
+        // กำหนดสีตามสถานะ
+        let bgColor = "#e5e7eb"; // สีเทา (Default)
+        let textColor = "#374151"; // สีเทาเข้ม
+        
+        if (data === 'จัดซื้อใหม่') { bgColor = "#dcfce7"; textColor = "#166534"; } // สีเขียว
+        else if (data === 'ขอโอน') { bgColor = "#dbeafe"; textColor = "#1e40af"; } // สีฟ้า
+        else if (data === 'Hold') { bgColor = "#fee2e2"; textColor = "#991b1b"; } // สีแดง
+
+        return `<span style="
+                    display: inline-block;
+                    padding: 4px 12px;
+                    font-size: 14px; 
+                    font-weight: 600;
+                    border-radius: 9999px;
+                    background-color: ${bgColor};
+                    color: ${textColor};
+                    border: 1px solid rgba(0,0,0,0.05);
+                    white-space: nowrap;
+                ">
+                    ${data || '-'}
+                </span>`;
+    }
+}
+      
+        ],
+        "createdRow": function(row, data, dataIndex) {
+        $(row).addClass('clickable-requirement'); // class สำหรับใช้ใน setupRowClickEvent
+        $(row).attr('data-material-code', data[0]); // เก็บ รหัสพัสดุ ไว้ใน data-attribute
+    },
+    });
+
+    InfoPOTable.buttons().container().appendTo('#export-InfoPO');
+    return InfoPOTable;
 }
 
+};
+
+/**
+ * คำนวณราคารวมต่อแถวแบบ Real-time
+ * @param {HTMLInputElement} inputElement - องค์ประกอบ input ที่มีการเปลี่ยนแปลงค่า
+ */
+window.calculateRowTotal = function(inputElement) {
+    // 1. ดึงจำนวนที่ระบุ (qty) และราคากลาง (cost) จาก attribute
+    const qty = parseFloat(inputElement.value) || 0;
+    const cost = parseFloat(inputElement.getAttribute('data-cost')) || 0;
+    
+    // 2. คำนวณราคารวม
+    const total = qty * cost;
+    
+    // 3. ค้นหาแถว (tr) และเซลล์ราคารวม (td สุดท้าย)
+    const row = inputElement.closest('tr');
+    const totalCell = row.querySelector('td:last-child');
+    
+    // 4. แสดงผลลัพธ์พร้อม format ทศนิยม 2 ตำแหน่งและคั่นหลักพัน
+    totalCell.textContent = total.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 };
 
 
@@ -919,14 +1166,74 @@ function toggleTab(tabName) {
         }, 200);
     }
 }
-// 
-function updateStatus_Nostock(selectEl, partID) {
-    const selectedValue = selectEl.value;
-    // เลือกค่าแล้วให้ค้างไว้
-    selectEl.setAttribute('data-value', selectedValue);
+function toggleInfoTab(tabName) {
+    console.log("Switching to tab:", tabName);
     
-    // หากต้องการบันทึกลงฐานข้อมูลหรือทำอย่างอื่นต่อ ทำที่นี่ได้เลย
-    console.log("พัสดุ:", partID, "สถานะใหม่:", selectedValue);
+    const tableMap = {
+        'InfoPO': '#tableInfoPO',
+        'InfoHole': '#tabStockN2',
+        'N2PO': '#tabN2PO'
+    };
+    
+    const tableId = tableMap[tabName];
+    const $table = $(tableId);
+    
+    if ($.fn.DataTable.isDataTable($table)) {
+        const dt = $table.DataTable();
+        
+        // ใช้ setTimeout เพื่อให้แน่ใจว่า DOM เปลี่ยน Tab เรียบร้อยก่อน
+        setTimeout(() => {
+            // ปรับขนาดคอลัมน์ก่อนเสมอ
+            if (typeof dt.columns === 'function') {
+                dt.columns.adjust();
+            }
+            
+            // เช็คว่า .responsive มีอยู่จริงหรือไม่ก่อนเรียกใช้ .recalc()
+            if (dt.responsive && typeof dt.responsive.recalc === 'function') {
+                dt.responsive.recalc();
+            } else {
+                console.warn(`Responsive plugin not initialized for: ${tabName}`);
+            }
+        }, 200);
+    }
+}
+// 
+// function updateStatus_Nostock(selectEl, partID) {
+//     const selectedValue = selectEl.value;
+//     // เลือกค่าแล้วให้ค้างไว้
+//     selectEl.setAttribute('data-value', selectedValue);
+    
+//     // หากต้องการบันทึกลงฐานข้อมูลหรือทำอย่างอื่นต่อ ทำที่นี่ได้เลย
+//     console.log("พัสดุ:", partID, "สถานะใหม่:", selectedValue);
+// }
+
+
+// ตัวอย่างฟังก์ชัน updateStatus ที่คุณน่าจะมีอยู่
+
+
+function updateStatus_Nostock(selectElement, partID) {
+    const newValue = selectElement.value;
+    
+    // 1. บันทึกค่าลง localStorage เพื่อให้ตารางอื่นดึงไปใช้ได้
+    localStorage.setItem('status_' + partID, newValue);
+    
+    // 2. อัปเดตตารางปัจจุบัน
+    const table = $(selectElement).closest('table').DataTable();
+    const rowIdx = table.row($(selectElement).closest('tr')).index();
+    table.cell(rowIdx, selectElement.parentElement.cellIndex).data(newValue);
+    
+    // 3. ถ้าต้องการให้ตาราง InfoPO อัปเดตทันที (ถ้าเปิดอยู่)
+    if ($.fn.DataTable.isDataTable('#tableInfoPO')) {
+        const infoTable = $('#tableInfoPO').DataTable();
+        // หาแถวที่มี partID ตรงกันแล้วอัปเดตสถานะ
+        infoTable.rows().every(function(idx) {
+            if (this.data()[0] === partID) {
+                let rowData = this.data();
+                rowData[6] = newValue; // คอลัมน์สถานะ
+                this.data(rowData).draw(false);
+            }
+        });
+    }
 }
  // =================================================================
 // 🌟 ฟังก์ชันตัวกลางสำหรับแชร์การซิงค์ Cross-Filter ไปยังทุกตารางย่อย
@@ -1365,7 +1672,7 @@ async function initDashboard() {
                 //     alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
                 // );
                 
-               
+                InfoPOTableInstance = TableRenderer.renderInfoPOTable(alloc.allocatedResults, materialTypeMap,dataMap['Stock_Data'],upcomingData,dataMap['StockN2_Data']);
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap,dataMap['Stock_Data'],upcomingData,dataMap['StockN2_Data']);
                 // เพิ่ม [] เป็นพารามิเตอร์ตัวสุดท้าย (สำหรับ selectedWBS)
                 // noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap, dataMap['Stock_Data'], upcomingData, dataMap['StockN2_Data'], []);

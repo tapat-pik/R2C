@@ -119,7 +119,13 @@ const CommonService = {
         masterData.rows.forEach(row => {
             const partID = this.getCellValue(row.c[0])?.toString().trim();
             const type = this.getCellValue(row.c[2])?.toString().trim();
-            if (partID) map[partID] = type || "ทั่วไป";
+            const cost = this.getCellValue(row.c[3])?.toString().trim();
+            if (partID) {
+            map[partID] = {
+                type: type || "ทั่วไป",
+                cost: parseFloat(cost) || 0 // เก็บเป็นตัวเลข
+            };
+        }
         });
         return map;
     }

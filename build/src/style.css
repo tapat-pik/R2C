@@ -670,3 +670,21 @@ body {
     overflow-x: hidden !important; 
 }
 
+/* Info PO Table */
+/* ปรับขนาด Input ในตารางให้ดูสะอาดตา */
+table.dataTable td .qty-input {
+    width: 80% !important;        /* ให้เต็มความกว้างของเซลล์ */
+    min-width: 80px;               /* ไม่ให้เล็กเกินไป */
+    padding: 4px 8px;              /* ให้มีระยะห่างภายในช่อง */
+    border: 1px solid #d1d5db;     /* ใช้สีขอบที่ดูอ่อนลง (สี Gray-300) */
+    border-radius: 4px;            /* มุมมนเล็กน้อย */
+    font-size: 14px;               /* ขนาดฟอนต์ให้เท่ากับข้อความในตาราง */
+    box-sizing: border-box;        /* ป้องกันช่องล้น */
+}
+
+/* ปรับให้ช่อง Input เปลี่ยนสีเมื่อคลิก (Focus) */
+table.dataTable td .qty-input:focus {
+    outline: none;
+    border-color: #3b82f6;         /* สีฟ้าเวลาคลิก */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
