@@ -1210,7 +1210,8 @@ const TableRenderer = {
 
             const partIDIndex = (mode === "match") ? 1 : 0;
             const partID = rowCells[partIDIndex]?.toString().trim();
-            const matType = materialTypeMap[partID] || "-";
+          const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+        const matType = materialInfo.type;
 
             const insertAt = (mode === "match") ? 3 : 2;
 
@@ -1671,59 +1672,117 @@ return RequirementTable;
 //         ];
 //     });
 
+    // renderNoStockTable(allocatedData, materialTypeMap) {
+    // if (!allocatedData || !Array.isArray(allocatedData)) return null;
+    
+    // const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+ 
+    // // 1. ปรับ Filter: เอาเฉพาะที่ assigned < pending
+    // const noStockData = allocatedData.filter(res => {
+    //     const assigned = res.assigned || 0;
+    //     const pending = res.pending || 0;
+    //     const partType = materialTypeMap[res.partID?.toString().trim()] || "";
+        
+    //     // กรองเอาเฉพาะที่ของยังไม่ครบ และไม่ถูกยกเว้น
+    //     return (assigned < pending) && !EXCLUDED_TYPES.includes(partType);
+    // });
+
+    // if (noStockData.length === 0) return null;
+ 
+    // const $el = $('#tableNoStock');
+    // if ($.fn.DataTable.isDataTable('#tableNoStock')) {
+    //     $el.DataTable().destroy();
+    //     $el.empty();
+    // }
+ 
+    // const colHeaders = [
+    //     { title: "หมายเลขงาน" },
+    //     { title: "รหัสพัสดุ" },
+    //     { title: "ชื่อพัสดุ" },
+    //     { title: "ประเภท" },
+    //     { title: "ที่ได้ / ค้างเบิก" }, // คอลัมน์ที่เปลี่ยนวิธีแสดง
+    //     { title: "ค้างเบิก" },
+    //     { title: "จำนวนที่ได้" }
+    // ];
+ 
+    // const dataSet = noStockData.map(res => {
+    //     const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
+    //     const assigned = res.assigned || 0;
+    //     const pending = res.pending || 0;
+        
+    //     // 2. คำนวณส่วนที่เหลือ
+    //     const remaining = pending - assigned;
+        
+    //     return [
+    //         res.wbs       || "-",
+    //         res.partID    || "-",
+    //         res.partName  || "-",
+    //         partType,
+    //         // `${assigned}/${remaining}`, // แสดงผลเป็น "ที่ได้ / ส่วนที่เหลือ"
+    //         { assigned: 0, pending: remaining },
+    //         remaining, //ค้างเบิก
+    //         0 //assigned // จำนวนที่ได้
+    //     ];
+    // });
+ 
+
     renderNoStockTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
     
     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
- 
-    // 1. ปรับ Filter: เอาเฉพาะที่ assigned < pending
+
+    // 1. ปรับ Filter: ใช้ materialInfo ในการเช็คเงื่อนไข
     const noStockData = allocatedData.filter(res => {
         const assigned = res.assigned || 0;
         const pending = res.pending || 0;
-        const partType = materialTypeMap[res.partID?.toString().trim()] || "";
+        
+        const partID = res.partID?.toString().trim();
+        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
         
         // กรองเอาเฉพาะที่ของยังไม่ครบ และไม่ถูกยกเว้น
-        return (assigned < pending) && !EXCLUDED_TYPES.includes(partType);
+        return (assigned < pending) && !EXCLUDED_TYPES.includes(materialInfo.type);
     });
 
     if (noStockData.length === 0) return null;
- 
+
     const $el = $('#tableNoStock');
     if ($.fn.DataTable.isDataTable('#tableNoStock')) {
         $el.DataTable().destroy();
         $el.empty();
     }
- 
+
     const colHeaders = [
         { title: "หมายเลขงาน" },
         { title: "รหัสพัสดุ" },
         { title: "ชื่อพัสดุ" },
         { title: "ประเภท" },
-        { title: "ที่ได้ / ค้างเบิก" }, // คอลัมน์ที่เปลี่ยนวิธีแสดง
+        { title: "ที่ได้ / ค้างเบิก" },
         { title: "ค้างเบิก" },
         { title: "จำนวนที่ได้" }
     ];
- 
+
     const dataSet = noStockData.map(res => {
-        const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
+        const partID = res.partID?.toString().trim();
+        // ดึงข้อมูลตามโครงสร้างเดิมที่ต้องการ
+        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+        
         const assigned = res.assigned || 0;
         const pending = res.pending || 0;
-        
-        // 2. คำนวณส่วนที่เหลือ
         const remaining = pending - assigned;
         
         return [
-            res.wbs       || "-",
-            res.partID    || "-",
-            res.partName  || "-",
-            partType,
-            // `${assigned}/${remaining}`, // แสดงผลเป็น "ที่ได้ / ส่วนที่เหลือ"
+            res.wbs        || "-",
+            res.partID     || "-",
+            res.partName   || "-",
+            materialInfo.type, // แก้ไขให้ดึงจาก .type เหมือนโค้ดส่วนแรก
             { assigned: 0, pending: remaining },
-            remaining, //ค้างเบิก
-            0 //assigned // จำนวนที่ได้
+            remaining, 
+            0 
         ];
     });
- 
+
+    // ต่อด้วยส่วนการ initialize DataTable ต่อได้เลยครับ
+
 const NoStockTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
@@ -1860,8 +1919,10 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
     // กรองเฉพาะ assigned === 0 และประเภทที่ต้องการ
     const obsoleteData = allocatedData.filter(res => {
         if (res.assigned !== 0) return false;
-        const partType = materialTypeMap[res.partID?.toString().trim()] || "";
-        return OBSOLETE_TYPES.includes(partType);
+        const partID = res.partID?.toString().trim();
+        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+        
+        return OBSOLETE_TYPES.includes(materialInfo.type);
     });
 
     if (obsoleteData.length === 0) return null;
@@ -1884,13 +1945,13 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
 
     const dataSet = obsoleteData.map(res => {
         const partID = res.partID?.toString().trim();
-        const partType = materialTypeMap[partID] || "-";
+       const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
         const partNote = materialNoteMap[partID] || "-";
         return [
             res.wbs      || "-",  
             res.partID   || "-",  
             res.partName || "-",  
-            partType,             
+            materialInfo.type,             
             res.pending  || 0,    
             partNote              
         ];

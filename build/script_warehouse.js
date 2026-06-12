@@ -963,52 +963,313 @@ renderInfoPOTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, s
     
     "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
  "buttons": [
-    {
-        extend: 'excel',
-        text: '<i class="fas fa-file-excel mr-1"></i> Export',
-        filename: 'R2C_InfoPO_report',
-        exportOptions: {
-            modifier: { page: 'all' },
-            format: {
-                body: function (data, row, column, node) {
-                    // ถ้าเป็นคอลัมน์จำนวนสั่งซื้อ (Index 4)
-                    if (column === 4) {
-                        // ใช้การดึงจากสิ่งที่ถูก render ออกมาแล้ว
-                        // แต่ถ้าเจอ HTML ให้ใช้ Regex ตัดเอาเฉพาะตัวเลข
-                        if (typeof data === 'string' && data.includes('<input')) {
-                            let match = data.match(/value="([^"]*)"/);
-                            return match ? match[1] : data;
+        {
+            extend: 'excel',
+            text: '<i class="fas fa-file-excel mr-1"></i> Export',
+            filename: 'R2C_InfoPO_report',
+            exportOptions: {
+                modifier: { page: 'all' },
+                format: {
+                    body: function (data, row, column, node) {
+                        // 1. คอลัมน์จำนวนสั่งซื้อ (Index 4) - ตัดเอาเฉพาะ value ใน input
+                        if (column === 4) {
+                            if (typeof data === 'string' && data.includes('<input')) {
+                                let match = data.match(/value="([^"]*)"/);
+                                return match ? match[1] : data;
+                            }
+                            return data;
                         }
+                        
+                        // 2. คอลัมน์สถานะ (Index 6) - ดึงเฉพาะข้อความด้านในออกมา
+                       if (column === 6) {
+            // ถ้ามี DOM (หน้าปัจจุบัน) ให้ดึงจาก select
+            if (node && node.querySelector('select')) {
+                return node.querySelector('select').value;
+            }
+            
+            // ถ้าไม่มี DOM (หน้าอื่น) ให้เช็คจากข้อมูลดิบ ถ้าพบ HTML ให้ตัดออก
+            if (typeof data === 'string' && data.includes('<span')) {
+                // ใช้ Regex ดึงข้อความระหว่าง >ข้อความ</span>
+                let match = data.match(/>([^<]+)<\/span>/);
+                return match ? match[1].trim() : data;
+            }
+            return data;
+        }
+                        
                         return data;
                     }
-                    return data;
                 }
-            }
-        },
-     action: function (e, dt, button, config) {
-    // 1. วนลูปทุกแถวโดยใช้ข้อมูลในตาราง
-    dt.rows().every(function(rowIdx, tableLoop, rowLoop) {
-        // ใช้ dt.row(rowIdx).node() เพื่อความปลอดภัย
-        let node = dt.row(rowIdx).node();
-        
-        // ตรวจสอบก่อนว่า node มีตัวตนจริงไหม
-        if (node) {
-            let input = node.querySelector('.qty-input');
-            if (input) {
-                // อัปเดตค่าลงในตาราง
-                this.cell(rowIdx, 4).data(input.value);
+            },
+            action: function (e, dt, button, config) {
+                // 1. วนลูปทุกแถวโดยใช้ข้อมูลในตาราง
+                dt.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                    let node = dt.row(rowIdx).node();
+                    if (node) {
+                        let input = node.querySelector('.qty-input');
+                        if (input) {
+                            this.cell(rowIdx, 4).data(input.value);
+                        }
+                        let select = node.querySelector('select');
+                        if (select) {
+                            this.cell(rowIdx, 6).data(select.value);
+                        }
+                    }
+                });
+
+                // 2. เรียกฟังก์ชัน Export มาตรฐาน
+                $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+                
+                // 3. วาดตารางใหม่เพื่อให้ input กลับมาแสดงผลปกติ
+                dt.draw(false);
             }
         }
+    ],
+
+
+      "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+   
+        "columnDefs": [
+
+              {
+                "targets": [0,1],
+                "className": "whitespace-nowrap",
+                // "render": $.fn.dataTable.render.number(',', '.', 0)
+            },
+                { 
+                "targets": [2,3,5], 
+                "className": "text-center ",
+                "render": function(data, type, row) {
+                    // เช็คว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใส่ลูกน้ำ ถ้าไม่ใช่ให้แสดงค่าเดิม
+                    return (typeof data === 'number') ? data.toLocaleString() : data;
+                }
+            },
+           {
+    targets: 4, // คอลัมน์จำนวนสั่งซื้อ
+    render: function(data, type, row) {
+        if (type !== 'display') return data;
+        
+        // แปลง data เป็นเลข 1 หลัก (ถ้ามีเศษ) และใช้ parseFloat เพื่อกัน Error
+        // วิธีนี้จะบังคับให้ Input แสดงค่าทศนิยมแค่ 1 หลักเสมอ
+        const num = parseFloat(data);
+        const displayValue = Number.isInteger(num) ? num : num.toFixed(1);
+
+        
+        return `<input type="number" class="qty-input" 
+                value="${displayValue}" 
+                data-cost="${row[3]}" 
+                min="0" 
+                step="1" 
+                   oninput="calculateRowTotal(this)">`;
+     }
+    },
+   {
+    "targets": 6, 
+    "className": "text-center",
+    "render": function(data, type, row) {
+        // กำหนดสีตามสถานะ
+        let bgColor = "#e5e7eb"; // สีเทา (Default)
+        let textColor = "#374151"; // สีเทาเข้ม
+        
+        if (data === 'จัดซื้อใหม่') { bgColor = "#dcfce7"; textColor = "#166534"; } // สีเขียว
+        else if (data === 'ขอโอน') { bgColor = "#dbeafe"; textColor = "#1e40af"; } // สีฟ้า
+        else if (data === 'Hold') { bgColor = "#fee2e2"; textColor = "#991b1b"; } // สีแดง
+
+        return `<span style="
+                    display: inline-block;
+                    padding: 4px 12px;
+                    font-size: 14px; 
+                    font-weight: 600;
+                    border-radius: 9999px;
+                    background-color: ${bgColor};
+                    color: ${textColor};
+                    border: 1px solid rgba(0,0,0,0.05);
+                    white-space: nowrap;
+                ">
+                    ${data || '-'}
+                </span>`;
+    }
+}
+      
+        ],
+        "createdRow": function(row, data, dataIndex) {
+        $(row).addClass('clickable-requirement'); // class สำหรับใช้ใน setupRowClickEvent
+        $(row).attr('data-material-code', data[0]); // เก็บ รหัสพัสดุ ไว้ใน data-attribute
+    },
     });
 
-    // 2. เรียกฟังก์ชัน Export มาตรฐาน
-    $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
-    
-    // 3. (สำคัญ) วาดตารางใหม่เพื่อให้ input กลับมาแสดงผลปกติ
-    dt.draw(false);
-}
+    InfoPOTable.buttons().container().appendTo('#export-InfoPO');
+    return InfoPOTable;
+},
+
+// =============== Table Transfer and Hole ==================//
+renderInfoPOTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, stockN2Data) {
+    if (!allocatedData || !Array.isArray(allocatedData)) return null;
+
+    // 1. ประมวลผล Stock Map จาก stockData (Index 8)
+    const stockMap = {};
+    if (stockData && stockData.rows) {
+        stockData.rows.forEach(row => {
+            const partID = getCellValue(row.c[0])?.toString().trim();
+            const qty = parseFloat(getCellValue(row.c[8])) || 0;
+            if (partID) stockMap[partID] = (stockMap[partID] || 0) + qty;
+        });
     }
-],
+    // 2. สร้าง StockN2 Map (คงคลังภายในเขต - ดึงจาก StockN2_Data)
+   const stockN2Map = {};
+    if (stockN2Data && stockN2Data.rows) {
+        stockN2Data.rows.forEach(row => {
+            const partID = getCellValue(row.c[2])?.toString().trim(); // รหัสพัสดุ
+            const qty = parseFloat(getCellValue(row.c[10])) || 0;     // จำนวนที่ใช้ได้
+            const location = getCellValue(row.c[0])?.toString().trim(); // location
+            
+            // ใช้การบวกสะสม (Sum) เข้าไปใน partID นั้นๆ
+            if (partID && location !== 'คลังพัสดุ พิษณุโลก') {
+                stockN2Map[partID] = (stockN2Map[partID] || 0) + qty;
+            }
+        });
+    }
+    // 3. สร้าง Upcoming Map (Index 12) 👈 เพิ่มส่วนนี้
+    const upcomingMap = {};
+    if (upcomingData && upcomingData.rows) {
+        upcomingData.rows.forEach(row => {
+            const partID = getCellValue(row.c[0])?.toString().trim();
+            const qty = parseFloat(getCellValue(row.c[12])) || 0;
+            if (partID) upcomingMap[partID] = (upcomingMap[partID] || 0) + qty;
+        });
+    }
+
+
+    //4.Group ข้อมูล: กรองเอาเฉพาะที่ assigned < pending และนำส่วนที่เหลือ (remaining) มาบวกกัน
+   const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+    const groupedData = allocatedData.reduce((acc, res) => {
+        const assigned = res.assigned || 0;
+        const pending = res.pending || 0;
+        if (assigned >= pending) return acc;
+
+        const partID = res.partID?.toString().trim();
+        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+        if (EXCLUDED_TYPES.includes(materialInfo.type)) return acc;
+
+        if (!acc[partID]) {
+            acc[partID] = { 
+                partID: partID, 
+                partName: res.partName || "-", 
+                cost: materialInfo.cost || 0,
+                totalRemaining: 0 
+            };
+        }
+        acc[partID].totalRemaining += (pending - assigned);
+        return acc;
+    }, {});
+
+    const noStockData = Object.values(groupedData);
+    if (noStockData.length === 0) return null;
+
+    // 3. เตรียมข้อมูล
+    const dataSet = noStockData.map(res => {
+        const upcomingStock = upcomingMap[res.partID] || 0;
+        const totalRequire = Math.abs(res.totalRemaining - upcomingStock);
+        const savedStatus = localStorage.getItem('status_' + res.partID) || "จัดซื้อใหม่";
+        return [
+            res.partID, 
+            res.partName, 
+            totalRequire, 
+            res.cost,          // เก็บราคาไว้ใน Array เพื่อใช้คำนวณ
+            totalRequire,      // ค่าเริ่มต้นจำนวนสั่งซื้อ
+            (totalRequire * res.cost),// ราคารวม
+            savedStatus
+        ];
+    });
+
+    // 4. ตั้งค่าตาราง
+    const $el = $('#tableInfoPO');
+    if ($.fn.DataTable.isDataTable('#tableInfoPO')) {
+        $el.DataTable().destroy();
+        $el.empty();
+    }
+
+    const InfoPOTable = $el.DataTable({
+        data: dataSet,
+        columns: [
+            { title: "รหัสพัสดุ" },
+            { title: "ชื่อพัสดุ" },
+            { title: "ต้องการสุทธิ" },
+            { title: "ราคากลาง" },
+            { title: "จำนวนสั่งซื้อ" },
+            { title: "ราคารวม" },
+            { title: "สถานะ" }
+        ],
+    "deferRender": true,
+    "pageLength": 10,
+    "responsive": true,
+    "scrollX": false, // ตั้งเป็น false เพื่อป้องกันไม่ให้ DataTable พยายามสร้าง scrollbar เอง
+    "autoWidth": false,
+    
+    "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
+ "buttons": [
+        {
+            extend: 'excel',
+            text: '<i class="fas fa-file-excel mr-1"></i> Export',
+            filename: 'R2C_InfoPO_report',
+            exportOptions: {
+                modifier: { page: 'all' },
+                format: {
+                    body: function (data, row, column, node) {
+                        // 1. คอลัมน์จำนวนสั่งซื้อ (Index 4) - ตัดเอาเฉพาะ value ใน input
+                        if (column === 4) {
+                            if (typeof data === 'string' && data.includes('<input')) {
+                                let match = data.match(/value="([^"]*)"/);
+                                return match ? match[1] : data;
+                            }
+                            return data;
+                        }
+                        
+                        // 2. คอลัมน์สถานะ (Index 6) - ดึงเฉพาะข้อความด้านในออกมา
+                       if (column === 6) {
+            // ถ้ามี DOM (หน้าปัจจุบัน) ให้ดึงจาก select
+            if (node && node.querySelector('select')) {
+                return node.querySelector('select').value;
+            }
+            
+            // ถ้าไม่มี DOM (หน้าอื่น) ให้เช็คจากข้อมูลดิบ ถ้าพบ HTML ให้ตัดออก
+            if (typeof data === 'string' && data.includes('<span')) {
+                // ใช้ Regex ดึงข้อความระหว่าง >ข้อความ</span>
+                let match = data.match(/>([^<]+)<\/span>/);
+                return match ? match[1].trim() : data;
+            }
+            return data;
+        }
+                        
+                        return data;
+                    }
+                }
+            },
+            action: function (e, dt, button, config) {
+                // 1. วนลูปทุกแถวโดยใช้ข้อมูลในตาราง
+                dt.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                    let node = dt.row(rowIdx).node();
+                    if (node) {
+                        let input = node.querySelector('.qty-input');
+                        if (input) {
+                            this.cell(rowIdx, 4).data(input.value);
+                        }
+                        let select = node.querySelector('select');
+                        if (select) {
+                            this.cell(rowIdx, 6).data(select.value);
+                        }
+                    }
+                });
+
+                // 2. เรียกฟังก์ชัน Export มาตรฐาน
+                $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+                
+                // 3. วาดตารางใหม่เพื่อให้ input กลับมาแสดงผลปกติ
+                dt.draw(false);
+            }
+        }
+    ],
+
+
       "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
    
         "columnDefs": [
@@ -1083,6 +1344,7 @@ renderInfoPOTable(allocatedData, materialTypeMap, stockData,upcomingData = {}, s
     InfoPOTable.buttons().container().appendTo('#export-InfoPO');
     return InfoPOTable;
 }
+
 
 };
 
