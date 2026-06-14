@@ -688,3 +688,80 @@ table.dataTable td .qty-input:focus {
     border-color: #3b82f6;         /* สีฟ้าเวลาคลิก */
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
+
+/* ล็อคสีของปุ่ม Export ให้เป็นเขียว-ขาวเสมอ */
+.btn-success {
+     background-color: #fdfdfd !important;
+    border-color: #ececec !important;
+    color: #5a5959 !important;
+}
+
+/* ล็อคสีตอนชี้ (Hover) ไม่ให้เป็นสีเทา */
+.btn-success:hover, 
+.btn-success:focus, 
+.btn-success:active {
+    background-color: #8454b1 !important; /* เขียวเข้มขึ้นเล็กน้อย */
+    border-color: #8454b1 !important;
+    color: #ffffff !important; /* ล็อคสีขาวไว้ที่นี่ */
+}
+
+/* จัดการแถวที่มีตัวเลือกจำนวนแถวและตัวเลขบอกจำนวน */
+.dataTables_length, .dataTables_info {
+    display: inline-flex !important; /* บังคับให้เป็นบรรทัดเดียวกัน */
+    align-items: center !important;  /* จัดให้ทุกอย่างอยู่ในระดับกลางตามแนวตั้ง */
+    gap: 10px;                       /* เพิ่มระยะห่างระหว่างตัวเลือกกับข้อความ */
+    margin: 0 !important;            /* เคลียร์ margin เดิมที่ทำให้มันเหลื่อมกัน */
+}
+
+/* ปรับช่อง Select ให้มีความสูงพอดีกับข้อความ */
+.dataTables_length select {
+    padding: 0.2rem 0.5rem !important; /* ปรับ Padding ให้ดูโปร่งขึ้น */
+    height: auto !important;           /* ไม่ล็อคความสูง */
+}
+
+/* ล้าง padding ที่ DataTable ใส่มาให้อัตโนมัติ */
+div.dataTables_wrapper div.dataTables_info {
+    padding-top: 0 !important; 
+}
+
+/* จัดการแถวบน (Search และปุ่ม Export) */
+#tableHole_wrapper .row:first-child {
+    align-items: center;
+}
+
+/* จัดการแถวล่าง (ตัวเลือกจำนวนแถวและตัวเลขแสดงผล) */
+#tableHole_wrapper .dataTables_length, 
+#tableHole_wrapper .dataTables_info {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* ปรับระยะห่างช่อง Select */
+#tableHole_wrapper .dataTables_length select {
+    margin: 0 8px !important;
+}
+
+.btn-modern-save {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: rgb(121, 121, 121);
+    border: 1px solid #d1d5db;  
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    /* box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); */
+}
+
+.btn-modern-save:hover {
+    /* transform: translateY(-1px); */
+     color: rgb(31, 31, 31);
+    /* box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.4); */
+    background:  #ededfa ;
+}
+
+.btn-modern-save:active {
+    transform: translateY(0);
+}

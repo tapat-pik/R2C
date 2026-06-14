@@ -1278,7 +1278,7 @@ const matchTable = $el.DataTable({
                 let textColor = "#374151";
                 if (data === 'พัสดุหลัก') { bgColor = "#e9d5ff"; textColor = "#6b21a8"; } 
                 else if (data === 'พัสดุรอง') { bgColor = "#d5d8ff"; textColor = "#214ca8"; } 
-                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#d5fff9"; textColor = "#2189a8"; }
+                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#f3d5ff"; textColor = "#a821a1"; }
 
                 return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
                         ${data || '-'}
@@ -1533,8 +1533,14 @@ return RequirementTable;
         // ================================================================================================
         // 🎯 เปลี่ยนมาวิ่งลูปผ่านข้อมูลที่ผ่านการจัดอันดับถูกต้องแล้ว (โค้ดดึงค่าและโครงสร้างตารางด้านในคงเดิม)
         // ================================================================================================
+        // 1. สร้างสมุดจด (Object) ไว้ข้างนอกลูป
+        const rankMap = {}; 
         sortedWBSList.forEach((item, index) => {
             const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
+            // 2. บันทึกอันดับลงสมุด โดยใช้ WBS (item.valA) เป็นกุญแจ (Key)
+            rankMap[item.valA] = rank;
+
+
             const valA = item.valA;
             const row = item.row;
             const rowCount = item.rowCount;
@@ -1613,7 +1619,8 @@ return RequirementTable;
                 <td class="${TABLE_STYLES.cellClass} text-center d-none "><span ${textStyle}>${BudgetCIP}</span></td>
             </tr>`;
         });
-
+        //ให้บันทึก Rank ลง localStorage เพื่อให้หน้า Warehouse มาอ่าน
+        localStorage.setItem('wbsRankMap', JSON.stringify(rankMap));
         html += '</tbody>';
         // 🎯 ส่วนที่เพิ่ม 3: ส่งข้อมูลสรุปให้กราฟวงกลมทำงานทันทีหลังสร้างตารางเสร็จ
         updateGraph.updatePieChart(activeRowsDataForChart);
@@ -1626,105 +1633,7 @@ return RequirementTable;
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
-// renderNoStockTable(allocatedData, materialTypeMap) {
-//     if (!allocatedData || !Array.isArray(allocatedData)) return null;
-    
-//     // ประเภทพัสดุที่ไม่ต้องการแสดงในตาราง
-//     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
- 
-//     const noStockData = allocatedData.filter(res => {
-//         if (res.assigned !== 0) 
-//             return false;
-//         const partType = materialTypeMap[res.partID?.toString().trim()] || "";
-//         return !EXCLUDED_TYPES.includes(partType);
-//     });
 
-//     if (noStockData.length === 0) return null;
- 
-//     const $el = $('#tableNoStock');
-//     if ($.fn.DataTable.isDataTable('#tableNoStock')) {
-//         $el.DataTable().destroy();
-//         $el.empty();
-//     }
- 
-//     const colHeaders = [
-//         { title: "หมายเลขงาน" },   // index 0
-//         { title: "รหัสพัสดุ" },     // index 1
-//         { title: "ชื่อพัสดุ" },     // index 2
-//         { title: "ประเภท" },        // index 3 (เพิ่มใหม่ ก่อนค้างเบิก)
-//         { title: "ที่ได้ / ค้างเบิก" },
-//         { title: "ค้างเบิก" },
-//         { title: "จำนวนที่ได้" }
-        
-//     ];
- 
-//     const dataSet = noStockData.map(res => {
-//         const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
-//         return [
-//             res.wbs     || "-",   // 0
-//             res.partID  || "-",   // 1
-//             res.partName|| "-",   // 2
-//             partType,             // 3 ประเภท
-//            { assigned: res.assigned || 0, pending: res.pending || 0 },
-//             res.pending || 0,
-//             res.assigned || 0
-            
-//         ];
-//     });
-
-    // renderNoStockTable(allocatedData, materialTypeMap) {
-    // if (!allocatedData || !Array.isArray(allocatedData)) return null;
-    
-    // const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
- 
-    // // 1. ปรับ Filter: เอาเฉพาะที่ assigned < pending
-    // const noStockData = allocatedData.filter(res => {
-    //     const assigned = res.assigned || 0;
-    //     const pending = res.pending || 0;
-    //     const partType = materialTypeMap[res.partID?.toString().trim()] || "";
-        
-    //     // กรองเอาเฉพาะที่ของยังไม่ครบ และไม่ถูกยกเว้น
-    //     return (assigned < pending) && !EXCLUDED_TYPES.includes(partType);
-    // });
-
-    // if (noStockData.length === 0) return null;
- 
-    // const $el = $('#tableNoStock');
-    // if ($.fn.DataTable.isDataTable('#tableNoStock')) {
-    //     $el.DataTable().destroy();
-    //     $el.empty();
-    // }
- 
-    // const colHeaders = [
-    //     { title: "หมายเลขงาน" },
-    //     { title: "รหัสพัสดุ" },
-    //     { title: "ชื่อพัสดุ" },
-    //     { title: "ประเภท" },
-    //     { title: "ที่ได้ / ค้างเบิก" }, // คอลัมน์ที่เปลี่ยนวิธีแสดง
-    //     { title: "ค้างเบิก" },
-    //     { title: "จำนวนที่ได้" }
-    // ];
- 
-    // const dataSet = noStockData.map(res => {
-    //     const partType = materialTypeMap[res.partID?.toString().trim()] || "-";
-    //     const assigned = res.assigned || 0;
-    //     const pending = res.pending || 0;
-        
-    //     // 2. คำนวณส่วนที่เหลือ
-    //     const remaining = pending - assigned;
-        
-    //     return [
-    //         res.wbs       || "-",
-    //         res.partID    || "-",
-    //         res.partName  || "-",
-    //         partType,
-    //         // `${assigned}/${remaining}`, // แสดงผลเป็น "ที่ได้ / ส่วนที่เหลือ"
-    //         { assigned: 0, pending: remaining },
-    //         remaining, //ค้างเบิก
-    //         0 //assigned // จำนวนที่ได้
-    //     ];
-    // });
- 
 
     renderNoStockTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
@@ -1836,7 +1745,7 @@ const NoStockTable = $el.DataTable({
                 let textColor = "#374151";
                 if (data === 'พัสดุหลัก') { bgColor = "#e9d5ff"; textColor = "#6b21a8"; } 
                 else if (data === 'พัสดุรอง') { bgColor = "#d5d8ff"; textColor = "#214ca8"; } 
-                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#d5fff9"; textColor = "#2189a8"; }
+                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#f3d5ff"; textColor = "#a821a1"; }
 
                 return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
                         ${data || '-'}

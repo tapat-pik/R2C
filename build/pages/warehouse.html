@@ -304,9 +304,19 @@
  <div class="w-full max-w-full px-3">
   <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
     
-    <div class="mb-6">
-      <h6 class="text-lg font-bold text-slate-700">Zone 1: Control Panel & Advanced Filters</h6>
-    </div>
+    <div class="flex justify-between items-center mb-6">
+        
+        <h6 class="text-lg font-bold text-slate-700 m-0">Zone 1: Control Panel & Advanced Filters</h6>
+
+        <div class="flex items-center gap-2">
+          <button id="resetMB52" class="px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white/60 rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85 border border-slate-200">
+            <i class="fas fa-sync mr-1"></i> Reset Filters
+          </button>
+          
+          <div id="export-Require"></div>
+        </div>
+
+      </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
       
@@ -459,12 +469,7 @@
                   <i class="fa-solid fa-triangle-exclamation me-3" style="color: rgb(251, 37, 37); font-size: 24px;"></i>
                     รายการพัสดุขาดแคลน
                 </h6>
-                <div class="d-flex align-items-center gap-2">
-                    <button id="resetMB52" class="px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white/60 rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85">
-                        <i class="fas fa-sync"></i> Reset Filters
-                    </button>
-                    <div id="export-Require"></div>
-                </div>
+               
             </div>
 
         <div class="card-body p-4">
@@ -539,12 +544,20 @@
 
     </div>
 
-                <div class="flex flex-col justify-center w-full">
-                    <div class="w-full overflow-x-auto">
-                        <table id="tableNoStock" class="table table-hover align-middle mb-0 text-sm leading-normal break-words whitespace-normal" style="width: 100%;">
-                        </table>
-                    </div>
-                </div>
+              <div class="flex flex-col justify-center w-full">
+    <div class="w-full overflow-x-auto">
+        <table id="tableNoStock" class="table table-hover align-middle mb-0 text-sm leading-normal break-words whitespace-normal" style="width: 100%;">
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-end mb-3 mt-3">
+   <button type="button" 
+            onclick="refreshTables()" 
+            class="btn-modern-save">
+        <i class="fas fa-sync-alt mr-2"></i> บันทึก
+    </button>
+    </div>
+</div>
 
             </div>
             
@@ -638,54 +651,47 @@
 </div>
 
         <!-- ขวา: NoStock (บน) + Obsolete (ล่าง) เรียงกันในคอลัมเดียว (w-1/2) -->
-        <div class="w-full lg:w-8/12 px-3 mb-6" x-data="{ activeTab: 'InfoPO' }">
+        <div id="summary-order" class="w-full lg:w-8/12 px-3 mb-6" x-data="{ activeTab: 'InfoPO' }">
 
         <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
           
  <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
-  <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
-    <i class="fa-solid fa-triangle-exclamation me-3" 
-       style="color: rgb(251, 37, 37); 
-              font-size: 24px; 
-              filter: drop-shadow(0 0 6px rgba(251, 37, 37, 0.5));">
-    </i>
-    รายการพัสดุที่ขาด (Shortage Items)
+  <h6  class="mb-0 flex items-center font-bold text-slate-700 block truncate">
+   
+
+    <i class="fa-solid fa-cart-plus  me-3" style="color: rgb(75, 199, 66);font-size: 24px; filter: drop-shadow(0 0 6px  rgb(194, 235, 191));" ></i>
+   สรุปรายการสั่งซื้อ
 </h6>
-      <div id="export-InfoPO"></div>
+    
   </div>
  <div class="flex space-x-6 border-b border-gray-200 px-4 pt-2">
     <button @click="activeTab = 'InfoPO'; toggleInfoTab('InfoPO')" 
             class="py-2 text-sm font-medium transition-all relative border-b-2"
             :class="activeTab === 'InfoPO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
         รายการพัสดุรอจัดซื้อใหม่
-        <span id="count-upcoming" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+        <span id="count-InfoPO" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
     </button>
 
     <button @click="activeTab = 'InfoHole'; toggleInfoTab('InfoHole')" 
             class="py-2 text-sm font-medium transition-all relative border-b-2"
             :class="activeTab === 'InfoHole' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
         รายการพัสดุ ขอโอน / Hole
-        <span id="count-stockN2" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+        <span id="count-InfoHole" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
     </button>
 
-    <button @click="activeTab = 'N2PO'; toggleInfoTab('N2PO')" 
-            class="py-2 text-sm font-medium transition-all relative border-b-2"
-            :class="activeTab === 'N2PO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-        รอตรวจรับ (กบพ.)
-        <span id="count-n2po" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-    </button>
+  
 </div>
         <div class="p-4">
             <div x-show="activeTab === 'InfoPO'" class="overflow-x-auto w-full">
+             
                 <table id="tableInfoPO" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
             </div>
 
             <div x-show="activeTab === 'InfoHole'" class="overflow-x-auto w-full">
-                <table id="tabStockN2" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
+               
+                <table id="tableHole" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
             </div>
-            <div x-show="activeTab === 'N2PO'" class="overflow-x-auto w-full">
-                <table id="tabN2PO" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
-            </div>
+           
         </div>
 </div>
 
@@ -805,7 +811,7 @@
       </div>
 
       <div class="w-full overflow-x-auto py-2">
-        <table id="tableUpcoming" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>
+        <table id="tableNoStock_AfterUpcoming" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>
       </div>
 
     </div>
@@ -1015,7 +1021,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- <script src="script_new.js"></script> -->
 <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script src="../common_service.js"></script>
 
