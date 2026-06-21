@@ -1534,12 +1534,13 @@ return RequirementTable;
         // 🎯 เปลี่ยนมาวิ่งลูปผ่านข้อมูลที่ผ่านการจัดอันดับถูกต้องแล้ว (โค้ดดึงค่าและโครงสร้างตารางด้านในคงเดิม)
         // ================================================================================================
         // 1. สร้างสมุดจด (Object) ไว้ข้างนอกลูป
-        const rankMap = {}; 
+        // const rankMap = {}; 
+        const rankMap = window.GLOBAL_RANK_MAP || {};
         sortedWBSList.forEach((item, index) => {
-            const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
-            // 2. บันทึกอันดับลงสมุด โดยใช้ WBS (item.valA) เป็นกุญแจ (Key)
-            rankMap[item.valA] = rank;
-
+            // const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
+            // // 2. บันทึกอันดับลงสมุด โดยใช้ WBS (item.valA) เป็นกุญแจ (Key)
+            // rankMap[item.valA] = rank;
+            
 
             const valA = item.valA;
             const row = item.row;
@@ -1554,7 +1555,8 @@ return RequirementTable;
             let valY = getCellValue(row.c[24]);
 
             let peaName = peaNameMapping[valW] || valW || "-";
-
+             const wbsKey = item.valA ? item.valA.toString().trim() : "";
+             const rank = rankMap[wbsKey] || "-"; // จะได้อันดับทันทีโดยไม่ต้องรอ localStorage
             // 2. 🎯 สำหรับแสดงผลหน้าจอ: ปัดเศษตัวเลขให้เป็นเลขถ้วน ไม่มีทศนิยม
             let displayScore = typeof totalScore === 'number' ? Math.round(totalScore).toLocaleString() : totalScore;
             
@@ -3013,7 +3015,14 @@ async function initDashboard() {
         
         const processedAllocData = updateProgressData(alloc.allocatedResults, materialTypeMap);
         const wbsProgressMap = getWBSProgressMap(processedAllocData);
+          const globalRankMap = RankingService.calculateAllWbsRanks(
+            dataMap['Requirement_Data'].rows, 
+            budgetMapping, 
+            alloc.finalWbsScores
+        );
 
+        // เอาไปแปะไว้ใน window หรือตัวแปร Global เพื่อให้ตารางต่างๆ ดึงไปใช้ได้ทันที
+        window.GLOBAL_RANK_MAP = globalRankMap;
         // ================= วาดตาราง ================= //
         config.forEach(sheet => {
             const data = dataMap[sheet.name];

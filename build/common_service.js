@@ -360,13 +360,18 @@ const AllocationService = {
             
             // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
             const normalItems = items.filter(i => {
-                const currentID = i.partID?.toString().trim();
-                const type = materialTypeMap[currentID];
-                
-                if (type === "พัสดุล้าสมัย" || type === "เปลี่ยนรหัสพัสดุ") {
+               const currentID = i.partID?.toString().trim();
+               const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
+                // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
+                const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
+                // ทีนี้ type ก็จะเป็น String "พัสดุล้าสมัย" แล้ว!
+                if (type.includes("พัสดุล้าสมัย") || type.includes("เปลี่ยนรหัสพัสดุ")) {
                     hasLockedMaterial = true;
+                    return false;
                 }
-                return type !== "พัสดุล้าสมัย" && type !== "เปลี่ยนรหัสพัสดุ";
+                return true;
+   
+
             });
 
             let status = "yellow"; // ค่าเริ่มต้นกรณีไม่เข้าเงื่อนไขอื่น (ไฟเหลือง)
@@ -381,8 +386,10 @@ const AllocationService = {
                 // กรองเฉพาะกลุ่มพัสดุหลัก
                 const mainItems = normalItems.filter(i => {
                     const currentID = i.partID?.toString().trim();
-                    const type = materialTypeMap[currentID];
-                    return type === "พัสดุหลัก";
+                    const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
+                    // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
+                     const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
+                    return type.includes("พัสดุหลัก");
                 });
                 
                 // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
@@ -391,8 +398,10 @@ const AllocationService = {
                 // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
                 const isAllCompleted = normalItems.every(i => {
                     const currentID = i.partID?.toString().trim();
-                    const type = materialTypeMap[currentID];
-                    if (type === "พัสดุไม่เบิกจากคลัง") {
+                     const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
+                    // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
+                     const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
+                    if (type.includes("พัสดุไม่เบิกจากคลัง")) {
                         return true; 
                     }
                     return i.pending > 0 && i.assigned >= i.pending;
@@ -481,5 +490,44 @@ const AllocationService = {
         if (typeof updatePieChart === 'function') {
             updatePieChart(data);
         }
+    }
+};
+
+// ในไฟล์ CommonService.js (หรือไฟล์ Service ที่คุณเลือก)
+const RankingService = {
+    // ฟังก์ชันนี้จะทำหน้าที่คำนวณอันดับทั้งหมดล่วงหน้า
+    calculateAllWbsRanks(dataRows, budgetMapping, finalScores) {
+        const uniqueMap = new Map();
+        const countMap = new Map();
+
+        // 1. จัดกลุ่มข้อมูล
+        dataRows.forEach(row => {
+            let valA = CommonService.getCellValue(row.c[0]).toString().trim();
+            if (valA !== "") {
+                countMap.set(valA, (countMap.get(valA) || 0) + 1);
+                if (!uniqueMap.has(valA)) uniqueMap.set(valA, row);
+            }
+        });
+
+        // 2. คำนวณ Score และเก็บลง List เพื่อ Sort
+        const sortedList = [];
+        uniqueMap.forEach((row, valA) => {
+            let rowCount = countMap.get(valA) || 0;
+            let budget = budgetMapping[valA] || 0;
+            let score = finalScores?.get(valA) || 0; // สมมติว่ามีคะแนนเตรียมไว้แล้ว
+            
+            sortedList.push({ valA, rowCount, budget, score });
+        });
+
+        // 3. เรียงลำดับ (ตามเกณฑ์ของคุณ)
+        sortedList.sort((a, b) => b.score - a.score || a.rowCount - b.rowCount || b.budget - a.budget);
+
+        // 4. สร้าง Map ของอันดับ [WBS: Rank]
+        const rankMap = {};
+        sortedList.forEach((item, index) => {
+            rankMap[item.valA] = index + 1;
+        });
+
+        return rankMap;
     }
 };
