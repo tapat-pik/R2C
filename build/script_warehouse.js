@@ -1118,13 +1118,32 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
             "className": "py-3 px-3  text-center" 
         },
                 { 
-                "targets": [3,4,6], 
+                "targets": [3,6], 
                 "className": "text-center ",
                 "render": function(data, type, row) {
                     // เช็คว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใส่ลูกน้ำ ถ้าไม่ใช่ให้แสดงค่าเดิม
                     return (typeof data === 'number') ? data.toLocaleString() : data;
                 }
             },
+                   {
+    targets: 4, // คอลัมน์ราคากลาง
+    render: function(data, type, row) {
+        if (type !== 'display') return data;
+        
+        // แปลง data เป็นเลข 1 หลัก (ถ้ามีเศษ) และใช้ parseFloat เพื่อกัน Error
+        // วิธีนี้จะบังคับให้ Input แสดงค่าทศนิยมแค่ 1 หลักเสมอ
+        const num = parseFloat(data);
+        const displayValue = Number.isInteger(num) ? num : num.toFixed(1);
+
+        
+        return `<input type="number" class="qty-input" 
+                value="${displayValue}" 
+                data-cost="${row[5]}" 
+                min="0" 
+                step="1" 
+                   oninput="calculateRowTotal(this)">`;
+     }
+    },
            {
     targets: 5, // คอลัมน์จำนวนสั่งซื้อ
     render: function(data, type, row) {
