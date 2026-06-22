@@ -30,6 +30,7 @@ let StockN2TabInstance = null;
 let N2POTabInstance = null;
 let InfoPOTableInstance = null;
 let HoleTableInstance = null;
+let TransferTableInstance = null;
 // ==================== Constants ====================
 // --- ส่วนที่ 1: ประกาศตัวแปรเก็บข้อมูล (Global) ---
 let globalAllocatedResults = [];
@@ -1277,9 +1278,9 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
                 res.type,
                 res.totalNetRequired, // ยอดคงค้างที่ติด Hold
                 res.cost,
-                0,                    // จำนวนสั่งซื้อ (รายการ Hold ปกติจะสั่งซื้อไม่ได้หรือเป็น 0)
-                0,                    // ราคารวม
-                "Hold"                // สถานะ
+                // 0,                    // จำนวนสั่งซื้อ (รายการ Hold ปกติจะสั่งซื้อไม่ได้หรือเป็น 0)
+                res.totalNetRequired*res.cost,                    // ราคารวม
+                 res.savedStatus                // สถานะ
             ];
         });
 
@@ -1290,6 +1291,205 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
     }
 
     const HoleTable = $el.DataTable({
+        data: dataSet,
+        columns: [
+            { title: "รหัสพัสดุ" },
+            { title: "ชื่อพัสดุ" },
+            { title: "ประเภท" },
+            { title: "ความต้องการสุทธิ" },
+            { title: "ราคากลาง" },
+            // { title: "จำนวนที่ขอโอน" },
+            { title: "ราคารวม" },
+            { title: "สถานะ" }
+        ],
+    "deferRender": true,
+    "pageLength": 10,
+    "responsive": true,
+    "scrollX": false, // ตั้งเป็น false เพื่อป้องกันไม่ให้ DataTable พยายามสร้าง scrollbar เอง
+    "autoWidth": false,
+    
+    "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
+ "buttons": [
+        {
+            extend: 'excel',
+            text: '<i class="fas fa-file-excel mr-1"></i> Export',
+            filename: 'R2C_InfoTransferAndHole_report',
+             className: 'btn btn-sm btn-success',
+            exportOptions: {
+                modifier: { page: 'all' },
+                format: {
+                    body: function (data, row, column, node) {
+                        // 1. คอลัมน์จำนวนสั่งซื้อ (Index 4) - ตัดเอาเฉพาะ value ใน input
+                        if (column === 5) {
+                            if (typeof data === 'string' && data.includes('<input')) {
+                                let match = data.match(/value="([^"]*)"/);
+                                return match ? match[1] : data;
+                            }
+                            return data;
+                        }
+                        
+          
+                        if (column === 7 || column === 2) 
+                            {
+                            // ถ้าไม่มี DOM (หน้าอื่น) ให้เช็คจากข้อมูลดิบ ถ้าพบ HTML ให้ตัดออก
+                            if (typeof data === 'string' && data.includes('<span')) {
+                                // ใช้ Regex ดึงข้อความระหว่าง >ข้อความ</span>
+                                let match = data.match(/>([^<]+)<\/span>/);
+                                return match ? match[1].trim() : data;
+                            }
+                            return data;
+                         }
+                        
+                        return data;
+                    }
+                }
+            },
+            action: function (e, dt, button, config) {
+                // 1. วนลูปทุกแถวโดยใช้ข้อมูลในตาราง
+                dt.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                    let node = dt.row(rowIdx).node();
+                    if (node) {
+                        let input = node.querySelector('.qty-input');
+                        if (input) {
+                            this.cell(rowIdx, 5).data(input.value);
+                        }
+                        let span_type = node.querySelector('span');
+                        let span_status = node.querySelector('span');
+                        if (span_type || span_status) {
+                            this.cell(rowIdx, 7).data(span_status.value);
+                            this.cell(rowIdx, 2).data(span_type.value);
+                        }
+                    }
+                });
+
+                // 2. เรียกฟังก์ชัน Export มาตรฐาน
+                $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+                
+                // 3. วาดตารางใหม่เพื่อให้ input กลับมาแสดงผลปกติ
+                dt.draw(false);
+            }
+        }
+    ],
+
+"dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',
+   
+     "columnDefs": [
+
+              {
+                "targets": [0,1],
+                "className": "whitespace-nowrap",
+                // "render": $.fn.dataTable.render.number(',', '.', 0)
+            },
+             { 
+            "targets": 2, 
+            "render": function(data, type, row) {
+                let bgColor = "#e5e7eb";
+                let textColor = "#374151";
+                if (data === 'พัสดุหลัก') { bgColor = "#e9d5ff"; textColor = "#6b21a8"; } 
+                else if (data === 'พัสดุรอง') { bgColor = "#d5d8ff"; textColor = "#214ca8"; } 
+                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#f3d5ff"; textColor = "#a821a1"; }
+
+                return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                        ${data || '-'}
+                        </span>`;
+            },
+            "className": "py-3 px-3  text-center" 
+        },
+                { 
+                "targets": [3,4,5], 
+                "className": "text-center ",
+                "render": function(data, type, row) {
+                    // เช็คว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใส่ลูกน้ำ ถ้าไม่ใช่ให้แสดงค่าเดิม
+                    return (typeof data === 'number') ? data.toLocaleString() : data;
+                }
+            },
+    //       {
+    //     targets: 5, // คอลัมน์ "จำนวนที่ขอโอน"
+    //     className: "text-center",
+    //     render: function(data, type, row) {
+    //         // ดึงค่าที่บันทึกไว้ใน localStorage
+    //         const saveQtytransfer = localStorage.getItem('qty_' + row[0]) || 0;
+    //         return saveQtytransfer; // แสดงค่าเฉยๆ ไม่ต้องมี Input
+    //     }
+    // },
+    // {
+    //     targets: 5, // คอลัมน์ "ราคารวม"
+    //     className: "text-center",
+    //    "render": function(data, type, row) {
+    //                 // เช็คว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใส่ลูกน้ำ ถ้าไม่ใช่ให้แสดงค่าเดิม
+    //                 return (typeof data === 'number') ? data.toLocaleString() : data;
+    //             }
+    // },
+   {
+    "targets": 6, 
+    "className": "text-center",
+    "render": function(data, type, row) {
+        // กำหนดสีตามสถานะ
+        let bgColor = "#e5e7eb"; // สีเทา (Default)
+        let textColor = "#374151"; // สีเทาเข้ม
+        
+        if (data === 'จัดซื้อใหม่') { bgColor = "#dcfce7"; textColor = "#166534"; } // สีเขียว
+        else if (data === 'ขอโอน') { bgColor = "#fefcdb"; textColor = "#af7c1e"; } // สีฟ้า
+        else if (data === 'Hold') { bgColor = "#fee2e2"; textColor = "#991b1b"; } // สีแดง
+
+        return `<span style="
+                    display: inline-block;
+                    padding: 4px 12px;
+                    font-size: 12px; 
+                    font-weight: 600;
+                    border-radius: 9999px;
+                    background-color: ${bgColor};
+                    color: ${textColor};
+                    border: 1px solid rgba(0,0,0,0.05);
+                    white-space: nowrap;
+                ">
+                    ${data || '-'}
+                </span>`;
+    }
+}
+      
+        ],
+        "createdRow": function(row, data, dataIndex) {
+        $(row).addClass('clickable-requirement'); // class สำหรับใช้ใน setupRowClickEvent
+        $(row).attr('data-material-code', data[0]); // เก็บ รหัสพัสดุ ไว้ใน data-attribute
+    },
+     "drawCallback": function() {
+             updateCounts_Orderlist();
+        }
+    });
+
+    HoleTable.buttons().container().appendTo('#export-InfoHole');
+    return HoleTable;
+
+
+},
+
+renderInfoTransferTable(allocatedData, materialTypeMap) { 
+    const summaryTransfer = window.SUMMARY_DATA_TRANSFER || {};
+    
+    // แปลง Object เป็น Array
+    const dataSet = Object.values(summaryTransfer)
+        .filter(res => res.totalNetRequired > 0)
+        .map(res => {
+            return [
+                res.partID, 
+                res.partName, 
+                res.type,
+                res.totalNetRequired, // ยอดคงค้างที่ติด Hold
+                res.cost,
+                0,                    // จำนวนสั่งซื้อ (รายการ Hold ปกติจะสั่งซื้อไม่ได้หรือเป็น 0)
+                res.totalNetRequired*res.cost,                    // ราคารวม
+                res.savedStatus                // สถานะ
+            ];
+        });
+
+    const $el = $('#tableTransfer');
+    if ($.fn.DataTable.isDataTable($el)) {
+        $el.DataTable().destroy();
+        $el.empty();
+    }
+
+    const TransferTable = $el.DataTable({
         data: dataSet,
         columns: [
             { title: "รหัสพัสดุ" },
@@ -1395,7 +1595,7 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
             "className": "py-3 px-3  text-center" 
         },
                 { 
-                "targets": [3,4,6], 
+                "targets": [3,4], 
                 "className": "text-center ",
                 "render": function(data, type, row) {
                     // เช็คว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใส่ลูกน้ำ ถ้าไม่ใช่ให้แสดงค่าเดิม
@@ -1414,12 +1614,10 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
     {
         targets: 6, // คอลัมน์ "ราคารวม"
         className: "text-center",
-        // render: function(data, type, row) {
-        //     // ดึงค่า saveQtytransfer มาคูณราคากลาง (row[4])
-        //     const saveQtytransfer = parseFloat(localStorage.getItem('qty_' + row[0])) || 0;
-        //     const cost = parseFloat(row[4]) || 0;
-        //     return (saveQtytransfer * cost).toLocaleString(); // คำนวณใหม่สดๆ
-        // }
+       "render": function(data, type, row) {
+                    // เช็คว่าเป็นตัวเลขหรือไม่ ถ้าใช่ให้ใส่ลูกน้ำ ถ้าไม่ใช่ให้แสดงค่าเดิม
+                    return (typeof data === 'number') ? data.toLocaleString() : data;
+                }
     },
    {
     "targets": 7, 
@@ -1459,8 +1657,8 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
         }
     });
 
-    HoleTable.buttons().container().appendTo('#export-InfoHole');
-    return HoleTable;
+    TransferTable.buttons().container().appendTo('#export-InfoTransfer');
+    return TransferTable;
 },
 
 // renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
@@ -1656,7 +1854,24 @@ if (statusfinal === "ขาดของ") {
             };
         }
         window.SUMMARY_DATA_HOLD[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
-    } else if (savedStatus === "จัดซื้อใหม่" || savedStatus === "ขอโอน") {
+
+    }
+    else if (finalsaveStatus === "ขอโอน") {
+        // 🎯 เก็บยอดรายการที่ติด Hold
+        if (!window.SUMMARY_DATA_TRANSFER) window.SUMMARY_DATA_TRANSFER = {};
+        if (!window.SUMMARY_DATA_TRANSFER[partID]) {
+            window.SUMMARY_DATA_TRANSFER[partID] = { 
+                partID, 
+                partName: res.partName,
+                type: materialInfo.type, 
+                cost: materialInfo.cost || 0,
+                totalNetRequired: 0 ,
+                savedStatus: finalsaveStatus
+            };
+        }
+        window.SUMMARY_DATA_TRANSFER[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
+    }
+     if (finalsaveStatus === "จัดซื้อใหม่" || finalsaveStatus === "ขอโอน") {
         // 🎯 เก็บยอดรายการปกติ (ส่วนนี้เหมือนเดิมที่คุณใช้อยู่)
         if (!window.SUMMARY_DATA[partID]) {
             window.SUMMARY_DATA[partID] = {
@@ -1784,7 +1999,7 @@ const NoStock_AfterUpcomingTable = $el.DataTable({
         if (data === "ได้ของครบ") {
             return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">✓ ได้ของครบ</span>`;
         } else {
-            return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ ขาดของ</span>`;
+            return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ ของขาด</span>`;
         }
     }
 },
@@ -1963,6 +2178,7 @@ function updateCounts_Orderlist() {
     const counts = {
         InfoPO: $.fn.DataTable.isDataTable('#tableInfoPO') ? $('#tableInfoPO').DataTable().rows({filter: 'applied'}).count() : 0,
         InfoHole: $.fn.DataTable.isDataTable('#tableHole') ? $('#tableHole').DataTable().rows({filter: 'applied'}).count() : 0,
+        InfoTransfer: $.fn.DataTable.isDataTable('#tableTransfer') ? $('#tableTransfer').DataTable().rows({filter: 'applied'}).count() : 0,
        
     };
 
@@ -1970,6 +2186,7 @@ function updateCounts_Orderlist() {
     const elements = [
         { id: 'count-InfoPO', val: counts.InfoPO },
         { id: 'count-InfoHole', val: counts.InfoHole },
+         { id: 'count-InfoTransfer', val: counts.InfoTransfer },
    
     ];
 
@@ -2020,7 +2237,7 @@ function toggleInfoTab(tabName) {
     const tableMap = {
         'InfoPO': '#tableInfoPO',
         'InfoHole': '#tableHole',
-        'N2PO': '#tabN2PO'
+         'InfoTransfer': '#tableTransfer',
     };
     
     const tableId = tableMap[tabName];
@@ -2135,7 +2352,8 @@ window.SUMMARY_DATA = {};
     // 2. ตามด้วยตาราง InfoPO และตารางอื่นๆ ที่ต้องใช้ค่าที่คำนวณเสร็จแล้ว
     const tables = [
         { id: '#tableInfoPO', func: TableRenderer.renderInfoPOTable },
-        { id: '#tableHole', func: TableRenderer.renderInfoHoleTable }
+        { id: '#tableHole', func: TableRenderer.renderInfoHoleTable },
+         { id: '#tableTransfer', func: TableRenderer.renderInfoTransferTable }
     ];
 
     tables.forEach(cfg => {
@@ -2707,6 +2925,7 @@ async function initDashboard() {
                 NoStock_AfterUpcomingTableInstance = TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 HoleTableInstance = TableRenderer.renderInfoHoleTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 InfoPOTableInstance = TableRenderer.renderInfoPOTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
+                TransferTableInstance = TableRenderer.renderInfoTransferTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 UpcomingTabInstance = TableRenderer.renderUpcomingTab(upcomingData);
                 StockN2TabInstance =TableRenderer.renderStockN2Tab(dataMap['StockN2_Data']);
                 N2POTabInstance =TableRenderer.renderN2POTab(dataMap['N2PO_Data']);
