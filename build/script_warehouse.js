@@ -989,6 +989,7 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
         // นำค่าที่ sum ไว้มาใช้ตรงๆ
         const net = res.totalNetRequired;
         const cost = res.cost;
+      
         
         return [
             res.partID, 
@@ -1494,7 +1495,7 @@ renderInfoTransferTable(allocatedData, materialTypeMap) {
                 res.partID, 
                 res.partName, 
                 res.type,
-                res.totalNetRequired, // ยอดคงค้างที่ติด Hold
+                res.originalPending, // ยอดคงค้างที่ติด Hold
                 res.cost,
                 0,                    // จำนวนสั่งซื้อ (รายการ Hold ปกติจะสั่งซื้อไม่ได้หรือเป็น 0)
                 res.totalNetRequired*res.cost,                    // ราคารวม
@@ -1781,7 +1782,7 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
 
     // 🎯 เพิ่มบรรทัดนี้ไว้ที่นี่
     window.SUMMARY_DATA = {}; 
-
+    window.SUMMARY_DATA_TRANSFER = {};
     const $el = $('#tableNoStock_AfterUpcoming');
     if ($el.length === 0) return null;
     if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
@@ -1885,10 +1886,13 @@ if (statusfinal === "ขาดของ") {
                 type: materialInfo.type, 
                 cost: materialInfo.cost || 0,
                 totalNetRequired: 0 ,
-                savedStatus: finalsaveStatus
+                savedStatus: finalsaveStatus,
+                originalPending:0
             };
         }
         window.SUMMARY_DATA_TRANSFER[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
+            // สะสมยอด pending ดั้งเดิม (ใช้ res.pending จากข้อมูลต้นฉบับ)
+       window.SUMMARY_DATA_TRANSFER[partID].originalPending += parseFloat(netAfterUpcoming) || 0;
     }
      if (finalsaveStatus === "จัดซื้อใหม่" || finalsaveStatus === "ขอโอน") {
         // 🎯 เก็บยอดรายการปกติ (ส่วนนี้เหมือนเดิมที่คุณใช้อยู่)
