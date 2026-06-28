@@ -788,6 +788,8 @@ div.dataTables_wrapper div.dataTables_info {
     padding-right: 15px !important;
 }
 
+
+
 /* บังคับให้ตัวคอนเทนเนอร์ของยอดรวมชิดขวาภายในช่อง */
 #footer-total-price {
     display: flex !important;
@@ -810,4 +812,82 @@ div.dataTables_wrapper div.dataTables_info {
 td.details-control {
     cursor: pointer;
     text-align: center;
+}
+
+
+/* Info PO */
+/* 1. ตั้งค่าตารางหลัก */
+/* ใช้ Selector ร่วมกันสำหรับทั้งตาราง PO และตาราง Hole */
+/* ใช้ Selector ร่วมกันสำหรับตาราง PO, Hole และ Transfer */
+#tableInfoPO, 
+#tableHole, 
+#tableTransfer {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    border: 1px solid #e5e7eb; /* กรอบนอกสุด */
+    border-radius: 8px; /* มุมมน */
+    overflow: hidden;
+}
+
+/* 2. จัดการหัวตาราง */
+#tableInfoPO thead, 
+#tableHole thead, 
+#tableTransfer thead {
+    background-color: #f9fafb!important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+#tableInfoPO thead th, 
+#tableHole thead th, 
+#tableTransfer thead th {
+    padding: 1rem !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    color: #6b7280;
+    border: none !important;
+}
+
+/* 3. จัดการเนื้อหาตาราง (เส้นแบ่งบรรทัด) */
+#tableInfoPO tbody td, 
+#tableHole tbody td, 
+#tableTransfer tbody td {
+    padding: 1rem !important;
+    font-size: 0.875rem !important;
+    border: none !important; 
+    border-bottom: 1px solid #e5e7eb !important; 
+}
+
+/* 4. สีเมื่อชี้แถว (Hover Effect) */
+#tableInfoPO tbody tr, 
+#tableHole tbody tr, 
+#tableTransfer tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+#tableInfoPO tbody tr:hover, 
+#tableHole tbody tr:hover, 
+#tableTransfer tbody tr:hover {
+    background-color: #f9fafb !important;
+}
+
+/* 5. จัดการท้ายตาราง */
+#tableInfoPO tfoot, 
+#tableHole tfoot, 
+#tableTransfer tfoot {
+    border-top: 1px solid #e5e7eb;
+}
+
+#tableInfoPO tfoot th, 
+#tableHole tfoot th, 
+#tableTransfer tfoot th {
+    padding: 1rem !important;
+    border: none !important;
+}
+
+/* ลบเส้นขอบเดิมของ DataTables */
+.dataTables_wrapper .dataTables_scroll,
+.dataTables_wrapper .dataTables_scrollHeadInner {
+    border: none !important;
 }

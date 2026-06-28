@@ -38,7 +38,7 @@ let globalMaterialMap = {};
 let globalStockData = {};
 let globalUpcomingData = {};
 let globalStockN2Data = {};
-
+window.CURRENT_RANK_LIMIT = 9999; // ค่าเริ่มต้น
 
 // ==================== Utility Functions ====================
 const debounceTimers = new Map();
@@ -524,76 +524,147 @@ const TableRenderer = {
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
-renderNoStockTable(allocatedData, materialTypeMap) {
-    if (!allocatedData || !Array.isArray(allocatedData)) return null;
+// renderNoStockTable(allocatedData, materialTypeMap) {
+//     if (!allocatedData || !Array.isArray(allocatedData)) return null;
 
- const {  stockN2, upcoming } = window.DATA_STORE.maps;
+//  const {  stockN2, upcoming } = window.DATA_STORE.maps;
 
-    //4.Group ข้อมูล: กรองเอาเฉพาะที่ assigned < pending และนำส่วนที่เหลือ (remaining) มาบวกกัน
- // 2. Group ข้อมูล
-    const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
-    const groupedData = allocatedData.reduce((acc, res) => {
-        const assigned = res.assigned || 0;
-        const pending = res.pending || 0;
-        if (assigned >= pending) return acc;
+//     //4.Group ข้อมูล: กรองเอาเฉพาะที่ assigned < pending และนำส่วนที่เหลือ (remaining) มาบวกกัน
+//  // 2. Group ข้อมูล
+//     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+//     const groupedData = allocatedData.reduce((acc, res) => {
+//         const assigned = res.assigned || 0;
+//         const pending = res.pending || 0;
+//         if (assigned >= pending) return acc;
         
-        const partID = res.partID?.toString().trim();
-        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
-        if (EXCLUDED_TYPES.includes(materialInfo.type)) return acc;
+//         const partID = res.partID?.toString().trim();
+//         const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+//         if (EXCLUDED_TYPES.includes(materialInfo.type)) return acc;
 
-        if (!acc[partID]) {
-            acc[partID] = { partID, partName: res.partName || "-", type: materialInfo.type, totalRemaining: 0 };
-        }
-        acc[partID].totalRemaining += (pending - assigned);
-        return acc;
-    }, {});
+//         if (!acc[partID]) {
+//             acc[partID] = { partID, partName: res.partName || "-", type: materialInfo.type, totalRemaining: 0 };
+//         }
+//         acc[partID].totalRemaining += (pending - assigned);
+//         return acc;
+//     }, {});
+//  renderNoStockTable(limitedData, materialTypeMap) {
+//    if (!limitedData || !Array.isArray(limitedData)) {
+//         console.warn("No data provided to renderNoStockTable");
+//         return null;
+//     }
+    
+//     const { stockN2, upcoming } = window.DATA_STORE.maps;
+//     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
 
-    const noStockData = Object.values(groupedData);
-    window.NO_STOCK_CACHE = noStockData;
-    if (noStockData.length === 0) return null;
+//     // ใช้วิธีลดรูปข้อมูลจาก limitedData ที่ส่งเข้ามาโดยตรง
+//     const groupedData = limitedData.reduce((acc, res) => {
+//         const assigned = res.assigned || 0;
+//         const pending = res.pending || 0;
+//         if (assigned >= pending) return acc;
+        
+//         const partID = res.partID?.toString().trim();
+//         const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+//         if (EXCLUDED_TYPES.includes(materialInfo.type)) return acc;
 
-    // 3. เตรียม Data Set (พร้อมดึงสถานะจาก localStorage)
-    const dataSet = noStockData
+//         if (!acc[partID]) {
+//             acc[partID] = { partID, partName: res.partName || "-", type: materialInfo.type, totalRemaining: 0 };
+//         }
+//         acc[partID].totalRemaining += (pending - assigned);
+//         return acc;
+//     }, {});
+
+    
+//     const noStockData = Object.values(groupedData);
+//     window.NO_STOCK_CACHE = noStockData;
+//     if (noStockData.length === 0) return null;
+
+//     // 3. เตรียม Data Set (พร้อมดึงสถานะจาก localStorage)
+//     const dataSet = noStockData
     
     
-    .map(res => {
-         const upcomingStock = upcoming[res.partID] || 0;
-        const stockN2Map = stockN2[res.partID] || 0;
-        // --- เงื่อนไขใหม่ ---
-        // 1. ค้างเบิก (totalRemaining) เทียบกับ ปริมาณที่สั่ง (upcomingStock)
-        // 2. ถ้าสั่งมากกว่าค้างเบิก (upcomingStock > totalRemaining) ให้ return null เพื่อกรองออก
-        if (upcomingStock >= res.totalRemaining) {
-            return null; // รายการนี้จะถูกกรองออกในขั้นตอน .filter(Boolean)
-        }
-        const totalRequire = Math.abs(res.totalRemaining - upcomingStock);
-        const savedStatus = localStorage.getItem('status_' + res.partID) || "จัดซื้อใหม่";
-        return [res.partID,
-             res.partName, 
-             res.type, 
-             res.totalRemaining, 
-             upcomingStock, 
-             totalRequire, 
-             stockN2Map || 0, 
-             savedStatus
-            ];
-    })
+//     .map(res => {
+//          const upcomingStock = upcoming[res.partID] || 0;
+//         const stockN2Map = stockN2[res.partID] || 0;
+//         // --- เงื่อนไขใหม่ ---
+//         // 1. ค้างเบิก (totalRemaining) เทียบกับ ปริมาณที่สั่ง (upcomingStock)
+//         // 2. ถ้าสั่งมากกว่าค้างเบิก (upcomingStock > totalRemaining) ให้ return null เพื่อกรองออก
+//         if (upcomingStock >= res.totalRemaining) {
+//             return null; // รายการนี้จะถูกกรองออกในขั้นตอน .filter(Boolean)
+//         }
+//         const totalRequire = Math.abs(res.totalRemaining - upcomingStock);
+//         const savedStatus = localStorage.getItem('status_' + res.partID) || "จัดซื้อใหม่";
+//         return [res.partID,
+//              res.partName, 
+//              res.type, 
+//              res.totalRemaining, 
+//              upcomingStock, 
+//              totalRequire, 
+//              stockN2Map || 0, 
+//              savedStatus
+//             ];
+//     })
     
-    .filter(item => item !== null);;
+//     .filter(item => item !== null);;
 
-    // 4. Initialize DataTable
+//     // 4. Initialize DataTable
+//     const $el = $('#tableNoStock');
+//     if ($.fn.DataTable.isDataTable('#tableNoStock')) {
+//         $el.DataTable().destroy();
+//         $el.empty();
+//     }
+
+//     const NoStockTable = $el.DataTable({
+//         data: dataSet,
+//         columns: [
+//             { title: "รหัสพัสดุ" }, { title: "ชื่อพัสดุ" }, { title: "ประเภท" },
+//             { title: "ค้างเบิก" }, { title: "ปริมาณที่สั่ง" }, { title: "ความต้องการสุทธิ" },
+//             { title: "สต็อก (น.2)" }, { title: "สถานะ" }
+//         ],
+renderNoStockTable() {
     const $el = $('#tableNoStock');
-    if ($.fn.DataTable.isDataTable('#tableNoStock')) {
+    if ($el.length === 0) return null;
+
+    // 1. ดึงข้อมูลที่ผ่านการสรุปจาก renderNoStock_AfterUpcomingTable
+    // ในขั้นตอนนี้ SUMMARY_DATA จะมีค่า totalNetRequired ที่หักลบแค่ Upcoming แล้ว
+    const summaryItems = Object.values(window.SUMMARY_DATA_NOSTOCK || {});
+    
+    // 2. เตรียม Data Set
+    const dataSet = summaryItems.map(item => {
+        // ดึงสต็อก น.2 มาแสดงประกอบ (ถ้ามี)
+       const { stockN2, upcoming } = window.DATA_STORE.maps;
+        const stockN2Map = stockN2[item.partID] || 0;
+         const upcomingStock = upcoming[item.partID] || 0;
+        return [
+            item.partID|| "-",
+            item.partName|| "-",
+            item.type|| "-",
+            item.totalPending ,
+            upcomingStock|| 0,
+            item.totalNetRequired|| 0, // ค่าความต้องการสุทธิที่หักแค่ Upcoming
+            stockN2Map || 0,
+            item.savedStatus || "-"
+        ];
+    });
+
+    // 3. Initialize DataTable (จัดการเรื่องการทำลายตารางเก่าก่อน)
+    if ($.fn.DataTable.isDataTable($el)) {
         $el.DataTable().destroy();
         $el.empty();
     }
 
-    const NoStockTable = $el.DataTable({
+     const NoStockTable = $el.DataTable({
         data: dataSet,
         columns: [
-            { title: "รหัสพัสดุ" }, { title: "ชื่อพัสดุ" }, { title: "ประเภท" },
-            { title: "ค้างเบิก" }, { title: "ปริมาณที่สั่ง" }, { title: "ความต้องการสุทธิ" },
-            { title: "สต็อก (น.2)" }, { title: "สถานะ" }
+            { title: "รหัสพัสดุ" },
+            { title: "ชื่อพัสดุ" },
+            { title: "ประเภท" },
+            { title: "ค้างเบิก" },
+            { title: "ปริมาณที่สั่ง" },
+            { title: "ความต้องการสุทธิ" },
+            { title: "สต็อก (น.2)" },
+            { title: "สถานะ" }
         ],
+
     "deferRender": true,
     "pageLength": 10,
     "responsive": true,
@@ -1091,7 +1162,7 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
             extend: 'excel',
             text: '<i class="fas fa-file-excel mr-1"></i> Export',
             filename: 'R2C_InfoPO_report',
-            className: 'btn btn-sm btn-success',
+            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2',
             exportOptions: {
                 modifier: { page: 'all' },
                 format: {
@@ -1153,8 +1224,8 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
     "columnDefs": [
 
               {
-                "targets": [0,1],
-                "className": "",
+                "targets": [0],
+                "className": "font-bold",
                 // "render": $.fn.dataTable.render.number(',', '.', 0)
             },
              { 
@@ -1581,7 +1652,8 @@ renderInfoTransferTable(allocatedData, materialTypeMap) {
                 res.partID, 
                 res.partName, 
                 res.type,
-                totalRequired, // ยอดคงค้างที่ติด Hold
+                res.originalPending,
+                // totalRequired, // ยอดคงค้างที่ติด Hold
                 res.cost,
                 savedQtyTransfer,                    // จำนวนสั่งซื้อ (รายการ Hold ปกติจะสั่งซื้อไม่ได้หรือเป็น 0)
                 totalPrice,                    // ราคารวม
@@ -1832,77 +1904,136 @@ renderInfoTransferTable(allocatedData, materialTypeMap) {
     return TransferTable;
 },
 
+// renderWorkSummarytable() {
+//     const $el = $('#tableWorkSummary');
+//     if ($el.length === 0) return;
+
+//     // 1. ดึงข้อมูลดิบและเช็คความพร้อม
+//     const allocatedData = window.DATA_STORE?.allocated;
+//     if (!allocatedData || !Array.isArray(allocatedData)) return;
+
+//     // 2. Group by WBS และรวมค่าที่ต้องการ
+//     // ใช้ Object เก็บข้อมูลเพื่อเป็น Map (Key = WBS)
+//     const groupedData = allocatedData.reduce((acc, curr) => {
+//         const wbs = curr.wbs;
+//         if (!wbs) return acc;
+
+//         // ถ้ายังไม่มี WBS นี้ในกลุ่ม ให้สร้างโครงสร้างไว้
+//         if (!acc[wbs]) {
+//             const info = window.WORK_INFO_MAP[wbs] || { jobName: "-", pea: "-" };
+//             const peaShort = info.pea?.toString().trim();
+//             const peaFullName = window.PEAName_MAP[peaShort] || peaShort;
+//             acc[wbs] = {
+//                 wbs: wbs,
+//                 rank: window.GLOBAL_RANK_MAP[wbs] || 999,
+//                 jobName: info.jobName,
+//                 pea: peaFullName,
+//                 budget: window.BUDGET_MAP[wbs] || 0,
+//                 hasMissingItems: false // flag ไว้เช็คว่ามีของขาดไหม
+//             };
+//         }
+
+//         // เช็คสถานะขาดของ (จาก SUMMARY_USAGE_COUNT ที่คุณทำไว้)
+//         const partID = curr.partID?.trim();
+//         if (window.SUMMARY_USAGE_COUNT && window.SUMMARY_USAGE_COUNT[partID] > 0) {
+//             acc[wbs].hasMissingItems = true;
+//         }
+
+//         return acc;
+//     }, {});
+
+//     // 3. แปลง Object เป็น Array สำหรับ DataTable
+//   // ดึงข้อมูลงานทั้งหมดจาก Map ที่สร้างไว้
+//     const dataSet = Object.values(window.WORK_SUMMARY_MAP || {}).map(item => {
+//         const info = window.WORK_INFO_MAP[item.wbs] || { jobName: "-", pea: "-" };
+//         const peaFullName = window.PEAName_MAP[info.pea?.toString().trim()] || info.pea;
+//         const budget = window.BUDGET_MAP[item.wbs] || 0;
+
+//         return [null, 
+//             item.rank,
+//             item.wbs,
+//             info.jobName,
+//             peaFullName,
+//             budget.toLocaleString()];
+//     });
+
+//     // 4. เรนเดอร์ DataTable
+//  if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
+    
+//     const table = $el.DataTable({
+//         data: dataSet,
+//         columns: [
+//             { className: 'details-control', orderable: false, data: null, defaultContent: '➕' }, // ปุ่มกด
+//             { title: "อันดับ" }, 
+//             { title: "หมายเลขงาน" }, 
+//             { title: "ชื่องาน" }, 
+//             { title: "การไฟฟ้า" }, 
+//             { title: "มูลค่างาน" }
+//         ],
+//         order: [[1, 'asc']] // เรียงตามอันดับ (index 1 ในตารางใหม่เพราะเพิ่มปุ่ม)
+//     });
+
+//     // 🎯 เพิ่ม Event คลิกเพื่อแสดงข้อมูลย่อย (Child Rows)
+//     $el.find('tbody').on('click', 'td.details-control', function () {
+//         const tr = $(this).closest('tr');
+//         const row = table.row(tr);
+//         const wbs = row.data()[2]; // หมายเลขงานอยู่คอลัมน์ที่ 2
+
+//         if (row.child.isShown()) {
+//             row.child.hide();
+//             tr.removeClass('shown');
+//             $(this).text('➕');
+//         } else {
+//             // ดึงรายการพัสดุที่ขาดของใน WBS นี้
+//             const details = getMaterialDetailsByWBS(wbs);
+//             row.child(formatChildRow(details)).show();
+//             tr.addClass('shown');
+//             $(this).text('➖');
+//         }
+//     });
+// },
 renderWorkSummarytable() {
     const $el = $('#tableWorkSummary');
     if ($el.length === 0) return;
 
-    // 1. ดึงข้อมูลดิบและเช็คความพร้อม
-    const allocatedData = window.DATA_STORE?.allocated;
-    if (!allocatedData || !Array.isArray(allocatedData)) return;
+    // กรองเอาเฉพาะ WBS ที่มีสถานะ hasMissingItems เป็น true (ถ้าต้องการโชว์แค่ที่ขาด)
+    const summaryList = Object.values(window.WORK_SUMMARY_MAP || {}).filter(item => item.hasMissingItems);
 
-    // 2. Group by WBS และรวมค่าที่ต้องการ
-    // ใช้ Object เก็บข้อมูลเพื่อเป็น Map (Key = WBS)
-    const groupedData = allocatedData.reduce((acc, curr) => {
-        const wbs = curr.wbs;
-        if (!wbs) return acc;
+    const dataSet = summaryList.map(item => {
+       const info = window.WORK_INFO_MAP[item.wbs] || { jobName: "-", pea: "-" };
+    const peaFullName = window.PEAName_MAP[info.pea?.toString().trim()] || info.pea;
+    
+    // 🎯 แก้ไขตรงนี้: ตรวจสอบค่า budget ให้เป็นตัวเลขก่อนเสมอ
+    const budget = window.BUDGET_MAP[item.wbs] || 0; 
 
-        // ถ้ายังไม่มี WBS นี้ในกลุ่ม ให้สร้างโครงสร้างไว้
-        if (!acc[wbs]) {
-            const info = window.WORK_INFO_MAP[wbs] || { jobName: "-", pea: "-" };
-            const peaShort = info.pea?.toString().trim();
-            const peaFullName = window.PEAName_MAP[peaShort] || peaShort;
-            acc[wbs] = {
-                wbs: wbs,
-                rank: window.GLOBAL_RANK_MAP[wbs] || 999,
-                jobName: info.jobName,
-                pea: peaFullName,
-                budget: window.BUDGET_MAP[wbs] || 0,
-                hasMissingItems: false // flag ไว้เช็คว่ามีของขาดไหม
-            };
-        }
-
-        // เช็คสถานะขาดของ (จาก SUMMARY_USAGE_COUNT ที่คุณทำไว้)
-        const partID = curr.partID?.trim();
-        if (window.SUMMARY_USAGE_COUNT && window.SUMMARY_USAGE_COUNT[partID] > 0) {
-            acc[wbs].hasMissingItems = true;
-        }
-
-        return acc;
-    }, {});
-
-    // 3. แปลง Object เป็น Array สำหรับ DataTable
-  // ดึงข้อมูลงานทั้งหมดจาก Map ที่สร้างไว้
-    const dataSet = Object.values(window.WORK_SUMMARY_MAP || {}).map(item => {
-        const info = window.WORK_INFO_MAP[item.wbs] || { jobName: "-", pea: "-" };
-        const peaFullName = window.PEAName_MAP[info.pea?.toString().trim()] || info.pea;
-        const budget = window.BUDGET_MAP[item.wbs] || 0;
-
-        return [null, 
-            item.rank,
-            item.wbs,
-            info.jobName,
-            peaFullName,
-            budget.toLocaleString()];
+    return [
+        null, 
+        item.rank,
+        item.wbs,
+        info.jobName,
+        peaFullName,
+        // ใช้การตรวจสอบก่อนเรียก toLocaleString หรือแปลงเป็น Number ก่อน
+        (typeof budget === 'number' ? budget : parseFloat(budget) || 0).toLocaleString()
+    ];
     });
 
-    // 4. เรนเดอร์ DataTable
- if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
+    if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
     
     const table = $el.DataTable({
         data: dataSet,
         columns: [
-            { className: 'details-control', orderable: false, data: null, defaultContent: '➕' }, // ปุ่มกด
+            { className: 'details-control', orderable: false, data: null, defaultContent: '➕' },
             { title: "อันดับ" }, 
             { title: "หมายเลขงาน" }, 
             { title: "ชื่องาน" }, 
             { title: "การไฟฟ้า" }, 
             { title: "มูลค่างาน" }
         ],
-        order: [[1, 'asc']] // เรียงตามอันดับ (index 1 ในตารางใหม่เพราะเพิ่มปุ่ม)
+        order: [[1, 'asc']]
     });
 
-    // 🎯 เพิ่ม Event คลิกเพื่อแสดงข้อมูลย่อย (Child Rows)
-    $el.find('tbody').on('click', 'td.details-control', function () {
+    // Event คลิกเพื่อดึงข้อมูลจาก window.FINAL_CALCULATED_DATA
+     $el.find('tbody').on('click', 'td.details-control', function () {
         const tr = $(this).closest('tr');
         const row = table.row(tr);
         const wbs = row.data()[2]; // หมายเลขงานอยู่คอลัมน์ที่ 2
@@ -1922,17 +2053,22 @@ renderWorkSummarytable() {
 },
 
 
-
 renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
-
+    // 1. นำข้อมูลที่ได้รับมา กรองตามจำนวนที่เลือกใน FilterModule (ถ้ามีการส่งข้อมูลที่กรองมาแล้ว ให้ใช้ตามนั้น)
+  
     // 🎯 เพิ่มบรรทัดนี้ไว้ที่นี่
     window.SUMMARY_DATA = {}; 
     window.SUMMARY_DATA_TRANSFER = {};
     window.SUMMARY_TOTAL_ALLOCATED = {};
     window.SUMMARY_USAGE_COUNT = {};
     window.WORK_SUMMARY_MAP = {};
+    window.SUMMARY_DATA_NOSTOCK = {};
     window.FINAL_CALCULATED_DATA = [];
+
+
+
+    const limit = window.CURRENT_RANK_LIMIT || 9999;
     const $el = $('#tableNoStock_AfterUpcoming');
     if ($el.length === 0) return null;
     if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
@@ -1940,20 +2076,26 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
     const { upcoming } = window.DATA_STORE.maps;
     const rankMap = window.GLOBAL_RANK_MAP || {};
     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
-
+    
     let sortedData = allocatedData.filter(res => {
         const assigned = res.assigned || 0;
         const pending = res.pending || 0;
         const materialInfo = materialTypeMap[res.partID?.trim()] || { type: "-" };
         return (assigned < pending) && !EXCLUDED_TYPES.includes(materialInfo.type);
     }).sort((a, b) => (rankMap[a.wbs] || 999) - (rankMap[b.wbs] || 999));
+    
+    // 2. ประกาศตัวแปร limit และ limitedData (เพื่อเอาไป map ข้อมูล)
+    
+    const result = getTopRankedWbsData(sortedData, limit);
+    const filteredData = result.filteredData;
+    const newOrderMap = result.newOrderMap;
 
     const upcomingBalance = { ...upcoming };
     const transferBalance = {};
 
     // 🎯 สแกน Hold ทั้ง WBS ไว้ก่อน
     const wbsHoldMap = {};
-    sortedData.forEach(res => {
+    filteredData.forEach(res => {
         if (localStorage.getItem('status_' + res.partID) === "Hold") {
             wbsHoldMap[res.wbs] = "Hold";
         }
@@ -1961,13 +2103,13 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
 
 
      
-    const dataSet = sortedData.map(res => {
+    const dataSet = filteredData.map(res => {
         const wbsKey = res.wbs ? res.wbs.toString().trim() : "";
         const rank = rankMap[wbsKey] || "-";
         const partID = res.partID?.trim();
         const materialInfo = materialTypeMap[partID] || { type: "-" };
         const remaining = (res.pending || 0) - (res.assigned || 0);
-
+        const newOrder = newOrderMap[wbsKey] || "-";
         // 1. คำนวณ Upcoming
         const availableUpcoming = upcomingBalance[partID] || 0;
         const allocatedQty = Math.min(remaining, availableUpcoming);
@@ -1996,7 +2138,8 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
 
         const finalNetRequired = netAfterUpcoming - allocatedTransfer;
         const statusfinal = finalNetRequired <= 0 ? "ได้ของครบ" : "ขาดของ";
-    
+        // ใน loop ของ renderNoStock_AfterUpcomingTable
+      
         //  นับจำนวนงานของพัสดุ
         if (statusfinal === "ขาดของ") {
             if (!window.SUMMARY_USAGE_COUNT[partID]) {
@@ -2004,10 +2147,27 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
             }
             window.SUMMARY_USAGE_COUNT[partID]++;
         }    
-       
+    // if (finalNetRequired > 0) {
+    if (!window.WORK_SUMMARY_MAP[wbsKey]) {
+        // ดึงข้อมูลพื้นฐานมาใส่ (หรือใส่ค่าว่างไว้ก่อน)
+        const info = window.WORK_INFO_MAP[wbsKey] || { jobName: "ไม่พบข้อมูลงาน", pea: "-" };
+        window.WORK_SUMMARY_MAP[wbsKey] = { 
+            wbs: wbsKey, 
+            rank: rank,
+            jobName: info.jobName,
+            pea: info.pea,
+            budget: window.BUDGET_MAP[wbsKey] || 0,
+            hasMissingItems: true // Flag ว่า WBS นี้มีของขาด
+        };
+    } 
+    else {
+        // ถ้ามีอยู่แล้ว แค่อัปเดตสถานะว่ามีของขาด
+        window.WORK_SUMMARY_MAP[wbsKey].hasMissingItems = true;
+    }
+// }   
        
     // 1. ถัง "ขอโอน" (สำหรับตาราง InfoTransfer)
-    if (finalsaveStatus === "ขอโอน") {
+    if (savedStatus === "ขอโอน") {
         if (!window.SUMMARY_DATA_TRANSFER) window.SUMMARY_DATA_TRANSFER = {};
         
         if (!window.SUMMARY_DATA_TRANSFER[partID]) {
@@ -2021,6 +2181,7 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
                 savedStatus: "ขอโอน"
             };
         }
+         window.SUMMARY_DATA_TRANSFER[partID].originalPending += parseFloat(remaining) ;
         }
 
 
@@ -2060,6 +2221,25 @@ if (statusfinal === "ขาดของ") {
         window.SUMMARY_DATA[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
     }
 }
+ 
+            if (!window.SUMMARY_DATA_NOSTOCK[partID]) { // เปลี่ยนชื่อตัวแปร
+                window.SUMMARY_DATA_NOSTOCK[partID] = {
+                    partID: partID,
+                    partName: res.partName,
+                    type: materialInfo.type,
+                    totalPending: 0,
+                    totalAssigned: 0,
+                    totalNetRequired: 0,
+                    savedStatus: "จัดซื้อใหม่"
+                };
+            }
+            
+            window.SUMMARY_DATA_NOSTOCK[partID].totalPending += parseFloat(remaining) ;
+            window.SUMMARY_DATA_NOSTOCK[partID].totalAssigned += parseFloat(res.assigned) || 0;
+            window.SUMMARY_DATA_NOSTOCK[partID].totalNetRequired += parseFloat(netAfterUpcoming) || 0;
+        
+
+
 
     window.FINAL_CALCULATED_DATA.push({
             wbs: res.wbs,
@@ -2084,7 +2264,8 @@ if (statusfinal === "ขาดของ") {
             finalNetRequired, // ความต้องการหลังขอโอน
             statusfinal, // สถานะของหลังโอน
             savedStatus,
-            finalsaveStatus // สถานะการจัดซื้อ
+            finalsaveStatus, // สถานะการจัดซื้อ
+            newOrder,
         ];
     });
 
@@ -2103,7 +2284,8 @@ if (statusfinal === "ขาดของ") {
             { title: "ต้องการหลังโอน" },
             { title: "สถานะหลังโอน" },
             { title: "สถานะของ" },
-            { title: "สถานะที่ใช้จริง" }
+            { title: "สถานะที่ใช้จริง" },
+            { title: "อันดับใหม่" },
         ];
 
 const NoStock_AfterUpcomingTable = $el.DataTable({
@@ -2367,6 +2549,14 @@ function getMaterialDetailsByWBS(wbs) {
 // };
 
 
+// ฟังก์ชันกลางสำหรับกรองข้อมูลตาม Rank
+function getFilteredData(fullData, limit) {
+    const rankMap = window.GLOBAL_RANK_MAP || {};
+    return fullData
+        .filter(res => (rankMap[res.wbs] || 999) <= limit)
+        .sort((a, b) => (rankMap[a.wbs] || 999) - (rankMap[b.wbs] || 999));
+}
+
 
 window.calculateRowTotal = function(inputElement) {
     const qty = parseFloat(inputElement.value) || 0;
@@ -2529,7 +2719,6 @@ function updateStatus_Nostock(selectElement, partID) {
 
 
 
-
 // กรอกจำนวนที่โอน ส่งค่าไปตารางรอง
 function saveQty_Nostock(inputElement, partID) {
     localStorage.setItem('qty_' + partID, inputElement.value);
@@ -2538,48 +2727,79 @@ function saveQty_Nostock(inputElement, partID) {
 // refreshTables();
 }
 
-// function refreshTables() {
-//     console.log("รีเฟรชตาราง InfoPO และ Hole...");
+// ====== ฟิลเตอร์ rank =======//
+function updateRankFilter(newLimit) {
+    window.CURRENT_RANK_LIMIT = parseInt(newLimit);
+    
+    // เรียกใช้ข้อมูลดิบจาก window.FULL_ALLOCATED_DATA เสมอ
+    // เพื่อให้ฟังก์ชัน getTopRankedWbsData ไปนับและตัด "งาน" ใหม่ให้คุณ
+    renderNoStock_AfterUpcomingTable(window.FULL_ALLOCATED_DATA, window.MATERIAL_TYPE_MAP);
+    renderNoStockTable(window.FULL_ALLOCATED_DATA, window.MATERIAL_TYPE_MAP);
+    refreshTables();
+}
+function applyManualLimit() {
+    const val = document.getElementById('rankInput').value;
+    window.CURRENT_RANK_LIMIT = parseInt(val);
+    refreshTables(); // สั่ง Refresh ทั้งระบบ
+}
+function getTopRankedWbsData(fullData, limit) {
+    const currentLimit = limit || 50; 
+    const rankMap = window.GLOBAL_RANK_MAP || {};
 
-//     const tables = [
-//         { id: '#tableInfoPO', func: TableRenderer.renderInfoPOTable },
-//         { id: '#tableHole', func: TableRenderer.renderInfoHoleTable },
-//         // { id: '#tableNoStock_AfterUpcoming', func: TableRenderer.renderNoStock_AfterUpcomingTable } // เพิ่มบรรทัดนี้
-//     ];
+    const uniqueWbs = [...new Set(fullData.map(res => res.wbs))];
+    const sortedWbs = uniqueWbs.sort((a, b) => (rankMap[a] || 999) - (rankMap[b] || 999));
+    const topWbsList = sortedWbs.slice(0, currentLimit);
 
-//     tables.forEach(cfg => {
-//         const $el = $(cfg.id);
-        
-//         if ($.fn.DataTable.isDataTable(cfg.id)) {
-//             $el.DataTable().destroy();
-//             $el.empty(); 
-//         }
+    // สร้าง Map ลำดับใหม่ (Index + 1) เพื่อเอาไว้โชว์เป็น "อันดับที่จัดใหม่"
+    const newOrderMap = {};
+    topWbsList.forEach((wbs, index) => {
+        newOrderMap[wbs] = index + 1;
+    });
 
-//         cfg.func(
-//             window.DATA_STORE.allocated, 
-//             window.DATA_STORE.materialMap, 
-//             window.DATA_STORE.stock, 
-//             window.DATA_STORE.upcoming, 
-//             window.DATA_STORE.stockN2
-//         );
-//     });
-// // เรียกแยกต่างหากสำหรับตารางที่ต้องการค่าเฉพาะ
-//     if ($('#tableNoStock_AfterUpcoming').length > 0) {
-//         TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
-//     }
-//     // --- เพิ่มส่วนนี้เพื่อสั่งให้เลื่อนหน้าจอ ---
-//     const targetElement = document.querySelector('#summary-order'); // เปลี่ยน ID เป็นตารางที่อยากให้เลื่อนไปหา
-//     if (targetElement) {
-//         targetElement.scrollIntoView({ 
-//             behavior: 'smooth', // ทำให้เลื่อนแบบนุ่มนวล
-//             block: 'start'      // เลื่อนให้ตารางไปอยู่ด้านบนสุดของจอ
-//         });
-//     }
+    // คืนค่าทั้งข้อมูลที่กรองแล้ว และ Map ลำดับใหม่
+    return {
+        filteredData: fullData.filter(res => topWbsList.includes(res.wbs)),
+        newOrderMap: newOrderMap
+    };
+}
+/** * 1. ฟังก์ชันอัปเดตค่าที่แสดงผล (ทำหน้าที่แค่ Sync UI) 
+   */
+  function updateUI(value) {
+    const slider = document.getElementById('rankSlider');
+    const input = document.getElementById('rankInput');
+    const display = document.getElementById('rank-display');
+    
+    // อัปเดตทุกจุดให้ตรงกัน
+    slider.value = value;
+    input.value = value;
+    display.textContent = value;
+  }
 
+  /**
+   * 2. ฟังก์ชันหลักสำหรับปุ่ม "ตกลง" (ทำหน้าที่ประมวลผล)
+   */
+  function applyManualLimit() {
+    const val = document.getElementById('rankInput').value;
+    window.CURRENT_RANK_LIMIT = parseInt(val);
+    
+    console.log("ตั้งค่า Rank Limit เป็น:", window.CURRENT_RANK_LIMIT);
+    
+    if (typeof refreshTables === 'function') {
+        refreshTables();
+    }
+  }
 
-// }
+  // ผูก Event Listener เมื่อโหลดหน้าเว็บเสร็จ
+  document.addEventListener('DOMContentLoaded', () => {
+    const slider = document.getElementById('rankSlider');
+    const input = document.getElementById('rankInput');
 
+    // เลื่อน Slider -> เรียกใช้ updateUI
+    slider.addEventListener('input', (e) => updateUI(e.target.value));
 
+    // พิมพ์ที่ Input -> เรียกใช้ updateUI
+    input.addEventListener('input', (e) => updateUI(e.target.value));
+  });
 function refreshTables() {
     console.log("รีเฟรชตารางตามลำดับ...");
 window.SUMMARY_DATA = {};
@@ -2645,15 +2865,6 @@ function resetStatusNostock() {
     console.log("Reset สถานะและอัปเดตตารางเรียบร้อย");
 }
 
-// // กรอกจำนวนที่โอน ส่งค่าไปตารางรอง
-// function saveQtytransfer(inputElement, partID) {
-//     // 1. บันทึกค่าลง localStorage
-//     localStorage.setItem('qty_' + partID, inputElement.value);
-    
-//     // 2. เรียกฟังก์ชัน Refresh ตารางที่มีอยู่แล้ว
-//     // เพื่อให้ตาราง InfoHole ดึงค่าใหม่จาก localStorage มาคำนวณและแสดงผลทันที
-//     refreshTables(); 
-// }
 
 
  // =================================================================
@@ -2685,7 +2896,7 @@ function syncAllTables(mainTable) {
 }
 // ==================== Filter Module ====================
 const FilterModule = {
-
+currentRankLimit: 50,
     // =================================================================
 // [1/5] ฟังก์ชันกรอง ประเภท (คอลัมน์ที่ 2 ในตาราง Nostcok)
 // =================================================================
@@ -2958,9 +3169,44 @@ setupFilterID_WBS(table, allocatedData, materialTypeMap, stockData, upcomingData
  initClearButtons: function() {
         $('#clearBulkFilter').on('click', () => $('#bulkMaterialInput').val(''));
         $('#clearExcludeFilter').on('click', () => $('#excludeMaterialInput').val(''));
+    },
+// =================================================================
+// [5/5] ฟังก์ชันกรอง  WBS (คอลัมน์ที่ 4 ในตารางหลัก)
+// =================================================================
+// ฟังก์ชันสำหรับผูก Event เข้ากับ Slider
+    setupRankPickerFilter: function(fullData, materialTypeMap) {
+        const self = this;
+        
+        // 1. รับค่าจาก Input ผ่าน id="rankSlider"
+        $('#rankSlider').on('input', function() {
+            // ดึงค่าเลขจาก Input มาเก็บไว้
+            self.currentRank = parseInt($(this).val());
+            
+            // อัปเดตตัวเลขแสดงผลบน UI (ถ้ามี element นี้)
+            $('#rankDisplay').text(`Focus ${self.currentRank} งานแรก`);
+            
+            // 2. สั่งให้ตัวกรองเริ่มทำงาน
+            self.applyFilter(fullData, materialTypeMap);
+        });
+    },
+
+    // ฟังก์ชันหลักที่ทำหน้าที่ Filter และสั่งวาดตาราง
+    applyFilter: function(fullData, materialTypeMap) {
+        const rankMap = window.GLOBAL_RANK_MAP || {};
+        
+        // 1. กรองเฉพาะรายการที่ Rank ของ WBS <= ค่าที่เลือก
+        const filteredData = fullData.filter(res => {
+            const rank = rankMap[res.wbs] || 999;
+            return rank <= this.currentRank;
+        });
+
+        // 2. ส่งข้อมูลที่กรองแล้วเข้าฟังก์ชัน Render ทั้ง 2 ตาราง
+        // ฟังก์ชัน render ของคุณต้องถูกปรับให้รับ data เข้ามาแทนที่ allocatedData ตัวเดิม
+        renderNoStock_AfterUpcomingTable(filteredData, materialTypeMap);
+        renderNoStockTable(filteredData, materialTypeMap);
+        
+        console.log("Filter Applied: ", this.currentRank, "งานแรก");
     }
-
-
 };
 
 
@@ -3196,8 +3442,8 @@ async function initDashboard() {
                 //     sheet.target, data, globalVVIP, peaNameMapping,
                 //     alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
                 // );
+                 NoStock_AfterUpcomingTableInstance = TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 noStockTableInstance = TableRenderer.renderNoStockTable( window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
-                NoStock_AfterUpcomingTableInstance = TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 HoleTableInstance = TableRenderer.renderInfoHoleTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 InfoPOTableInstance = TableRenderer.renderInfoPOTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 TransferTableInstance = TableRenderer.renderInfoTransferTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
@@ -3231,6 +3477,7 @@ async function initDashboard() {
             else if (sheet.name !== 'Material_Master') {
                 TableRenderer.renderGenericTable(sheet.target, data);
             }
+                // FilterModule.setupRankPickerFilter(fullData, materialTypeMap);
 
            
         });
