@@ -560,102 +560,170 @@
         <!-------------------------- cards row 3 : StockMatch ซ้าย | NoStock+Obsolete ขวา ------------------------>
      <div class="flex flex-wrap md:flex-nowrap items-stretch -mx-3 mt-2 mb-3">
 
-        <!-- ซ้าย: รายการพัสดุที่ Match แล้ว (w-1/2) -->
-   
+   <div id="summary-order" class="w-full px-3 mb-2" x-data="{ activeTab: 'InfoPO' }">
 
-   <div id="summary-order" class="w-full lg:w-8/12 px-3 mb-2" x-data="{ activeTab: 'InfoPO' }">
+    <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
+        
+        <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
+            <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
+                <i class="fa-solid fa-cart-plus me-3" style="color: rgb(75, 199, 66);font-size: 24px; filter: drop-shadow(0 0 6px rgb(194, 235, 191));" ></i>
+                สรุปรายการสั่งซื้อ
+            </h6>
+        </div>
 
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
-          
- <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
-  <h6  class="mb-0 flex items-center font-bold text-slate-700 block truncate">
-   
+        <div class="flex space-x-6 border-b border-gray-200 px-4 pt-2">
+            <button @click="activeTab = 'InfoPO'; toggleInfoTab('InfoPO')" 
+                    class="py-2 text-sm font-medium transition-all relative border-b-2"
+                    :class="activeTab === 'InfoPO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                รายการพัสดุรอจัดซื้อใหม่
+                <span id="count-InfoPO" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+            </button>
 
-    <i class="fa-solid fa-cart-plus  me-3" style="color: rgb(75, 199, 66);font-size: 24px; filter: drop-shadow(0 0 6px  rgb(194, 235, 191));" ></i>
-   สรุปรายการสั่งซื้อ
-</h6>
-    
-  </div>
- <div class="flex space-x-6 border-b border-gray-200 px-4 pt-2">
-    <button @click="activeTab = 'InfoPO'; toggleInfoTab('InfoPO')" 
-            class="py-2 text-sm font-medium transition-all relative border-b-2"
-            :class="activeTab === 'InfoPO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-        รายการพัสดุรอจัดซื้อใหม่
-        <span id="count-InfoPO" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-    </button>
+            <button @click="activeTab = 'InfoHole'; toggleInfoTab('InfoHole')" 
+                    class="py-2 text-sm font-medium transition-all relative border-b-2"
+                    :class="activeTab === 'InfoHole' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                รายการพัสดุ Hole
+                <span id="count-InfoHole" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+            </button>
+            <button @click="activeTab = 'InfoTransfer'; toggleInfoTab('InfoTransfer')" 
+                    class="py-2 text-sm font-medium transition-all relative border-b-2"
+                    :class="activeTab === 'InfoTransfer' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                สรุปรายการพัสดุขอโอน
+                <span id="count-InfoTransfer" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+            </button>
+        </div>
 
-    <button @click="activeTab = 'InfoHole'; toggleInfoTab('InfoHole')" 
-            class="py-2 text-sm font-medium transition-all relative border-b-2"
-            :class="activeTab === 'InfoHole' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-        รายการพัสดุ Hole
-        <span id="count-InfoHole" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-    </button>
-      <button @click="activeTab = 'InfoTransfer'; toggleInfoTab('InfoTransfer')" 
-            class="py-2 text-sm font-medium transition-all relative border-b-2"
-            :class="activeTab === 'InfoTransfer' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-        สรุปรายการพัสดุขอโอน
-        <span id="count-InfoTransfer" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-    </button>
-
-  
-</div>
-        <div class="p-4">
-            <div x-show="activeTab === 'InfoPO'" class="overflow-x-auto w-full">
-             
+        <div class="p-4 w-full"> <div x-show="activeTab === 'InfoPO'" class="overflow-x-auto w-full">
                 <table id="tableInfoPO" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
-            </div>
 
+              </div>
             <div x-show="activeTab === 'InfoHole'" class="overflow-x-auto w-full">
-               
                 <table id="tableHole" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
             </div>
-
              <div x-show="activeTab === 'InfoTransfer'" class="overflow-x-auto w-full">
-               
                 <table id="tableTransfer" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
             </div>
-           
         </div>
-</div>
-
-       
-
-        </div>
-        <!-- ขวา: NoStock (บน) + Obsolete (ล่าง) เรียงกันในคอลัมเดียว (w-1/2) -->
-     
-      <div class="w-full lg:w-4/12 px-3 mb-2" x-data="{ activeTab: 'Upcoming' }">
-    <div class="relative flex flex-col h-full min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
-        
-        <div class="p-4  rounded-t-2xl flex justify-between items-center">
-      <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
-       <i class="fa-solid fa-circle-check" 
-        style="color: rgb(14, 189, 95); 
-                font-size: 24px; 
-                margin-right: 15px;
-                filter: drop-shadow(0 0 6px rgba(14, 189, 95, 0.5));">
-      </i>
-        รายการพัสดุที่ Match แล้ว (เบิกได้ทันที)
-      </h6>
-      
-      <div id="my-export-space"></div>
     </div>
-
-    <div class="flex-auto p-4">
-      <div class="overflow-x-auto w-full">
-        <table id="tableStockMatch" class="table table-hover align-middle mb-0 text-sm leading-normal" style="width: 100% !important;"></table>
-      </div>
-    </div>
-
-  </div>
 </div>
-     
-     
-        <!-- end ขวา -->
 
      </div>
        <!----------- cards row 4 ------------------>
 
+<div class="flex flex-wrap -mx-3 mt-6">
+  <div class="w-full max-w-full px-3">
+    
+    <div class="relative flex flex-col min-w-0 mb-6 break-words bg-white border-0 border-transparent border-solid shadow-soft-xl rounded-2xl bg-clip-border p-6">
+  
+      <div class="pb-0 mb-0 border-b-0 border-b-solid rounded-t-2xl border-b-transparent">
+        <h6 class="mb-0 flex justify-between items-center font-bold text-slate-700 w-full">
+          <span class="flex items-center truncate">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mr-2 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+              <path d="m3.3 7 8.7 5 8.7-5"></path>
+              <path d="M12 22V12"></path>
+            </svg>
+            รายการรอจัดซื้อ- รับโอน
+          </span>
 
+          <div class="flex items-center gap-2 ml-4">
+            <button id="resetUpcoming" class="px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white/60 rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85 whitespace-nowrap">
+              <i class="fas fa-sync mr-1"></i> Reset Filters
+            </button>
+            <div id="export-Require" class="flex items-center"></div>
+          </div>
+        </h6>
+        
+        <p class="mb-0 text-sm leading-normal mt-1">
+          <i class="fa fa-check text-cyan-500"></i>
+          <span class="ml-1 font-semibold">30 done</span> this month
+        </p>
+      </div>
+
+      <div class="row mb-3 g-3">
+          
+          <div class="col-xl col-md-4">
+              <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+                  <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">รหัสพัสดุ</label>
+                  <button id="dropdownUsersSearchButton" data-dropdown-toggle="dropdownSearch" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+                      <span class="text-slate-500 text-sm truncate">ทั้งหมด (รหัสพัสดุ)</span>
+                      <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+                  </button>
+
+                  <div id="dropdownSearch" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+                      <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                          <label for="search" class="sr-only">Search</label>
+                          <input type="text" id="search" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหารหัสพัสดุ..." required />
+                      </div>
+                      <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownUsersSearchButton"></ul>
+                      <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                          <button type="button" id="clearMaterialFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+                              <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
+                              ล้างค่าที่เลือกทั้งหมด
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <div class="col-xl col-md-4">
+              <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+                  <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">ชื่อพัสดุ</label>
+                  <button id="dropdownMaterialNameButton" data-dropdown-toggle="dropdownSearchName" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+                      <span class="text-slate-500 text-sm truncate">ทั้งหมด (ชื่อพัสดุ)</span>
+                      <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+                  </button>
+
+                  <div id="dropdownSearchName" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+                      <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                          <label for="searchMaterialName" class="sr-only">Search</label>
+                          <input type="text" id="searchMaterialName" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหาชื่อพัสดุ..." required />
+                      </div>
+                      <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownMaterialNameButton"></ul>
+                      <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                          <button type="button" id="clearMaterialNameFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+                              <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
+                              ล้างค่าที่เลือกทั้งหมด
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <div class="col-xl col-md-4">
+              <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+                  <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">กลุ่มการจัดซื้อ</label>
+                  <button id="dropdownPurchaseGroupButton" data-dropdown-toggle="dropdownSearchGroup" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+                      <span class="text-slate-500 text-sm truncate">ทั้งหมด (กลุ่มการจัดซื้อ)</span>
+                      <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+                  </button>
+
+                  <div id="dropdownSearchGroup" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+                      <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                          <label for="searchPurchaseGroup" class="sr-only">Search</label>
+                          <input type="text" id="searchPurchaseGroup" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหากลุ่มการจัดซื้อ..." required />
+                      </div>
+                      <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownPurchaseGroupButton"></ul>
+                      <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                          <button type="button" id="clearPurchaseGroupFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+                              <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
+                              ล้างค่าที่เลือกทั้งหมด
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <div class="w-full overflow-x-auto py-2">
+        <table id="tableWorkSummary" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>
+      </div>
+
+    </div>
+  
+  </div> 
+</div>
+<!-- ===============================card row 5 ====================== -->
  
 
 <div class="flex flex-wrap -mx-3 mt-6">

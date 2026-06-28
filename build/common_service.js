@@ -7,8 +7,8 @@ const config = [
     { name: 'Budget_Data', target: '#tableUBudget_Data' },
     { name: 'VVIP_Data', target: '#tableVVIP_Data' },
     { name: 'StockN2_Data', target: '#tableStockN2_Data' },
-    { name: 'N2PO_Data', target: '#tableN2PO_Data' }
-
+    { name: 'N2PO_Data', target: '#tableN2PO_Data' },
+    { name: 'PEAName_data', target: '#tablePEAName_data' }
 ];
 
 

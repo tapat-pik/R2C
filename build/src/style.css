@@ -779,3 +779,35 @@ div.dataTables_wrapper div.dataTables_info {
     .qty-transfer-input {
         margin-top: 5px !important;
     }
+
+
+    
+/* บังคับให้ Footer ของตารางนี้ชิดขวาแบบสุดๆ */
+#tableInfoPO tfoot th {
+    text-align: right !important;
+    padding-right: 15px !important;
+}
+
+/* บังคับให้ตัวคอนเทนเนอร์ของยอดรวมชิดขวาภายในช่อง */
+#footer-total-price {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+}
+
+/* ปรับแต่งตัวกล่องยอดรวมให้สวยงาม */
+.total-price-box {
+    background-color: #f0fdf4 !important;
+    padding: 8px 16px !important;
+    border-radius: 6px !important;
+    border: 1px solid #22c55e !important;
+    color: #166534 !important;
+    font-weight: 800 !important;
+    font-size: 16px !important;
+    display: inline-block !important;
+}
+
+td.details-control {
+    cursor: pointer;
+    text-align: center;
+}
