@@ -819,28 +819,32 @@ td.details-control {
 /* 1. ตั้งค่าตารางหลัก */
 /* ใช้ Selector ร่วมกันสำหรับทั้งตาราง PO และตาราง Hole */
 /* ใช้ Selector ร่วมกันสำหรับตาราง PO, Hole และ Transfer */
+/* 1. เพิ่ม tableWorkSummary เข้าไปในทุกส่วนของ Selector */
 #tableInfoPO, 
 #tableHole, 
-#tableTransfer {
+#tableTransfer,
+#tableWorkSummary {
     border-collapse: separate !important;
     border-spacing: 0 !important;
     width: 100% !important;
-    border: 1px solid #e5e7eb; /* กรอบนอกสุด */
-    border-radius: 8px; /* มุมมน */
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     overflow: hidden;
 }
 
 /* 2. จัดการหัวตาราง */
 #tableInfoPO thead, 
 #tableHole thead, 
-#tableTransfer thead {
+#tableTransfer thead,
+#tableWorkSummary thead {
     background-color: #f9fafb!important;
     border-bottom: 1px solid #e5e7eb !important;
 }
 
 #tableInfoPO thead th, 
 #tableHole thead th, 
-#tableTransfer thead th {
+#tableTransfer thead th,
+#tableWorkSummary thead th {
     padding: 1rem !important;
     font-size: 14px !important;
     font-weight: 600 !important;
@@ -852,7 +856,8 @@ td.details-control {
 /* 3. จัดการเนื้อหาตาราง (เส้นแบ่งบรรทัด) */
 #tableInfoPO tbody td, 
 #tableHole tbody td, 
-#tableTransfer tbody td {
+#tableTransfer tbody td,
+#tableWorkSummary tbody td {
     padding: 1rem !important;
     font-size: 0.875rem !important;
     border: none !important; 
@@ -862,32 +867,106 @@ td.details-control {
 /* 4. สีเมื่อชี้แถว (Hover Effect) */
 #tableInfoPO tbody tr, 
 #tableHole tbody tr, 
-#tableTransfer tbody tr {
+#tableTransfer tbody tr,
+#tableWorkSummary tbody tr {
     transition: background-color 0.2s ease;
 }
 
 #tableInfoPO tbody tr:hover, 
 #tableHole tbody tr:hover, 
-#tableTransfer tbody tr:hover {
+#tableTransfer tbody tr:hover,
+#tableWorkSummary tbody tr:hover {
     background-color: #f9fafb !important;
 }
 
 /* 5. จัดการท้ายตาราง */
 #tableInfoPO tfoot, 
 #tableHole tfoot, 
-#tableTransfer tfoot {
+#tableTransfer tfoot,
+#tableWorkSummary tfoot {
     border-top: 1px solid #e5e7eb;
 }
 
 #tableInfoPO tfoot th, 
 #tableHole tfoot th, 
-#tableTransfer tfoot th {
+#tableTransfer tfoot th,
+#tableWorkSummary tfoot th {
     padding: 1rem !important;
     border: none !important;
 }
 
-/* ลบเส้นขอบเดิมของ DataTables */
-.dataTables_wrapper .dataTables_scroll,
-.dataTables_wrapper .dataTables_scrollHeadInner {
-    border: none !important;
+/* ปุ่มรันประมวลผล */
+
+/* ปรับแต่ง Container */
+.proc-container {
+    display: flex;
+    align-items: flex-end; /* จัดให้ปุ่มและ input อยู่แนวเดียวกัน */
+    gap: 15px;
+    background: #ffffff;
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.proc-input-group {
+    flex: 1; /* ให้ input ยืดเต็มพื้นที่ที่เหลือ */
+}
+
+/* ปรับ Label */
+.proc-input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* ปรับ Input Wrapper */
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 40px; /* กำหนดความสูงให้คงที่ */
+    background: white;
+}
+
+.currency-icon {
+    padding: 0 12px;
+    background: #f3f4f6;
+    color: #6b7280;
+    border-right: 1px solid #d1d5db;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* ปรับ Input ให้พอดี */
+input[type="number"] {
+    border: none;
+    padding: 0 10px;
+    width: 100%;
+    height: 100%;
+    outline: none;
+}
+
+/* ลบลูกศรขึ้นลงในช่อง input (Chrome, Safari, Edge, Opera) */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+/* ปุ่มประมวลผล */
+.btn-process {
+    background-color: #2563eb;
+    color: white;
+    padding: 0 20px;
+    height: 40px; /* ความสูงเท่ากับ input */
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
 }

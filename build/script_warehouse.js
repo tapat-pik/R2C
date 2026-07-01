@@ -1825,7 +1825,8 @@ renderWorkSummarytable() {
             { title: "การไฟฟ้า" }, 
             { title: "มูลค่างาน" }
         ],
-        order: [[1, 'asc']]
+        order: [[1, 'asc']],
+        "dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',    
     });
 
     // // Event คลิกเพื่อดึงข้อมูลจาก เปิดข้อมูลพัสดุที่ซ่อนอยู่
