@@ -1905,6 +1905,8 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
         const rank = rankMap[wbsKey] || "-";
         const partID = res.partID?.trim();
         const materialInfo = materialTypeMap[partID] || { type: "-" };
+        const unitCost = parseFloat(materialInfo.cost) || 0;
+        
         const remaining = (res.pending || 0) - (res.assigned || 0);
         const newOrder = newOrderMap[wbsKey] || "-";
         // 1. คำนวณ Upcoming
@@ -1935,6 +1937,7 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
 
         const finalNetRequired = netAfterUpcoming - allocatedTransfer;
         const statusfinal = finalNetRequired <= 0 ? "ได้ของครบ" : "ขาดของ";
+        const totalCost = unitCost * finalNetRequired; // คำนวณราคารวม
         // ใน loop ของ renderNoStock_AfterUpcomingTable
       
         //  นับจำนวนงานของพัสดุ
@@ -2065,10 +2068,13 @@ if (statusfinal === "ขาดของ") {
             statusAfUpcoming,           // สถานะของหลังหัก upcoming
             allocatedTransfer, // รวมที่ได้โอน
             finalNetRequired, // ความต้องการหลังขอโอน
+           
             statusfinal, // สถานะของหลังโอน
             savedStatus,
             finalsaveStatus, // สถานะการจัดซื้อ
             newOrder,
+             unitCost.toLocaleString(),      // ราคากลาง
+            totalCost.toLocaleString(undefined, {minimumFractionDigits: 2}), // ราคารวม
         ];
     });
 
@@ -2085,10 +2091,13 @@ if (statusfinal === "ขาดของ") {
             { title: "สถานะ" },
             { title: "ที่ได้หลังโอน" },
             { title: "ต้องการหลังโอน" },
+           
             { title: "สถานะหลังโอน" },
             { title: "สถานะของ" },
             { title: "สถานะที่ใช้จริง" },
             { title: "อันดับใหม่" },
+             { title: "ราคากลาง" },
+             { title: "ราคารวม" },
         ];
 
 const NoStock_AfterUpcomingTable = $el.DataTable({
