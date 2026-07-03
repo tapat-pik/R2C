@@ -1849,9 +1849,10 @@ renderWorkSummarytable() {
     // });
 },
 
-
-renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
-    if (!allocatedData || !Array.isArray(allocatedData)) return null;
+renderNoStock_AfterUpcomingTable: function(allocatedData, materialTypeMap, budget) {
+        if (!allocatedData || !Array.isArray(allocatedData)) return null;
+// renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
+//     if (!allocatedData || !Array.isArray(allocatedData)) return null;
     // 1. นำข้อมูลที่ได้รับมา กรองตามจำนวนที่เลือกใน FilterModule (ถ้ามีการส่งข้อมูลที่กรองมาแล้ว ให้ใช้ตามนั้น)
   
     // 🎯 เพิ่มบรรทัดนี้ไว้ที่นี่
@@ -1864,7 +1865,9 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
     window.FINAL_CALCULATED_DATA = [];
 
 
-
+    // ดึงค่าจาก input ที่คุณสร้างไว้
+    const totalBudget = parseFloat($('#amount').val()) || 0;
+    let remainingBudget = totalBudget; // งบที่เหลืออยู่สำหรับจัดสรร
     const limit = window.CURRENT_RANK_LIMIT || 9999;
     const $el = $('#tableNoStock_AfterUpcoming');
     if ($el.length === 0) return null;
@@ -1938,7 +1941,50 @@ renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
         const finalNetRequired = netAfterUpcoming - allocatedTransfer;
         const statusfinal = finalNetRequired <= 0 ? "ได้ของครบ" : "ขาดของ";
         const totalCost = unitCost * finalNetRequired; // คำนวณราคารวม
-        // ใน loop ของ renderNoStock_AfterUpcomingTable
+        // let budgetAllocated = 0;
+        // let budgetDeficit = 0;
+    //    // คำนวณเงินที่ได้รับ
+        let budgetAllocated = 0;
+        if (remainingBudget >= totalCost) {
+            budgetAllocated = totalCost;
+            remainingBudget -= totalCost;
+        } else if (remainingBudget > 0) {
+            budgetAllocated = remainingBudget;
+            remainingBudget = 0;
+        }
+
+        // คำนวณเงินที่ขาด
+        const budgetDeficit = totalCost - budgetAllocated;
+
+        // คำนวณสถานะ (ปรับเงื่อนไขใหม่)
+        let budgetStatus;
+        if (budgetAllocated === 0 && remainingBudget === 0) {
+            budgetStatus = "รอแจกเงิน"; // กรณีงบหมดก่อนถึงรายการนี้
+        } else if (budgetDeficit <= 0) {
+            budgetStatus = "เงินครบ";
+        } else {
+            budgetStatus = "เงินขาด";
+        }
+
+    // 2. เช็กเงื่อนไขแจกงบ
+// if (statusfinal === "ขาดของ") {
+//     // ถ้าระบบยังไม่มีการกรอกงบหรือ remainingBudget เป็น 0
+//     if (remainingBudget <= 0) {
+//         budgetStatus = "รอแจกเงิน";
+//     } else {
+//         // แจกงบเฉพาะรายการที่ "ขาดของ"
+//         const totalCost = unitCost * finalNetRequired;
+//         if (remainingBudget >= totalCost) {
+//             budgetAllocated = totalCost;
+//             remainingBudget -= totalCost;
+//         } else {
+//             budgetAllocated = remainingBudget;
+//             remainingBudget = 0;
+//         }
+//         budgetDeficit = totalCost - budgetAllocated;
+//         budgetStatus = (budgetDeficit <= 0) ? "เงินครบ" : "เงินขาด";
+//     }
+// }
       
         //  นับจำนวนงานของพัสดุ
         if (statusfinal === "ขาดของ") {
@@ -2073,8 +2119,11 @@ if (statusfinal === "ขาดของ") {
             savedStatus,
             finalsaveStatus, // สถานะการจัดซื้อ
             newOrder,
-             unitCost.toLocaleString(),      // ราคากลาง
+            unitCost.toLocaleString(),      // ราคากลาง
             totalCost.toLocaleString(undefined, {minimumFractionDigits: 2}), // ราคารวม
+            budgetAllocated.toLocaleString(undefined, {minimumFractionDigits: 2}), // เงินที่ได้รับ
+            budgetDeficit.toLocaleString(undefined, {minimumFractionDigits: 2}),  // เงินที่ขาด
+            budgetStatus                                                        // สถานะการเงิน
         ];
     });
 
@@ -2098,6 +2147,9 @@ if (statusfinal === "ขาดของ") {
             { title: "อันดับใหม่" },
              { title: "ราคากลาง" },
              { title: "ราคารวม" },
+             { title: "งบที่ได้" },
+            { title: "งบที่ขาด" },
+            { title: "สถานะการเงิน" },
         ];
 
 const NoStock_AfterUpcomingTable = $el.DataTable({
@@ -2225,7 +2277,27 @@ const NoStock_AfterUpcomingTable = $el.DataTable({
                 let color = data === "Hold" ? "bg-red-500 text-white" : "bg-gray-200 text-gray-700";
                 return `<span class="px-2 py-1 rounded text-xs ${color}">${data}</span>`;
             }
+        },
+        {
+    "targets": [17, 18], // คอลัมน์เงินที่ได้รับ/ขาด
+    "className": "text-right"
+},
+{
+    "targets": 19, // Index ของคอลัมน์สถานะการเงิน
+    "className": "text-center",
+    "render": function(data) {
+        switch(data) {
+            case "เงินครบ":
+                return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">✓ เงินครบ</span>`;
+            case "เงินขาด":
+                return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ เงินขาด</span>`;
+            case "รอแจกเงิน":
+                return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">⌛ รอแจกเงิน</span>`;
+            default: // "ไม่ต้องการเงิน"
+                return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">─ ไม่ต้องการเงิน</span>`;
         }
+    }
+}
      
     ],
    "headerCallback": function (thead) {
@@ -2328,6 +2400,22 @@ function getMaterialDetailsByWBS(wbs) {
  * @param {HTMLInputElement} inputElement - องค์ประกอบ input ที่มีการเปลี่ยนแปลงค่า
  */
 
+function buttonRunProcess() {
+    const budget = parseFloat($('#amount').val()) || 0;
+    if (budget <= 0) {
+        alert("กรุณากรอกจำนวนเงินให้ถูกต้อง");
+        return;
+    }
+    
+    // 🎯 แก้ไขบรรทัดนี้: เรียกใช้ฟังก์ชันจาก TableRenderer แทนการเรียกชื่อลอย ๆ
+    TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap, budget);
+}
+
+$(document).ready(function() {
+    $('#btn-process').on('click', function() {
+        buttonRunProcess(); 
+    });
+});
 
 window.calculateRowTotal = function(inputElement) {
     const qty = parseFloat(inputElement.value) || 0;
