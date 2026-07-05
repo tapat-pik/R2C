@@ -8,11 +8,12 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <!-- <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet"> -->
-    <link rel="stylesheet" href="../src/style.css">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
 
 <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="../src/style.css">
     <link
       rel="apple-touch-icon"
       sizes="76x76"
@@ -604,14 +605,14 @@
 
        <div class="flex flex-wrap mt-6 -mx-3">
     <div class="flex-none w-full max-w-full px-3">
-       <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
+       <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-white shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
             
             <div class="p-4 pb-2  rounded-t-2xl d-flex justify-content-between align-items-center">
                 <h6 class="mb-1 font-sans font-bold leading-normal text-slate-700">
                     ข้อมูลพัสดุหลัก (Material Master)
                 </h6>
                 <div class="d-flex align-items-center gap-2">
-                    <button id="resetMB52" class="px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white/60 rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85">
+                    <button id="resetMB52" class="border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85">
                         <i class="fas fa-sync"></i> Reset Filters
                     </button>
                     <div id="export-Require"></div>
@@ -766,18 +767,67 @@
         </div>
     </div>
 </div>
+  <!-------------------------- cards row 3 : StockMatch ซ้าย | NoStock+Obsolete ขวา ------------------------>
+<!-- <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm  mt-6 "> -->
+  <!-- ส่วนหัว -->
+  <div class="flex items-center justify-between mb-6">
+    <!-- <h2 class="text-lg font-bold text-gray-800">Overview</h2> -->
+ 
+  </div>
 
+  <!-- ส่วนเนื้อหาที่มีกรอบล้อมรอบ -->
+  <div class="border border-gray-200 rounded-xl flex bg-white  mb-6">
+    <!-- กล่องข้อมูล 4 กล่อง (ใช้ flex-1 เพื่อให้แบ่งความกว้างเท่ากัน) -->
+    <div class="flex-1 p-6 border-r border-gray-200">
+      <p class="text-sm text-gray-500 mb-1">จำนวนรายการพัสดุรวม</p>
+      <div class="flex items-center gap-2">
+        <h3 id="count-totalStockcount" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">+2.5%</span>
+      </div>
+    </div>
+    
+    <div class="flex-1 p-6 border-r border-gray-200">
+      <p class="text-sm text-gray-500 mb-1">จำนวนพัสดุที่เบิกครบ</p>
+      <div class="flex items-center gap-2">
+        <h3 id="count-fulfilled" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">+9.5%</span>
+      </div>
+    </div>
+    
+    <div class="flex-1 p-6 border-r border-gray-200">
+      <p class="text-sm text-gray-500 mb-1">จำนวนพัสดุที่แมทช์เบิกได้</p>
+      <div class="flex items-center gap-2">
+       <h3 id="count-matchStock" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400">-1.6%</span>
+      </div>
+    </div>
+    
+     <div class="flex-1 p-6 border-r border-gray-200">
+      <p class="text-sm text-gray-500 mb-1">จำนวนพัสดุที่ขาดแคลน</p>
+      <div class="flex items-center gap-2">
+       <h3 id="count-noStock" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400">-1.6%</span>
+      </div>
+    </div>
 
-
+    <div class="flex-1 p-6">
+      <p class="text-sm text-gray-500 mb-1">จำนวนพัสดุที่ติดล็อค</p>
+      <div class="flex items-center gap-2">
+       <h3 id="count-obsolete" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">+3.5%</span>
+      </div>
+    </div>
+  </div>
+<!-- </div> -->
      
         <!-------------------------- cards row 3 : StockMatch ซ้าย | NoStock+Obsolete ขวา ------------------------>
      <div class="flex flex-wrap md:flex-nowrap items-stretch -mx-3 mt-6 mb-3">
 
         <!-- ซ้าย: รายการพัสดุที่ Match แล้ว (w-1/2) -->
      <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0 flex flex-col">
-  <div class="card relative flex flex-col flex-auto min-w-0 break-words bg-green-gradient border-0 shadow-sm h-full">
+  <div class="card relative flex flex-col flex-auto min-w-0 break-words bg-white border-0 shadow-sm h-full">
 
-    <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
+    <div class="p-4  rounded-t-2xl flex justify-between items-center">
       <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
        <i class="fa-solid fa-circle-check" 
         style="color: rgb(14, 189, 95); 
@@ -790,20 +840,52 @@
       
       <div id="my-export-space"></div>
     </div>
+   
+    <!-- HTML โครงสร้าง -->
+<div x-data="{ activeTab: 'MatchStock' }">
+   
+ <div class="flex space-x-6 border-b border-gray-200 px-4 pt-2">
+            <button @click="activeTab = 'MatchStock'; toggleInfoTab('MatchStock')" 
+                    class="py-2 text-[16px] font-medium transition-all relative border-b-2"
+                    :class="activeTab === 'MatchStock' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                รายการพัสดุรอเบิก
+                
+            </button>
 
-    <div class="flex-auto p-4">
-      <div class="overflow-x-auto w-full">
-        <table id="tableStockMatch" class="table table-hover align-middle mb-0 text-sm leading-normal" style="width: 100% !important;"></table>
-      </div>
+            <button @click="activeTab = 'Fulfilled'; toggleInfoTab('Fulfilled')" 
+                    class="py-2 text-[16px] font-medium transition-all relative border-b-2"
+                    :class="activeTab === 'Fulfilled' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                รายการพัสดุเบิกครบ
+                
+            </button>
+           
+        </div>
+
+        <div class="p-4 w-full">
+         
+           <div x-show="activeTab === 'MatchStock'" class="overflow-x-auto w-full">
+         
+                <table id="tableStockMatch" class="min-w-full table-auto" ></table>
+     
+
+              </div>
+            
+            <div x-show="activeTab === 'Fulfilled'" class="overflow-x-auto w-full">
+                <table id="tableFulfilled" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
+            </div>
+           
+        </div>
     </div>
+
+
 
   </div>
 </div>
 
         <!-- ขวา: NoStock (บน) + Obsolete (ล่าง) เรียงกันในคอลัมเดียว (w-1/2) -->
-        <div class="w-full md:w-1/2 px-3 flex flex-col gap-3">
+        <div class="w-full md:w-1/2 px-2 flex flex-col gap-3">
 
-        <div class="relative flex flex-col min-w-0 break-words bg-red-gradient border-0 shadow-soft-xl rounded-2xl bg-clip-border">
+        <div class="relative flex flex-col min-w-0 break-words bg-white border-0 shadow-soft-xl rounded-2xl bg-clip-border">
  <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
   <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
     <i class="fa-solid fa-triangle-exclamation me-3" 
@@ -823,7 +905,12 @@
 </div>
 
           <!-- กรอบล่าง: รายการพัสดุล้าสมัย -->
-         <div class="relative flex flex-col min-w-0 break-words bg-gray-gradient border-0 shadow-soft-xl rounded-2xl bg-clip-border">
+
+
+
+
+          <!--  -->
+         <div class="relative flex flex-col min-w-0 break-words bg-white border-0 shadow-soft-xl rounded-2xl bg-clip-border">
 <div class="p-4 border-b border-gray-200 rounded-t-2xl flex justify-between items-center">
     <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
       <i class="fa-solid fa-lock me-3" style="color: rgb(132, 132, 131); font-size: 24px;  filter: drop-shadow(0 0 6px rgba(146, 146, 146, 0.5));"></i>
@@ -850,7 +937,7 @@
 <div class="flex flex-wrap -mx-3 mt-6">
   <div class="w-full max-w-full px-3">
     
-    <div class="relative flex flex-col min-w-0 mb-6 break-words bg-purple-gradient border-0 border-transparent border-solid shadow-soft-xl rounded-2xl bg-clip-border p-6">
+    <div class="relative flex flex-col min-w-0 mb-6 break-words bg-white border-0 border-transparent border-solid shadow-soft-xl rounded-2xl bg-clip-border p-6">
   
       <div class="pb-0 mb-0 border-b-0 border-b-solid rounded-t-2xl border-b-transparent">
         <h6 class="mb-0 flex justify-between items-center font-bold text-slate-700 w-full">
@@ -1163,6 +1250,8 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <!-- <script src="script_new.js"></script> -->
 <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+<!-- 4. Alpine.js (ต้องอยู่ท้ายๆ) -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="../script_technician.js"></script>
 <!-- <script src="../script_tech2.js"></script> -->
 <script src="../common_service.js"></script>

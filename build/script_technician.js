@@ -28,6 +28,7 @@ let upcomingTableInstance = null;
 let stockMatchTableInstance = null;
 let noStockTableInstance = null;
 let obsoleteTableInstance = null;
+let fulfilledTableInstance = null;
 // ==================== Constants ====================
 const TABLE_STYLES = {
     headerStyle: 'color: #344767 !important;',
@@ -318,6 +319,7 @@ function renderUpcomingTable(data) {
     "columns": colHeaders,
     "pageLength": 10,
     "responsive": true,
+    "scrollX": true,
     // เปลี่ยน "text-sm" เป็น "text-base" (หรือถอดออก) และเอา "-sm" ออกจาก pagination
 "dom": '<"flex justify-end items-center gap-4 mb-4"fl>rt<"flex justify-between items-center mt-4"<"text-base text-gray-600 font-medium"i><"pagination-normal"p>>',
     "columnDefs": [
@@ -348,9 +350,9 @@ function renderUpcomingTable(data) {
                 const text = data.toString().trim();
                 let bgColor = "#f3f4f6", textColor = "#374151", icon = "fa-tag";
                 
-                if (text.includes("กฟส.") || text.includes("กฟจ.")) { bgColor = "#d1fae5"; textColor = "#047857"; icon = "fa-shopping-cart"; }
-                else if (text.includes("กจล.")) { bgColor = "#dbeafe"; textColor = "#1d4ed8"; icon = "fa-truck"; }
-                else if (text.includes("ขอโอน")) { bgColor = "#ffedd5"; textColor = "#c2410c"; icon = "fa-sync-alt"; }
+                if (text.includes("กฟส.") || text.includes("กฟจ.")) { bgColor = "#1ed760"; textColor = "#ffffff"; icon = "fa-shopping-cart"; }
+                else if (text.includes("กจล.")) { bgColor = "#2D5FF6"; textColor = "#ffffff"; icon = "fa-truck"; }
+                else if (text.includes("ขอโอน")) { bgColor = "#F69D3C"; textColor = "#ffffff"; icon = "fa-sync-alt"; }
                 
                 return `<span class="inline-flex items-center px-4 py-2" 
                            style="font-size: 13px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important;">
@@ -415,230 +417,7 @@ return upcomingTableInstance;
 // ==================== Allocation Service ====================
 // ==================== Allocation Service (เวอร์ชันพ่น Log สรุปอันดับคิว) ====================
 const  updateGraph = {
-    // calculateAllocation(rawDatabase, vvipData, totalStock, materialTypeMap = {}, budgetMapping = {}) {
-    //     if (!rawDatabase || !rawDatabase.rows) {
-    //         return { allocatedResults: [], finalWbsScores: new Map(), wbsStatusMap: new Map() };
-    //     }
-
-    //     const currentStock = { ...totalStock };
-    //     const finalWbsScores = new Map();
-    //     const wbsStatusMap = new Map();
-
-    //     const uniqueWBSSet = new Set(
-    //         rawDatabase.rows.map(r => getCellValue(r.c[0]).toString().trim())
-    //     );
-    //     const uniqueWBS = Array.from(uniqueWBSSet);
-
-    //     const rowsByWBS = new Map();
-    //     rawDatabase.rows.forEach(row => {
-    //         const wbs = getCellValue(row.c[0]).toString().trim();
-    //         if (!rowsByWBS.has(wbs)) {
-    //             rowsByWBS.set(wbs, []);
-    //         }
-    //         rowsByWBS.get(wbs).push(row);
-    //     });
-
-    //     // ================================================================================================
-    //     // STEP 1: เตรียมคิวงานรอบแรก (ใช้คะแนนตั้งต้นก่อนแจกของเพื่อจัดลำดับความสำคัญ)
-    //     // ================================================================================================
-    //     const queue = rawDatabase.rows.map(row => {
-    //         const wbs = getCellValue(row.c[0]).toString().trim();
-    //         const rowsOfWbs = rowsByWBS.get(wbs) || [];
-
-    //         const openDateValue = getCellValue(row.c[26]);
-    //         const wbsBudget = budgetMapping[wbs] || 0;
-
-    //         const info = ScoringService.calculateScoreDetails(
-    //             wbs, getCellValue(row.c[24]), getCellValue(row.c[23]),
-    //             rowsOfWbs.length, vvipData, false, openDateValue, false
-    //         );
-
-    //         return {
-    //             wbs,
-    //             partID: getCellValue(row.c[3])?.toString().trim(),
-    //             partName: getCellValue(row.c[4]),
-    //             pending: parseFloat(getCellValue(row.c[14])) || 0,
-    //             score: info.totalScore,
-    //             rowCount: rowsOfWbs.length,
-    //             budget: wbsBudget,
-    //             raw: { 
-    //                 valA: getCellValue(row.c[0]), 
-    //                 valY: getCellValue(row.c[24]), 
-    //                 valX: getCellValue(row.c[23]),
-    //                 valOpenDate: openDateValue
-    //             }
-    //         };
-    //     });
-
-    //     // จัดเรียงคิว 3 ชั้นเพื่อเข้าคิวตัดสต็อก
-    //     queue.sort((a, b) => {
-    //         if (b.score !== a.score) return b.score - a.score;
-    //         if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
-    //         return b.budget - a.budget;
-    //     });
-
-    //     // ================================================================================================
-    //     // STEP 2: ดำเนินการจัดสรรพัสดุตามคิวจริง
-    //     // ================================================================================================
-    //     let allocatedResults = queue.map(item => {
-    //         const available = currentStock[item.partID] || 0;
-    //         const assigned = Math.min(available, item.pending);
-    //         currentStock[item.partID] -= assigned;
-
-    //         let remain = currentStock[item.partID];
-    //         if (isNaN(remain) || remain < 0) remain = 0;
-
-    //         return {
-    //             ...item,
-    //             assigned,
-    //             remainingAfter: remain,
-    //             totalStock: totalStock[item.partID] || 0
-    //         };
-    //     });
-
-    //     // ================================================================================================
-    //     // STEP 3: สรุปผลลัพธ์และบันทึกข้อมูลเพื่อเตรียมจัดอันดับสุดท้าย
-    //     // ================================================================================================
-    //     const finalRankPrepList = [];
-    //     const allocatedByWBS = new Map();
-
-    //     allocatedResults.forEach(item => {
-    //         if (!allocatedByWBS.has(item.wbs)) {
-    //             allocatedByWBS.set(item.wbs, []);
-    //         }
-    //         allocatedByWBS.get(item.wbs).push(item);
-    //     });
-
-    //     uniqueWBS.forEach(wbs => {
-    //         const items = allocatedByWBS.get(wbs) || [];
-            
-    //         // 1. แยกกลุ่มตรวจสอบพัสดุตามประเภทก่อนคิดไฟจราจร
-    //         let hasLockedMaterial = false;
-            
-    //         // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
-    //         const normalItems = items.filter(i => {
-    //             const currentID = i.partID?.toString().trim();
-    //             const type = materialTypeMap[currentID];
-                
-    //             if (type === "พัสดุล้าสมัย" || type === "เปลี่ยนรหัสพัสดุ") {
-    //                 hasLockedMaterial = true;
-    //             }
-    //             return type !== "พัสดุล้าสมัย" && type !== "เปลี่ยนรหัสพัสดุ";
-    //         });
-
-    //         let status = "yellow"; // ค่าเริ่มต้นกรณีไม่เข้าเงื่อนไขอื่น (ไฟเหลือง)
-    //         let isGreen = false;
-
-    //         // 🔒 ชั้นที่ 1: ตรวจสอบเงื่อนไขล็อกขั้นสูงสุด (ถ้าเจอล้าสมัย/เปลี่ยนรหัส ต้องเป็นกุญแจเท่านั้น)
-    //         if (hasLockedMaterial) {
-    //             status = "lock";
-    //         } else if (normalItems.length > 0) {
-    //             // 🔵 🟢 🔴 🟡 ชั้นที่ 2: งานปกติที่ไม่มีพัสดุล้าสมัย/เปลี่ยนรหัสพัสดุ
-
-    //             // กรองเฉพาะกลุ่มพัสดุหลัก
-    //             const mainItems = normalItems.filter(i => {
-    //                 const currentID = i.partID?.toString().trim();
-    //                 const type = materialTypeMap[currentID];
-    //                 return type === "พัสดุหลัก";
-    //             });
-                
-    //             // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
-    //             const isMainCompleted = mainItems.length > 0 && mainItems.every(i => i.assigned >= i.pending);
-
-    //             // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
-    //             const isAllCompleted = normalItems.every(i => {
-    //                 const currentID = i.partID?.toString().trim();
-    //                 const type = materialTypeMap[currentID];
-    //                 if (type === "พัสดุไม่เบิกจากคลัง") {
-    //                     return true; 
-    //                 }
-    //                 return i.pending > 0 && i.assigned >= i.pending;
-    //             });
-
-    //             // 🔴 เช็คเงื่อนไขไฟสีแดง: ทุกรายการปกติได้ของรวมเป็น 0
-    //             const isRed = normalItems.every(i => i.assigned === 0);
-
-    //             // 🎯 ตัดสินสัญญาณไฟตามเกณฑ์ความสำคัญของพัสดุ
-    //             if (isMainCompleted) {
-    //                 status = "blue"; // พัสดุหลักครบ ยืนพื้นด้วยไฟน้ำเงินก่อน
-                    
-    //                 // 🟢 แต่ถ้าตรวจสอบแล้ว พัสดุประเภทอื่นๆ ครบหมดด้วย (หรือไม่มีประเภทอื่นอยู่เลย) ให้ปรับเป็นไฟเขียว
-    //                 if (isAllCompleted) {
-    //                     status = "green";
-    //                     isGreen = true; // เปิด Flag ไปรับโบนัส +2000 แต้ม
-    //                 }
-    //             } else if (isAllCompleted) {
-    //                 // เคสยกเว้น: งานนั้นไม่มีพัสดุหลักเลย แต่รายการประเภทอื่นๆ ที่มี ดันได้ครบทั้งหมด
-    //                 status = "green";
-    //                 isGreen = true;
-    //             } else if (isRed) {
-    //                 status = "red";
-    //             } else {
-    //                 status = "yellow"; // พัสดุหลักไม่ครบ และยอดไม่เป็น 0 ทั้งหมด (ได้ของบางส่วน)
-    //             }
-    //         }
-
-    //         const firstItem = items[0];
-    //         if (firstItem) {
-    //             // คำนวณคะแนนสุทธิสุดท้ายหลังแจกของ (ใส่ค่า isGreen เพื่อลุ้นโบนัส +2000)
-    //             const final = ScoringService.calculateScoreDetails(
-    //                 firstItem.raw.valA, firstItem.raw.valY, firstItem.raw.valX,
-    //                 firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false
-    //             );
-
-    //             finalWbsScores.set(wbs, final.totalScore);
-    //             wbsStatusMap.set(wbs, status);
-                
-    //             // อัปเดตคะแนนกลับไปที่รายการพัสดุ
-    //             items.forEach(it => it.score = final.totalScore);
-
-    //             // เก็บลงอาร์เรย์ชั่วคราวเพื่อนำไปเรียงลำดับพิมพ์ออกรายงาน
-    //             finalRankPrepList.push({
-    //                 wbs: wbs,
-    //                 finalScore: final.totalScore,
-    //                 rowCount: firstItem.rowCount,
-    //                 budget: firstItem.budget,
-    //                 status: status,
-    //                 raw: firstItem.raw,
-    //                 isFullyAllocated: isGreen
-    //             });
-    //         }
-    //     });
-
-    //     // ================================================================================================
-    //     // 🏆 🧾 [FINAL RANKING REPORT] พ่นตัวเลขคะแนนสุทธิเรียงตามอันดับ 1 ถึงสุดท้าย
-    //     // ================================================================================================
-    //     finalRankPrepList.sort((a, b) => {
-    //         if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-    //         if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
-    //         return b.budget - a.budget;
-    //     });
-
-
-    //     finalRankPrepList.forEach((item, index) => {
-    //         const rank = index + 1;
-    //         const statusLabel = item.status === "lock" ? "🔒 LOCKED " :
-    //                             item.status === "green" ? "🟢 FULLY  " :
-    //                             (item.status === "blue" ? "🔵 MAIN   " :
-    //                             (item.status === "yellow" ? "🟡 PARTIAL" : "🔴 NONE   "));
-
-    //         const budgetStr = item.budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-    //         ScoringService.calculateScoreDetails(
-    //             item.raw.valA, item.raw.valY, item.raw.valX,
-    //             item.rowCount, vvipData, item.isFullyAllocated, item.raw.valOpenDate, true
-    //         );
-    //     });
-
-    //     return { allocatedResults, finalWbsScores, wbsStatusMap };
-    // },
-
-
-    // updatePieChart(data) {
-    //     if (typeof updatePieChart === 'function') {
-    //         updatePieChart(data);
-    //     }
-    // },
+   
 
 
 updateDashboardCharts: function(tableSelector) {
@@ -1122,19 +901,78 @@ function updateProgressData(allocatedData, materialTypeMap) {
     });
     return allocatedData;
 }
+// function getWBSProgressMap(allocatedData) {
+//     const stats = {};
+//     allocatedData.forEach(res => {
+//         if (!stats[res.wbs]) stats[res.wbs] = { total: 0, count: 0 };
+        
+//         // ดึงค่า res.calcPercent ที่คำนวณไว้ในข้อ 1 มาใช้
+//         stats[res.wbs].total += res.calcPercent; 
+//         stats[res.wbs].count += 1;
+//     });
+    
+//     const map = {};
+//     for (let wbs in stats) {
+//         map[wbs] = stats[wbs].total / stats[wbs].count;
+//     }
+//     return map;
+// }
+
+// function getWBSProgressMap(allocatedData) {
+//     const stats = {};
+    
+//     // รวมข้อมูลตาม WBS
+//     allocatedData.forEach(res => {
+//         if (!stats[res.wbs]) stats[res.wbs] = { totalMatches: 0, totalItems: 0 };
+        
+//         stats[res.wbs].totalItems += 1;
+        
+//         // เงื่อนไข: รายการที่แมทช์แล้ว (assigned > 0) OR รายการที่เบิกครบ (pending == 0)
+//         // หมายเหตุ: ปรับ logic ตรงนี้ตามฟิลด์ที่คุณเก็บข้อมูล
+//         const isMatched = (parseFloat(res.assigned) || 0) > 0;
+//         const isFulfilled = (parseFloat(res.pending) || 0) === 0;
+        
+//         if (isMatched || isFulfilled) {
+//             stats[res.wbs].totalMatches += 1;
+//         }
+//     });
+    
+//     const map = {};
+//     for (let wbs in stats) {
+//         // คำนวณ % ความพร้อม
+//         map[wbs] = (stats[wbs].totalMatches / stats[wbs].totalItems) * 100;
+//     }
+//     return map;
+// }
+
+
+
 function getWBSProgressMap(allocatedData) {
     const stats = {};
+    
     allocatedData.forEach(res => {
-        if (!stats[res.wbs]) stats[res.wbs] = { total: 0, count: 0 };
+        if (!stats[res.wbs]) {
+            stats[res.wbs] = { completedItems: 0, totalItems: 0 };
+        }
         
-        // ดึงค่า res.calcPercent ที่คำนวณไว้ในข้อ 1 มาใช้
-        stats[res.wbs].total += res.calcPercent; 
-        stats[res.wbs].count += 1;
+        // 1. นับจำนวนรายการทั้งหมดของ WBS นั้น
+        stats[res.wbs].totalItems += 1;
+        
+        // 2. เช็คเงื่อนไขความพร้อม (Item-based)
+        // รายการที่ถือว่า "พร้อม" คือ: เบิกครบ (pending == 0) OR แมทช์แล้ว (assigned > 0)
+        const isMatched = (parseFloat(res.assigned) || 0) > 0;
+        const isFulfilled = (parseFloat(res.pending) || 0) === 0;
+        
+        if (isMatched || isFulfilled) {
+            stats[res.wbs].completedItems += 1;
+        }
     });
     
+    // 3. คำนวณ % ความพร้อมราย WBS
     const map = {};
     for (let wbs in stats) {
-        map[wbs] = stats[wbs].total / stats[wbs].count;
+        const s = stats[wbs];
+        map[wbs] = (s.totalItems > 0) ? (s.completedItems / s.totalItems) * 100 : 0;
     }
     return map;
 }
@@ -1251,16 +1089,18 @@ const matchTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "deferRender": true,
-    "pageLength": 25,
-    "responsive": true,
-    "autoWidth": false,
+    "pageLength":20,
+    "autoWidth": true, // ให้ปิดอันนี้เพื่อให้ตารางกางเต็ม 100%
+    "responsive": true, // ปิด responsive ของ DT ไปเลย
+    "scrollX": false,
+    
     "order": [[0, "asc"]],
     "buttons": [
         {
             extend: 'excel',
             text: '<i class="fas fa-file-excel mr-1"></i> Export',
             filename: 'R2C_InStock_Report',
-            className: 'px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85',
+            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85',
              exportOptions: {
                     columns: [0, 1, 2, 3, 4, 6,7,8]
                 }
@@ -1280,7 +1120,7 @@ const matchTable = $el.DataTable({
                 else if (data === 'พัสดุรอง') { bgColor = "#d5d8ff"; textColor = "#214ca8"; } 
                 else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#f3d5ff"; textColor = "#a821a1"; }
 
-                return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 50px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; white-space: nowrap;">
+                return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 20px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; ">
                         ${data || '-'}
                         </span>`;
             },
@@ -1368,13 +1208,15 @@ const RequirementTable = $el.DataTable({
     "deferRender": true,
     "pageLength": 10,
     "responsive": true,
+    "scrollX": true,
+    "scrollX": true,
     "order": [[0, "asc"]],
     "buttons": [
         {
             extend: 'excel',
             text: '<i class="fas fa-file-excel mr-1"></i> Export',
             filename: 'R2C_Report',
-            className: 'px-3 py-2 mb-0 text-center text-white uppercase align-middle bg-purple rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85'
         }
     ],
     "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
@@ -1469,7 +1311,7 @@ return RequirementTable;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สถานะงาน</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">มูลค่างานตามแผน</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนวันคงเหลือ</th>`;
-        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนรายการ</th>`;
+        html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">ค้างเบิก(รายการ)</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">คะแนนสะสม</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center d-none">การกำหนดโครงการ</th>`;
         html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center ">% ความพร้อม</th>`;
@@ -1576,23 +1418,29 @@ return RequirementTable;
             let rawBudget = budgetMapping[valA];
             let budgetDisplay = (rawBudget !== undefined) ? rawBudget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
             let budgetOrderValue = (rawBudget !== undefined) ? rawBudget : 0;
+
             const progress = wbsProgressMap[item.valA] || 0;
-           const barColor = progress >= 80 
+            let displayProgress = progress;
+            // ถ้าสถานะเป็นเขียว (Green) ให้แสดง 100% เพราะถือว่าพัสดุที่ต้องจัดสรรได้รับครบแล้ว
+            if (status === 'green') {
+                displayProgress = 100;
+            }
+           const barColor = displayProgress >= 80 
             ? 'bg-gradient-to-tl from-green-600 to-lime-400' 
-            : (progress >= 50 
+            : (displayProgress >= 50 
                 ? 'bg-gradient-to-tl from-blue-600 to-cyan-400' 
                 : 'bg-gradient-to-tl from-red-600 to-rose-400');
 
             const progressHTML = `
                 <div class="flex items-center justify-center">
-                    <span class="mr-2 text-xs font-semibold leading-tight">${progress.toFixed(0)}%</span>
+                    <span class="mr-2 text-xs font-semibold leading-tight">${displayProgress.toFixed(0)}%</span>
                     <div>
                         <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
                             <div 
                                 class="duration-600 ease-soft ${barColor} -mt-0.38 -ml-px flex h-1.5 flex-col justify-center overflow-hidden whitespace-nowrap rounded text-center text-white transition-all" 
-                                style="width: ${progress}%"
+                                style="width: ${displayProgress}%"
                                 role="progressbar" 
-                                aria-valuenow="${progress.toFixed(0)}" 
+                                aria-valuenow="${displayProgress.toFixed(0)}" 
                                 aria-valuemin="0" 
                                 aria-valuemax="100">
                             </div>
@@ -1707,7 +1555,8 @@ const NoStockTable = $el.DataTable({
             extend: 'excel',
             text: '<i class="fas fa-file-excel mr-1"></i> Export',
             filename: 'R2C_NoStock_report',
-            className: 'px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85',
+            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85',
+            
             exportOptions: {
                     columns: [0, 1, 2, 3, 5, 6]
                 }
@@ -1818,18 +1667,16 @@ NoStockTable.buttons().container().appendTo('#export-NoStock');
 return NoStockTable;
 }, // 👈 เช็กดูว่ามีปีกกาปิดตัวนี้ครบถ้วนไหม
 
-
-
-    //=========== ตาราง Obsolete พัสดุล้าสมัย/เปลี่ยนแปลงรหัส ===========//
     //=========== ตาราง Obsolete พัสดุล้าสมัย/เปลี่ยนแปลงรหัส ===========//
 renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
 
     const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ","พัสดุไม่เบิกจากคลัง"];
-
+    
     // กรองเฉพาะ assigned === 0 และประเภทที่ต้องการ
     const obsoleteData = allocatedData.filter(res => {
-        if (res.assigned !== 0) return false;
+        // if (res.assigned !== 0) return false;
+        if (res.assigned !== 0 || res.pending <= 0) return false;
         const partID = res.partID?.toString().trim();
         const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
         
@@ -1875,13 +1722,14 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
         "pageLength": 10,
         "responsive": true,
         "autoWidth": false, 
+        
         "order": [[0, "asc"]], 
         "buttons": [
             {
                 extend: 'excel',
                 text: '<i class="fas fa-file-excel mr-1"></i> Export',
                 filename: 'R2C_Obsolete_report',
-                className: 'px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
+            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85',
             }
         ],
         "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
@@ -1953,19 +1801,9 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
     "targets": 5,
     "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm",
     "render": function(data) {
-        if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-        
-        // ใช้ CSS สำหรับบังคับตัด 2 บรรทัดโดยเฉพาะ
-        return `<div class="line-clamp-2" 
-                     style="display: -webkit-box; 
-                            -webkit-line-clamp: 2; 
-                            -webkit-box-orient: vertical; 
-                            overflow: hidden; 
-                            max-width: 320px; 
-                            min-width: 200px; 
-                            word-break: break-word;" 
-                     title="${data}">${data}</div>`;
-    }
+                    if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                    return `<span >${data}</span>`;
+                }
 }
         ],
         "headerCallback": function(thead) {
@@ -1984,12 +1822,172 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
     ObsoleteTable.buttons().container().appendTo('#export-Obsolete');
     obsoleteTableInstance = ObsoleteTable;
     return ObsoleteTable;
-} // <--- จบฟังก์ชันพอดีเป๊ะ โครงสร้างไม่พังแน่นอนครับ,
+}, // <--- จบฟังก์ชันพอดีเป๊ะ โครงสร้างไม่พังแน่นอนครับ,
 
+/**
+ * renderFulfilledTable
+ * ดึงข้อมูลจาก rawDatabase โดยตรงเพื่อแสดงรายการที่ pending เป็น 0 (ไม่มีความต้องการ)
+ */
+renderFulfilledTable(rawDatabase, materialTypeMap) {
+    if (!rawDatabase || !rawDatabase.rows) return null;
 
+    // 1. กรองเอาเฉพาะรายการที่ค้างเบิก (column 14) เป็น 0
+    const fulfilledData = rawDatabase.rows.filter(row => {
+        const pending = parseFloat(getCellValue(row.c[14])) || 0;
+        return pending === 0;
+    });
+
+    if (fulfilledData.length === 0) return null;
+
+    const $el = $('#tableFulfilled');
+    if ($.fn.DataTable.isDataTable('#tableFulfilled')) {
+        $el.DataTable().destroy();
+        $el.empty();
+    }
+
+    const colHeaders = [
+        { title: "หมายเลขงาน" },
+        { title: "รหัสพัสดุ" },
+        { title: "ชื่อพัสดุ" },
+        { title: "ประเภท" },
+        { title: "สถานะการเบิก" }
+    ];
+
+    const dataSet = fulfilledData.map(row => {
+        const partID = getCellValue(row.c[3])?.toString().trim();
+        const materialInfo = materialTypeMap[partID] || { type: "-", cost: 0 };
+        
+        return [
+            getCellValue(row.c[0]) || "-", // WBS
+            partID || "-",                 // PartID
+            getCellValue(row.c[4]) || "-", // PartName
+            materialInfo.type,             // Type
+            { assigned: 0, pending: 0 }    // สื่อว่าครบแล้ว (Pending 0)
+        ];
+    });
+
+    const FulfilledTable = $el.DataTable({
+        "data": dataSet,
+        "columns": colHeaders,
+        "deferRender": true,
+        "pageLength": 20,
+        "responsive": true,
+        // "scrollX": true,
+        "order": [[0, "asc"]],
+        "buttons": [
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel mr-1"></i> Export',
+                filename: 'R2C_Fulfilled_report',
+                className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500 bg-white rounded-lg cursor-pointer hover:scale-102 active:opacity-85'
+                
+            }
+        ],
+        "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+        "columnDefs": [
+            { "targets": [0, 1], "className": "py-3 px-3 border-b border-gray-100  text-blue-700 whitespace-nowrap" },
+            
+            { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 " },
+             { 
+            "targets": 3, 
+            "render": function(data, type, row) {
+                let bgColor = "#e5e7eb";
+                let textColor = "#374151";
+                if (data === 'พัสดุหลัก') { bgColor = "#e9d5ff"; textColor = "#6b21a8"; } 
+                else if (data === 'พัสดุรอง') { bgColor = "#d5d8ff"; textColor = "#214ca8"; } 
+                else if (data === 'ผลิตภัณฑ์คอนกรีต') { bgColor = "#f3d5ff"; textColor = "#a821a1"; }
+
+                return `<span class="inline-flex items-center" style="font-size: 13px !important; padding: 4px 16px !important; border-radius: 20px !important; background-color: ${bgColor} !important; color: ${textColor} !important; display: inline-flex !important; justify-content: center; align-items: center; ">
+                        ${data || '-'}
+                        </span>`;
+            },
+            "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
+        },
+            {
+                "targets": 4,
+                "className": "text-center whitespace-nowrap",
+                "render": function() {
+                    return `<span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i> ไม่มีความต้องการ</span>`;
+                }
+            }
+        ],
+        "initComplete": function() {
+            const $wrapper = $('#tableFulfilled').parent().css({ 'overflow-x': 'auto' });
+            $('<style>').text(`
+                #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
+                #${$wrapper.attr('id')} { scrollbar-width: none !important; }
+            `).appendTo('head');
+        }
+    });
+
+    FulfilledTable.buttons().container().appendTo('#export-Fulfilled');
+    return FulfilledTable;
+}
 
 };
 
+
+// =================================================================
+// 🌟 ฟังก์ชันสำหรับนับจำนวนแถวในตาราง NoStock, Obsolete, Fulfilled และ Stock (Match) แสดง
+// =================================================================
+function getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
+    // 1. นับ NoStock
+    const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+    const noStockCount = (allocatedData || []).filter(res => {
+        const partID = res.partID?.toString().trim();
+        const materialInfo = materialTypeMap[partID] || { type: "-" };
+        return (res.assigned || 0) < (res.pending || 0) && !EXCLUDED_TYPES.includes(materialInfo.type);
+    }).length;
+
+    // 2. นับ Obsolete
+    const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+    const obsoleteCount = (allocatedData || []).filter(res => {
+        if (res.assigned !== 0 || res.pending <= 0) return false;
+        const partID = res.partID?.toString().trim();
+        const materialInfo = materialTypeMap[partID] || { type: "-" };
+        return OBSOLETE_TYPES.includes(materialInfo.type);
+    }).length;
+
+    // 3. นับ Fulfilled (จาก rawDatabase)
+    let fulfilledCount = 0;
+    if (rawDatabase && rawDatabase.rows) {
+        fulfilledCount = rawDatabase.rows.filter(row => {
+            const pending = parseFloat(getCellValue(row.c[14])) || 0;
+            return pending === 0;
+        }).length;
+    }
+
+ // 4. นับ Match Stock (ต้องนับจาก allocatedData ตัวเดียวกันกับที่ส่งไป renderInitialStockMatch)
+    // ตรงนี้คือจุดที่ทำให้ค่าไม่ขึ้น เพราะคุณไปนับจากที่อื่น
+    const matchStockCount = (allocatedData || []).filter(res => {
+        const assignedValue = parseFloat(res.assigned) || 0;
+        return assignedValue > 0;
+    }).length;
+
+    return {
+        noStock: noStockCount,
+        obsolete: obsoleteCount,
+        fulfilled: fulfilledCount,
+        matchStock: matchStockCount,
+        totalStockcount: noStockCount + obsoleteCount + fulfilledCount + matchStockCount
+    };
+}
+
+function updateDashboardCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
+    // 1. คำนวณข้อมูลจากฟังก์ชันที่ทำไว้ก่อนหน้า
+    const counts = getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap);
+
+    // 2. อัปเดตค่าลงใน element ตาม ID ที่กำหนดไว้
+    document.getElementById('count-fulfilled').innerText = counts.fulfilled.toLocaleString();
+    document.getElementById('count-matchStock').innerText = counts.matchStock.toLocaleString();
+    document.getElementById('count-noStock').innerText = counts.noStock.toLocaleString();
+    document.getElementById('count-obsolete').innerText = counts.obsolete.toLocaleString();
+    document.getElementById('count-totalStockcount').innerText = counts.totalStockcount.toLocaleString();
+
+}
+
+// วิธีเรียกใช้: ให้เรียกฟังก์ชันนี้หลังจากข้อมูลโหลดเสร็จแล้ว
+// updateDashboardCounts(allocatedData, rawDatabase, stockData, materialTypeMap);
  // =================================================================
 // 🌟 ฟังก์ชันตัวกลางสำหรับแชร์การซิงค์ Cross-Filter ไปยังทุกตารางย่อย
 // =================================================================
@@ -2599,8 +2597,22 @@ setupFilterUpcoming_PurchaseGroup(table, data) {
 
 
 
-
-
+function toggleInfoTab(tabName) {
+    const tableMap = {
+        'MatchStock': '#tableStockMatch',
+        'Fulfilled': '#tableFulfilled'
+    };
+    
+    const tableId = tableMap[tabName];
+    const $table = $(tableId);
+    
+    // ตรวจสอบก่อนว่าตารางเป็น DataTable แล้วหรือยัง
+    if ($.fn.DataTable.isDataTable($table)) {
+        const dt = $table.DataTable();
+        // บังคับให้คำนวณใหม่ทันที
+        dt.columns.adjust().responsive.recalc();
+    }
+}
  
 
 function setupRowClickEvent() {
@@ -2624,6 +2636,10 @@ function setupRowClickEvent() {
 
         if (obsoleteTableInstance) {
             obsoleteTableInstance.column(0).search('^' + selectedWBS + '$', true, false).draw();
+        }
+
+          if (fulfilledTableInstance) {
+            fulfilledTableInstance.column(0).search('^' + selectedWBS + '$', true, false).draw();
         }
 
         // ✨ ดักฟังหลังจากคลิกแถวแล้ว: สั่งให้อัปเดต Dashboard ของตารางนั้นๆ ทันที
@@ -2766,177 +2782,7 @@ function showR2WCardInfo() {
     });
 }
 // ==================== Main Initialization ====================
-// async function initDashboard() {
-//     const startTime = performance.now();
-    
-//     // เริ่มต้น Render โครงร่างกราฟล่วงหน้า
-//     GraphRender.Piegraph();
-//     GraphRender.BarGraph();
-    
-//     try {
-//         const fetchStart = performance.now();
 
-//         // 1. ดึงข้อมูลแบบ Parallel (Asynchronous) เพื่อความรวดเร็ว
-//         const vvipPromise = DataService.fetchVVIPData();
-//         const peaPromise = DataService.fetchPEANameData();
-//         const budgetPromise = DataService.fetchBudgetData();
-//         const sheetPromises = config.map(async (sheet) => {
-//             const data = await DataService.fetchSheetData(sheet.name);
-//             return { sheet, data };
-//         });
-//         const upcomingPromise = DataService.fetchUpcomingItemData(); 
-
-//         // รอมัดรวมพร้อมกันทั้งหมดเพื่อไม่ให้เกิดคอขวด
-//         const [vvipData, peaMapping, budgetMapping, ...restWithUpcoming] = await Promise.all([
-//             vvipPromise,
-//             peaPromise,
-//             budgetPromise,
-//             ...sheetPromises,
-//             upcomingPromise 
-//         ]);
-
-//         const fetchEnd = performance.now();
-//         console.group("📊 Dashboard Performance Tracker");
-//         console.log(`⏱️ 1. Fetching Data Time: ${((fetchEnd - fetchStart) / 1000).toFixed(2)} seconds`);
-
-//         // แยกข้อมูล Upcoming ออกจากชุด Config Sheets
-//         const upcomingData = restWithUpcoming.pop(); 
-//         const results = restWithUpcoming;
-
-//         globalVVIP = vvipData;
-//         peaNameMapping = peaMapping;
-
-//         const processStart = performance.now();
-
-//         // แปลงผลลัพธ์ให้อยู่ในรูปของ Map Array
-//         const dataMap = results.reduce((acc, curr) => {
-//             acc[curr.sheet.name] = curr.data;
-//             return acc;
-//         }, {});
-
-//         // เตรียมข้อมูล Material Master Map
-//         const materialTypeMap = {};
-//         const materialNoteMap = {};
-//         const masterKey = Object.keys(dataMap).find(key => key.toLowerCase().includes('material_master'));
-//         const masterData = dataMap[masterKey];
-
-//         if (masterData?.rows) {
-//             const cols = masterData.cols;
-//             const finalIdIdx = Math.max(cols.findIndex(c => c.label.includes("รหัสพัสดุ") || c.label.includes("Part")), 0);
-//             const finalTypeIdx = Math.max(cols.findIndex(c => c.label.includes("ประเภทพัสดุ")), 2);
-//             const finalNoteIdx = Math.max(cols.findIndex(c => c.label === "Not"), 7);
-
-//             masterData.rows.forEach(row => {
-//                 if (!row?.c) return;
-//                 const partID = getCellValue(row.c[finalIdIdx])?.toString().trim();
-//                 if (partID) {
-//                     materialTypeMap[partID] = getCellValue(row.c[finalTypeIdx])?.toString().trim() || "";
-//                     materialNoteMap[partID] = getCellValue(row.c[finalNoteIdx])?.toString().trim() || "";
-//                 }
-//             });
-//         }
-
-//         // สรุปยอดคำนวณคลังสินค้า (Stock)
-//         totalStockSummary = {};
-//         if (dataMap['Stock_Data']?.rows) {
-//             dataMap['Stock_Data'].rows.forEach(row => {
-//                 if (!row?.c) return;
-//                 const partID = getCellValue(row.c[0])?.toString().trim();
-//                 const quantity = parseFloat(getCellValue(row.c[8])) || 0;
-//                 if (partID) {
-//                     totalStockSummary[partID] = (totalStockSummary[partID] || 0) + quantity;
-//                 }
-//             });
-//         }
-
-//         // คำนวณระบบจัดสรรพัสดุ
-//         rawRequirementDatabase = dataMap['Requirement_Data'];
-//         const alloc = AllocationService.calculateAllocation(
-//             rawRequirementDatabase,
-//             globalVVIP,
-//             totalStockSummary,
-//             materialTypeMap,
-//             budgetMapping
-//         );
-        
-//         const processedAllocData = updateProgressData(alloc.allocatedResults, materialTypeMap);
-//         const wbsProgressMap = getWBSProgressMap(processedAllocData);
-
-//         // ================= วาดตารางและผูกโมดูลการทำงานต่างๆ ================= //
-//         config.forEach(sheet => {
-//             const data = dataMap[sheet.name];
-//             if (!data) return;
-
-//             if (sheet.name === 'Requirement_Data') {
-//                 // Render ตารางพัสดุหลัก
-//                 parcelTable = TableRenderer.renderRequirementTable(
-//                     sheet.target, data, globalVVIP, peaNameMapping,
-//                     alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
-//                 );
-                
-//                 renderInitialStockMatch(processedAllocData, materialTypeMap);
-//                 updateDashboardCards(sheet.target); 
-
-//                 // ผูก Event การ Search, Draw ตาราง และอัปเดตชาร์ตเข้าด้วยกันเพื่อลดภาระ CPU
-//                 $(sheet.target).on('draw.dt search.dt', function(e) {
-//                     updateDashboardCardsDebounced(sheet.target);
-//                     if (e.type === 'search') {
-//                         AllocationService.updateDashboardCharts(sheet.target);
-//                     }
-//                 });                
-                
-//                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
-//                 obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
-                
-//                 // ติดตั้งระบบฟิลเตอร์ค้นหาขั้นสูง
-//                 FilterModule.setupFilterID_WBS(parcelTable, data);
-//                 FilterModule.setupFilterType_WBS(parcelTable, data);
-//                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
-//                 FilterModule.setupFilterLight(parcelTable, data, alloc.wbsStatusMap);
-//                 FilterModule.setupFilterProjectGroup(parcelTable, data);
-//                 FilterModule.setupFilterBudgetCIP(parcelTable, data);
-
-//                 // สั่งอัปเดตกราฟวงกลมทันทีหลังสร้างตารางเสร็จ
-//                 AllocationService.updateDashboardCharts(sheet.target);
-
-//             } else if (sheet.name === 'Stock_Data') {
-//                 mb52Table = TableRenderer.renderStockTable(sheet.target, data, materialTypeMap, "stock");
-
-//             } else if (sheet.name !== 'Material_Master') {
-//                 TableRenderer.renderGenericTable(sheet.target, data);
-//             }
-//         });
-
-//         // ตรวจสอบและ Render ตารางงานแผนงานล่วงหน้า (Upcoming)
-//         if (upcomingData?.rows?.length > 0) {
-//              upcomingTableInstance = renderUpcomingTable(upcomingData);
-//             if (upcomingTableInstance) {
-//                 FilterModule.setupFilterUpcoming_MaterialID(upcomingTableInstance, upcomingData);
-//                 FilterModule.setupFilterUpcoming_MaterialName(upcomingTableInstance, upcomingData);
-//                 FilterModule.setupFilterUpcoming_PurchaseGroup(upcomingTableInstance, upcomingData);
-//             }
-//         }
-
-//         setupGlobalEvents();
-
-//         // สิ้นสุดกระบวนการปิดม่าน Loader
-//         $('#main-page-loader').fadeOut(100, function() {
-//             $(this).remove();
-//         });
-
-//         const processEnd = performance.now();
-//         console.log(`⏱️ 2. Processing & Rendering Time: ${((processEnd - processStart) / 1000).toFixed(2)} seconds`);
-//         console.log(`🚀 Total Execution Time: ${((processEnd - startTime) / 1000).toFixed(2)} seconds`);
-//         console.groupEnd();
-      
-//     } catch (err) {
-//         console.error("❌ Dashboard Initialization Error:", err);
-//         $('#main-page-loader').remove();
-//     }
-// }
-
-// // Document Ready
-// $(document).ready(() => initDashboard());
 
 
 async function initDashboard() {
@@ -3014,13 +2860,22 @@ async function initDashboard() {
         );
         
         const processedAllocData = updateProgressData(alloc.allocatedResults, materialTypeMap);
-        const wbsProgressMap = getWBSProgressMap(processedAllocData);
+        // const wbsProgressMap = getWBSProgressMap(processedAllocData);
+        // ต้องส่งข้อมูล stockData (ถ้ามี) เข้าไปด้วยเพื่อให้ฟังก์ชันนับได้ครบ
+const stockDataForCount = dataMap['Stock_Data'] || { rows: [] }; 
+updateDashboardCounts(
+    alloc.allocatedResults, 
+    rawRequirementDatabase, 
+    stockDataForCount, 
+    materialTypeMap
+);
+        const wbsProgressMap = getWBSProgressMap(alloc.allocatedResults);
           const globalRankMap = RankingService.calculateAllWbsRanks(
             dataMap['Requirement_Data'].rows, 
             budgetMapping, 
             alloc.finalWbsScores
         );
-
+ 
         // เอาไปแปะไว้ใน window หรือตัวแปร Global เพื่อให้ตารางต่างๆ ดึงไปใช้ได้ทันที
         window.GLOBAL_RANK_MAP = globalRankMap;
         // ================= วาดตาราง ================= //
@@ -3044,7 +2899,8 @@ async function initDashboard() {
                 
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
                 obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
-                
+                // แนะนำให้เปลี่ยนชื่อตัวแปรให้ตรงกับสถานะของข้อมูล
+                 fulfilledTableInstance = TableRenderer.renderFulfilledTable(rawRequirementDatabase, materialTypeMap);
                 // 🎯 3. สั่ง Render ตาราง Warehouse (ส่งค่าผ่านตัวแปร)
                 if (typeof WarehouseService !== 'undefined') {
                     WarehouseService.renderNoStock_warehouse(processedAllocData, materialTypeMap);

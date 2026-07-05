@@ -10,6 +10,11 @@ git remote add origin https://github.com/tapat-pik/R2C.git
 # 4. ดึงไฟล์ทั้งหมดเข้าเครื่อง
 git pull origin main
 
+
+git reset --hard origin/main
+
+
+
 push ขึ้นได้เลยแบบทับของเดิมบน server
 git push origin main --force
 

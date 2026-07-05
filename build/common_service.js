@@ -359,7 +359,7 @@ const AllocationService = {
             let hasLockedMaterial = false;
             
             // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
-            const normalItems = items.filter(i => {
+               const normalItems = items.filter(i => {
                const currentID = i.partID?.toString().trim();
                const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
                 // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
@@ -384,7 +384,7 @@ const AllocationService = {
                 // 🔵 🟢 🔴 🟡 ชั้นที่ 2: งานปกติที่ไม่มีพัสดุล้าสมัย/เปลี่ยนรหัสพัสดุ
 
                 // กรองเฉพาะกลุ่มพัสดุหลัก
-                const mainItems = normalItems.filter(i => {
+                    const mainItems = normalItems.filter(i => {
                     const currentID = i.partID?.toString().trim();
                     const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
                     // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
@@ -393,19 +393,25 @@ const AllocationService = {
                 });
                 
                 // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
-                const isMainCompleted = mainItems.length > 0 && mainItems.every(i => i.assigned >= i.pending);
+                const isMainCompleted = mainItems.length > 0 && mainItems.every(i => {
+                    // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 ให้ถือว่าครบ
+                    if (i.pending <= 0) return true;
+                    return i.assigned >= i.pending;
+                });
 
                 // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
                 const isAllCompleted = normalItems.every(i => {
-                    const currentID = i.partID?.toString().trim();
-                     const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
-                    // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
-                     const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
-                    if (type.includes("พัสดุไม่เบิกจากคลัง")) {
-                        return true; 
-                    }
-                    return i.pending > 0 && i.assigned >= i.pending;
-                });
+                const currentID = i.partID?.toString().trim();
+                const materialInfo = materialTypeMap[currentID];
+                const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
+                
+                if (type.includes("พัสดุไม่เบิกจากคลัง")) return true;
+                
+                // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 คือได้ของครบแล้ว (เพราะไม่มีความต้องการ)
+                if (i.pending <= 0) return true; 
+                
+                return i.assigned >= i.pending;
+            });
 
                 // 🔴 เช็คเงื่อนไขไฟสีแดง: ทุกรายการปกติได้ของรวมเป็น 0
                 const isRed = normalItems.every(i => i.assigned === 0);

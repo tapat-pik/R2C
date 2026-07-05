@@ -12,7 +12,10 @@ window.DATA_STORE = {
     stockN2: {}
 };
 // ==================== Global State ====================
-
+let allData = [];
+let rawDataStockN2 = [];      // เก็บข้อมูลต้นฉบับทั้งหมด
+let currentStockN2Data = [];  // เก็บข้อมูลที่กำลังโชว์อยู่ (หลัง Filter แล้ว)
+let rawDataN2PO = []; // ตัวแปรเก็บข้อมูลดิบที่สรุปแล้ว
 let parcelTable, mb52Table;
 let globalVVIP = [];
 let rawRequirementDatabase = null;
@@ -250,74 +253,7 @@ const TableRenderer = {
 
 //===== ตาราง Requirement =============//
 
-// renderRequirementTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping = {}, wbsProgressMap = {}) {
-//         const $el = $(selector);
-//         if ($.fn.DataTable.isDataTable(selector)) {
-//             $el.DataTable().destroy();
-//             $el.empty();
-//         }
 
-//         let html = this._buildTableHTML(data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
-//         $el.html(html);
-
-
-//    // 🎯 1. ประกาศตัวแปรรับค่าตาราง (เปลี่ยนจาก return เป็น const ตัวแปรไว้ก่อนเพื่อเอาไปสั่งย้ายปุ่ม)
-// const RequirementTable = $el.DataTable({
-//     "deferRender": true,
-//     "pageLength": 10,
-//     "responsive": true,
-//     "order": [[0, "asc"]],
-//     "buttons": [
-//         {
-//             extend: 'excel',
-//             text: '<i class="fas fa-file-excel mr-1"></i> Export',
-//             filename: 'R2C_Report',
-//             className: 'px-3 py-2 mb-0 text-center text-white uppercase align-middle bg-purple rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85'
-//         }
-//     ],
-//     "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-    
-//     "columnDefs": [
-//         {
-//             "targets": 0,
-//             "orderable": false,
-//             "render": function (data, type, row) { return data; }
-//         },
-//         { "targets": 5, "type": "num" },
-//         {
-//             "targets": 10,
-//             // "visible": false,
-//             "searchable": true // สำคัญ: ตั้งเป็น true เพื่อให้ช่อง Search ของตารางค้นหาข้อมูลจากช่องนี้ได้
-//         },
-//         { 
-//         "targets": 11, // คอลัมน์ % ความพร้อม
-//         "type": "num", 
-//         "render": function(data, type, row) {
-//             // เพื่อให้ Sort ได้ถูกต้อง ต้องดึงค่าตัวเลขออกมาจาก HTML
-//             return type === 'sort' ? parseFloat(data) : data;
-//         }
-//     }
-//     ],
-    
-//     // 🎯 แก้ไขฟังก์ชันตอนท้ายให้สั้นลงและซ่อนสกรอลบาร์สนิท
-//     "initComplete": function() {
-//         this.api().columns.adjust();
-        
-//         // เปิดให้เลื่อนขวาได้เมื่อจอเล็ก + ยิงสไตล์สั้นๆ ไปซ่อนแถบสกรอลบาร์ไม่ให้เห็นในจอคอม
-//         const $wrapper = $('#tableRequirement_Data').parent().css({ 'overflow-x': 'auto' });
-        
-//         $('<style>').text(`
-//             #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
-//             #${$wrapper.attr('id')} { scrollbar-width: none !important; }
-//         `).appendTo('head');
-//     }
-// });
-// // 🎯 2. สั่งย้ายก้อนปุ่มจากตาราง วาร์ปไปลงที่ช่อง ID ของคุณบิ๊กทันที (สั้นๆ แค่นี้เลย)
-// RequirementTable.buttons().container().appendTo('#export-Require');
-
-// // 🎯 3. รีเทิร์นตัวแปรตารางออกไปใช้งานตามปกติ จบงาน!
-// return RequirementTable;
-// },
 
     renderGenericTable(selector, data) {
         const $el = $(selector);
@@ -350,173 +286,7 @@ const TableRenderer = {
         });
     },
 
-    // _buildTableHTML(data, vvipData, peaNameMapping = {}, finalScores = null, wbsStatusMap = new Map(), budgetMapping = {}, wbsProgressMap= {}) {
-        
-        
-    //     const headerStyle = `style="${TABLE_STYLES.headerStyle}"`;
-    //     const textStyle = `class="mb-0 text-m leading-tight" style="${TABLE_STYLES.textStyle}"`;
-    //     const textBoldStyle = `class="mb-0 font-bold text-m leading-tight" style="${TABLE_STYLES.textBoldStyle}"`;
-
-    //     let html = '<thead class="table-light"><tr>';
-    //     // 🔢 เพิ่มหัวตาราง "อันดับ" เข้าไปที่คอลัมน์แรกสุด
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">อันดับ</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สัญญาณไฟ</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">หมายเลขงาน</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">ชื่องาน</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">การไฟฟ้า</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">สถานะงาน</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">มูลค่างานตามแผน</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนวันคงเหลือ</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">จำนวนรายการ</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center">คะแนนสะสม</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center d-none">การกำหนดโครงการ</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center ">% ความพร้อม</th>`;
-    //     html += `<th ${headerStyle} class="${TABLE_STYLES.headerClass} text-center d-none">งบ</th>`;
-    //     html += '</tr></thead><tbody>';
-
-    //     const uniqueMap = new Map();
-    //     const countMap = new Map();
-
-    //     data.rows.forEach(row => {
-    //         if (!row || !row.c) return;
-    //         let valA = getCellValue(row.c[0]).toString().trim();
-    //         if (valA !== "") {
-    //             countMap.set(valA, (countMap.get(valA) || 0) + 1);
-    //             if (!uniqueMap.has(valA)) {
-    //                 uniqueMap.set(valA, row);
-    //             }
-    //         }
-    //     });
-
-    //     // ================================================================================================
-    //     // 🏆 [ขั้นตอนเพิ่มเพื่อการเรียงลำดับ] ดึงข้อมูลมาคำนวณและเก็บลง Array เพื่อเตรียม Sort ตามเกณฑ์ 3 ชั้น
-    //     // ================================================================================================
-    //     const sortedWBSList = [];
-    //     uniqueMap.forEach((row, valA) => {
-    //         let ProjectPlan = getCellValue(row.c[12]); //การกำหนดโครงการ
-    //         let valX = getCellValue(row.c[23]);
-    //         let valY = getCellValue(row.c[24]);
-    //         let rowCount = countMap.get(valA) || 0;
-    //         let valOpenDate = getCellValue(row.c[26]);
-    //         let rawBudget = budgetMapping[valA] || 0;
-
-    //         let result = ScoringService.calculateScoreDetails(
-    //             valA, valY, valX, rowCount, vvipData, false, valOpenDate, false
-    //         );
-
-    //         let totalScore = (finalScores && finalScores.has(valA))
-    //             ? finalScores.get(valA)
-    //             : result.totalScore;
-
-    //         sortedWBSList.push({
-    //             valA: valA,
-    //             row: row,
-    //             rowCount: rowCount,
-    //             totalScore: totalScore,
-    //             budget: rawBudget,
-    //             result: result
-    //         });
-    //     });
-
-    //     // 🎯 จัดเรียงลำดับ 3 ชั้น: 1. คะแนนรวมสูงสุด -> 2. พัสดุน้อยสุด -> 3. มูลค่างานสูงสุด
-    //     sortedWBSList.sort((a, b) => {
-    //         if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-    //         if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
-    //         return b.budget - a.budget;
-    //     });
-
-    //     // 🎯 ส่วนที่เพิ่ม 1: ตัวแปรเก็บสถิติส่งหากราฟ
-    //     const activeRowsDataForChart = [];
-
-    //     // ================================================================================================
-    //     // 🎯 เปลี่ยนมาวิ่งลูปผ่านข้อมูลที่ผ่านการจัดอันดับถูกต้องแล้ว (โค้ดดึงค่าและโครงสร้างตารางด้านในคงเดิม)
-    //     // ================================================================================================
-    //     sortedWBSList.forEach((item, index) => {
-    //         const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
-    //         const valA = item.valA;
-    //         const row = item.row;
-    //         const rowCount = item.rowCount;
-    //         const totalScore = item.totalScore;
-    //         const result = item.result;
-    //         let ProjectPlan = getCellValue(row.c[12]); //การกำหนดโครงการ
-    //         let BudgetCIP = getCellValue(row.c[18]);
-    //         let valT = getCellValue(row.c[19]);
-    //         let valW = getCellValue(row.c[22]) || "";
-    //         let valX = getCellValue(row.c[23]);
-    //         let valY = getCellValue(row.c[24]);
-
-    //         let peaName = peaNameMapping[valW] || valW || "-";
-
-    //         // 2. 🎯 สำหรับแสดงผลหน้าจอ: ปัดเศษตัวเลขให้เป็นเลขถ้วน ไม่มีทศนิยม
-    //         let displayScore = typeof totalScore === 'number' ? Math.round(totalScore).toLocaleString() : totalScore;
-            
-    //         let dayDisplay = "-";
-    //         let dayClass = "";
-    //         if (result.daysRemaining !== null) {
-    //             dayDisplay = result.daysRemaining + " วัน";
-    //             if (result.daysRemaining < 0) dayClass = "text-danger fw-bold";
-    //         } else if (valY === "ไม่เกินกำหนด" && valY !== "งาน 02.2") {
-    //             dayDisplay = "ยังไม่เกิด AUC";
-    //             dayClass = "text-muted small";
-    //         }
-
-    //         const status = wbsStatusMap.get(valA);
-    //         const lightHTML = createStatusCircle(status || 'yellow');
-    //         const searchToken = status ? `status-${status}` : 'status-yellow';
-    //         let rawBudget = budgetMapping[valA];
-    //         let budgetDisplay = (rawBudget !== undefined) ? rawBudget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
-    //         let budgetOrderValue = (rawBudget !== undefined) ? rawBudget : 0;
-    //         const progress = wbsProgressMap[item.valA] || 0;
-    //        const barColor = progress >= 80 
-    //         ? 'bg-gradient-to-tl from-green-600 to-lime-400' 
-    //         : (progress >= 50 
-    //             ? 'bg-gradient-to-tl from-blue-600 to-cyan-400' 
-    //             : 'bg-gradient-to-tl from-red-600 to-rose-400');
-
-    //         const progressHTML = `
-    //             <div class="flex items-center justify-center">
-    //                 <span class="mr-2 text-xs font-semibold leading-tight">${progress.toFixed(0)}%</span>
-    //                 <div>
-    //                     <div class="text-xs h-0.75 w-30 m-0 flex overflow-visible rounded-lg bg-gray-200">
-    //                         <div 
-    //                             class="duration-600 ease-soft ${barColor} -mt-0.38 -ml-px flex h-1.5 flex-col justify-center overflow-hidden whitespace-nowrap rounded text-center text-white transition-all" 
-    //                             style="width: ${progress}%"
-    //                             role="progressbar" 
-    //                             aria-valuenow="${progress.toFixed(0)}" 
-    //                             aria-valuemin="0" 
-    //                             aria-valuemax="100">
-    //                         </div>
-    //                     </div>
-    //                 </div>
-    //             </div>
-    //         `;
-
-    //         // 🎯 ส่วนที่เพิ่ม 2: ยัดข้อมูลแถวนี้ลงถังเก็บ
-    //         activeRowsDataForChart.push({ status: status, qty: rowCount });
-
-    //         // พ่น HTML พร้อมทั้งใส่ช่องอันดับ `${rank}` เพิ่มไว้ที่คอลัมน์แรกสุด
-    //         html += `<tr class="clickable-requirement" data-wbs="${valA}" style="cursor: pointer;">
-    //             <td class="${TABLE_STYLES.cellClass} text-center fw-bold" style="background-color: #f8f9fa;">${rank}</td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center "><span style="display: none;">${searchToken}</span>${lightHTML}</td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center"><div class="px-3 py-1"><h6 class="mb-0 text-sm leading-normal" ${headerStyle}>${valA}</h6></div></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center"><p ${textStyle}>${valT}</p></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center"><span ${textStyle}>${peaName}</span></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center"><span ${textStyle}>${valY}</span></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center" data-order="${budgetOrderValue}"><span ${textBoldStyle} class="text-dark font-mono">${budgetDisplay}</span></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center"><span class="text-m font-bold leading-tight ${dayClass}">${dayDisplay}</span></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center"><span class="badge rounded-pill  text-right bg-purple ">${rowCount} รายการ</span></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center"><span ${textBoldStyle}>${displayScore}</span></td> 
-    //             <td class="${TABLE_STYLES.cellClass} text-center d-none"><span ${textStyle}>${ProjectPlan}</span></td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center">${progressHTML}</td>
-    //             <td class="${TABLE_STYLES.cellClass} text-center d-none "><span ${textStyle}>${BudgetCIP}</span></td>
-    //         </tr>`;
-    //     });
-
-    //     html += '</tbody>';
-    //     // 🎯 ส่วนที่เพิ่ม 3: ส่งข้อมูลสรุปให้กราฟวงกลมทำงานทันทีหลังสร้างตารางเสร็จ
-       
-    //     return html;
-    // },
+   
 
     //=========== ตาราง NoStock พัสดุที่ไม่ได้รับการจัดสรร ===========//
 /**
@@ -528,7 +298,7 @@ const TableRenderer = {
 
 
 renderNoStockTable(allocatedData, materialTypeMap) {
-    const $el = $('#tableNoStock');
+    const $el = $('#tableNoStock_warehouse');
     if ($el.length === 0) return null;
 
     // 1. ดึงข้อมูลที่ผ่านการสรุปจาก renderNoStock_AfterUpcomingTable
@@ -591,9 +361,9 @@ renderNoStockTable(allocatedData, materialTypeMap) {
             //     }
         }
     ],
-  "dom": '<"row"<"col-md-6"f><"col-md-6 text-right" <"reset-container">>>' + 
+"dom": '<"row"<"col-md-6"f><"col-md-6 text-right" <"reset-container">>>' + 
        '<"row"<"col-md-12"t>>' + 
-       '<"row mt-3"<"col-md-6 d-flex align-items-center gap-3" li><"col-md-6"p>>',
+       '<"row mt-3"<"col-md-5"i><"col-md-7"p>>', // ปรับจาก 6/6 เป็น 5/7 เพื่อให้ Pagination มีพื้นที่มากขึ้น
    
         "columnDefs": [
 
@@ -629,35 +399,32 @@ renderNoStockTable(allocatedData, materialTypeMap) {
    
 {
     targets: 7, 
-    className: "text-center",
+    // เพิ่ม min-width ตรงนี้ เพื่อให้ช่องไม่ถูกบีบจนเกินไป
+    className: "text-center", 
     render: function(data, type, row) {
-        // 1. ดึงค่าสถานะจาก localStorage (ให้ความสำคัญกับค่าที่เก็บไว้)
         const savedStatus = localStorage.getItem('status_' + row[0]) || "จัดซื้อใหม่";
-        
-        // 2. ดึงค่าจำนวนที่กรอกไว้ (ถ้าไม่มีให้เป็นค่าว่าง)
         const savedQty = localStorage.getItem('qty_' + row[0]) || "";
 
-        // 3. สร้าง HTML
+        // ปรับ CSS ตรง style ของ select และ input
+        // เพิ่ม min-width: 120px; เพื่อให้ข้อความ "จัดซื้อใหม่" แสดงได้ครบโดยไม่ถูกตัด
         let html = `
-            <select class="form-control" onchange="updateStatus_Nostock(this, '${row[0]}')">
+            <select class="form-control" onchange="updateStatus_Nostock(this, '${row[0]}')" 
+                    style="min-width: 120px; width: 100%; padding: 5px;">
                 <option value="จัดซื้อใหม่" ${savedStatus === "จัดซื้อใหม่" ? "selected" : ""}>จัดซื้อใหม่</option>
                 <option value="ขอโอน" ${savedStatus === "ขอโอน" ? "selected" : ""}>ขอโอน</option>
                 <option value="Hold" ${savedStatus === "Hold" ? "selected" : ""}>Hold</option>
             </select>`;
         
-        // 4. แสดง Input เฉพาะเมื่อเลือกสถานะโอน (ใช้ display ปรับให้ตรงตามสถานะที่ดึงมา)
         const isTransfer = (savedStatus === "ขอโอน");
-       // ในส่วนของ html += ...
-html += `<input type="number" class="qty-transfer-input form-control" 
-         value="${savedQty}" 
-         placeholder="ระบุจำนวน"
-         style="margin-top:5px; width: 100%; box-sizing: border-box; display:${isTransfer ? 'block' : 'none'};" 
-         oninput="saveQty_Nostock(this, '${row[0]}')">`;
+        html += `<input type="number" class="qty-transfer-input form-control" 
+                 value="${savedQty}" 
+                 placeholder="ระบุจำนวน"
+                 style="margin-top:5px; width: 100%; min-width: 80px; box-sizing: border-box; display:${isTransfer ? 'block' : 'none'}; padding: 5px;" 
+                 oninput="saveQty_Nostock(this, '${row[0]}')">`;
                  
         return html;
     }
 }
-
         ],
         "createdRow": function(row, data, dataIndex) {
         $(row).addClass('clickable-requirement'); // class สำหรับใช้ใน setupRowClickEvent
@@ -690,169 +457,624 @@ html += `<input type="number" class="qty-transfer-input form-control"
 },
 
 
-renderUpcomingTab(upcomingData) {
-    const $el = $('#tabUpcoming');
+// renderUpcomingTab(upcomingData) {
+//     const $el = $('#tabUpcoming');
     
-    // ทำลายตารางเก่าทิ้งก่อน (ถ้ามี) เพื่อป้องกัน Error การสร้างตารางซ้อน
-    if ($.fn.DataTable.isDataTable($el)) {
-        $el.DataTable().destroy();
-    }
+//     // ทำลายตารางเก่าทิ้งก่อน (ถ้ามี) เพื่อป้องกัน Error การสร้างตารางซ้อน
+//     if ($.fn.DataTable.isDataTable($el)) {
+//         $el.DataTable().destroy();
+//     }
 
-    // แปลงข้อมูลจาก Google Sheets Format (c[0], c[1]...) 
-    // เป็น Array ของ Array สำหรับ DataTable
-    const dataSet = upcomingData.rows.map(row => {
-        const totalStock = parseFloat(getCellValue(row.c[12]) || 0).toLocaleString();
-        const unit = getCellValue(row.c[13]) || "";
-        const totalStockWithUnit = `${totalStock} ${unit}`;
-        return [
-            getCellValue(row.c[0],), // รหัสพัสดุ
-            getCellValue(row.c[5]), // เอกสารการจัดซื้อ
-            getCellValue(row.c[2]), // กลุ่มการจัดซื้อ
-            totalStockWithUnit // ปริมาณที่สั่ง (ใส่ลูกน้ำ)
-        ];
-    });
+//     // แปลงข้อมูลจาก Google Sheets Format (c[0], c[1]...) 
+//     // เป็น Array ของ Array สำหรับ DataTable
+//     const dataSet = upcomingData.rows.map(row => {
+//         const totalStock = parseFloat(getCellValue(row.c[12]) || 0).toLocaleString();
+//         const unit = getCellValue(row.c[13]) || "";
+//         const totalStockWithUnit = `${totalStock} ${unit}`;
+//         return [
+//             getCellValue(row.c[0],), // รหัสพัสดุ
+//             getCellValue(row.c[5]), // เอกสารการจัดซื้อ
+//             getCellValue(row.c[2]), // กลุ่มการจัดซื้อ
+//             totalStockWithUnit // ปริมาณที่สั่ง (ใส่ลูกน้ำ)
+//         ];
+//     });
 
-    // สร้างตารางใหม่
-    const table = $el.DataTable({
-        "data": dataSet,
-        "deferRender": true,
-        "pageLength": 10,
+//     // สร้างตารางใหม่
+//     const table = $el.DataTable({
+//         "data": dataSet,
+//         "deferRender": true,
+//         "pageLength": 10,
         
-        "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"f><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-        "columns": [
-            { "title": "รหัสพัสดุ" },
-            { "title": "เอกสารการจัดซื้อ" },
-            { "title": "กลุ่มการจัดซื้อ" },
-            { "title": "ปริมาณที่สั่ง" }
-        ],
+//         "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"f><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+//         "columns": [
+//             { "title": "รหัสพัสดุ" },
+//             { "title": "เอกสารการจัดซื้อ" },
+//             { "title": "กลุ่มการจัดซื้อ" },
+//             { "title": "ปริมาณที่สั่ง" }
+//         ],
         
-        "responsive": true,
-        "language": { "emptyTable": "ไม่พบข้อมูลในตาราง" },
-        "columnDefs": [
-            { "targets": 0, "visible": false } // 🎯 3. ซ่อนคอลัมน์รหัสพัสดุไม่ให้ผู้ใช้เห็น แต่ยังใช้ Search ได้
-        ],
+//         "responsive": true,
+//         "language": { "emptyTable": "ไม่พบข้อมูลในตาราง" },
+//         "columnDefs": [
+//             { "targets": 0, "visible": false } // 🎯 3. ซ่อนคอลัมน์รหัสพัสดุไม่ให้ผู้ใช้เห็น แต่ยังใช้ Search ได้
+//         ],
         
-        "drawCallback": function() {
-            updateCounts(); 
-        }
-    });
-    return table;
-},
-renderStockN2Tab(stockN2Data) {
-    const $el = $('#tabStockN2');
+//         "drawCallback": function() {
+//             updateCounts(); 
+//         }
+//     });
+//     return table;
+// },
+
+//  renderUpcomingTab(upcomingData, isFiltered = false) {
+//     const $container = $('#tabUpcoming');
+//     const $btn = $('#btnSeeMore');
+//      allData = upcomingData.rows;
     
-    if ($.fn.DataTable.isDataTable($el)) {
-        $el.DataTable().destroy();
-    }
+//     // สถานะปัจจุบัน: false = โชว์แค่ 10, true = โชว์ทั้งหมด
+//     let isExpanded = false;
 
-    // 1. Group และ Sum ข้อมูล
-    const groupedData = stockN2Data.rows.reduce((acc, row) => {
-        const location = getCellValue(row.c[0])?.toString().trim();
-        if (location === 'คลังพัสดุ พิษณุโลก') return acc;
-
-        const partID = getCellValue(row.c[2])?.toString().trim();
-        const locName = getCellValue(row.c[1])?.toString().trim();
-        const qty = parseFloat(getCellValue(row.c[10]) || 0);
-        const unit = getCellValue(row.c[9]) || "";
-
-        const groupKey = `${location}|${partID}`;
-
-        if (partID) {
-            if (!acc[groupKey]) {
-                acc[groupKey] = { 
-                    partID, 
-                    location, 
-                    locNames: new Set(), // ใช้ Set เพื่อไม่ให้ Loc ซ้ำ
-                    totalQty: 0, 
-                    unit 
-                };
-            }
-            acc[groupKey].totalQty += qty;
-            if (locName) acc[groupKey].locNames.add(locName);
-        }
-        return acc;
-    }, {});
-
-    // 2. แปลงเป็น Array 4 คอลัมน์
-    const dataSet = Object.values(groupedData).map(item => {
-        return [
-            item.partID,                                     // 0: รหัสพัสดุ
-            item.location,                                   // 1: คลังพัสดุ
-            Array.from(item.locNames).join(", "),            // 2: รวม Loc.
-            `${item.totalQty.toLocaleString()} ${item.unit}` // 3: รวมจำนวน
-        ];
-    });
-
-    // 3. สร้างตาราง
-    const table = $el.DataTable({
-        "data": dataSet,
-        "deferRender": true,
-        "pageLength": 10,
-        "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"f><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-        "columns": [
-            { "title": "รหัสพัสดุ" },
-            { "title": "คลังพัสดุ" },
-            { "title": "Loc." },
-            { "title": "จำนวนคงคลัง" }
-        ],
-        "responsive": true,
-        "language": { "emptyTable": "ไม่พบข้อมูลในตาราง" },
-        "columnDefs": [
-            { "targets": 0, "visible": false } // ซ่อนรหัสพัสดุไว้สำหรับ Search
-        ],
-        "drawCallback": function() {
-            if (typeof updateCounts === 'function') updateCounts();
-        }
-    });
+//    // ถ้าไม่ได้ Filter ให้เก็บข้อมูลต้นฉบับไว้ (ถ้า Filter อยู่ ให้ใช้ข้อมูลที่ส่งมา)
+//     if (!isFiltered) {
+//         allData = upcomingData.rows;
+//     }
     
-    return table;
-},
- renderN2POTab(n2poData) {
-    const $el = $('#tabN2PO');
-    
-    if ($.fn.DataTable.isDataTable($el)) {
-        $el.DataTable().destroy();
-    }
+//     const dataToUse = isFiltered ? upcomingData.rows : allData; // ใช้ข้อมูลที่ส่งเข้ามา (ซึ่งถูกกรองมาแล้ว)
 
-    const dataSet = n2poData.rows.map(row => {
-        const totalStock = parseFloat(getCellValue(row.c[7]) || 0).toLocaleString();
-        const unit = getCellValue(row.c[8]) || "";
-        const totalStockWithUnit = `${totalStock} ${unit}`;
+//     function showRows(limit) {
+//         $container.empty();
+//         const dataToRender = dataToUse.slice(0, limit);
+               
+//         if (dataToRender.length === 0) {
+//             $container.append('<div class="p-4 text-gray-500 text-center">ไม่พบข้อมูลที่ค้นหา</div>');
+//             return;
+//         }
+//         const htmlContent = dataToRender.map(row => {
+//             const partID = getCellValue(row.c[0])
+//             const totalStock = parseFloat(getCellValue(row.c[12]) || 0).toLocaleString();
+//             const unit = getCellValue(row.c[13]) || "";
+//             const docName = String(getCellValue(row.c[5]) || "");
+//             const groupName = getCellValue(row.c[2]) || "-";
+
+//             let bgColor = "bg-gray-100";
+//             let textColor = "text-gray-600";
+//             let icon = "fa-box"; // ไอคอนตั้งต้น
+//             // ตรวจสอบเงื่อนไขตาม groupName
+//             if (groupName.includes("กฟส.") || groupName.includes("กฟจ.")) {
+//                 bgColor = "bg-green-100";
+//                 textColor = "text-green-700";
+//                 icon = "fa-shopping-cart";
+//             } else if (groupName.includes("กจล.")) {
+//                 bgColor = "bg-blue-100";
+//                 textColor = "text-blue-700";
+//                 icon = "fa-truck";
+//             } else if (groupName.includes("ขอโอน")) {
+//                 bgColor = "bg-orange-100";
+//                 textColor = "text-orange-700";
+//                 icon = "fa-sync-alt";
+//             }
+//         return `
+//     <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 hover:bg-gray-50 transition">
+//         <div class="flex items-center gap-3">
+//             <!-- ส่วนวงกลมแสดง Icon -->
+//             <div class="w-11 h-11 ${bgColor} ${textColor} rounded-full flex items-center justify-center shrink-0">
+//                 <i class="fas ${icon} text-sm"></i>
+//             </div>
+//             <div>
+//                 <div class="font-bold text-gray-900 text-[16px]">${docName || "ไม่มีชื่อเอกสาร"}</div>
+//                 <div class="text-[14px] text-gray-500 leading-tight">${groupName}</div>
+//             </div>
+//         </div>
+//         <div class="text-right">
+//             <div class="font-bold text-gray-900 text-[14px]">
+//                 ${totalStock} <span class="text-xs font-normal text-gray-500">${unit}</span>
+//             </div>
+//         </div>
+//     </div>`;
+//         }).join('');
+        
+//         $container.append(htmlContent);
+//     }
+
+//     // เริ่มต้นแสดงผล
+//     showRows(10);
+
+//     // จัดการปุ่ม Toggle
+//     if (allData.length > 10) {
+//         $btn.show().text('See More');
+        
+//         $btn.off('click').on('click', function() {
+//             isExpanded = !isExpanded; // สลับสถานะ
             
-        return [
-            getCellValue(row.c[5]),// รหัสพัสดุ
-            getCellValue(row.c[0]), // เอกสารการจัดซื้อ
-            getCellValue(row.c[2]), // คลังพัสดุ
-            getCellValue(row.c[3]), // รหัสคลังพัสดุ
-            totalStockWithUnit // ปริมาณที่สั่ง (ใส่ลูกน้ำ)
-        ];
-    });
+//             if (isExpanded) {
+//                 showRows(allData.length);
+//                 $(this).text('See Less'); // เปลี่ยนข้อความปุ่ม
+//             } else {
+//                 showRows(10);
+//                 $(this).text('See More'); // เปลี่ยนข้อความปุ่ม
+//             }
+//         });
+//     } else {
+//         $btn.hide();
+//     }
+    
+//     if (typeof updateCounts === 'function') updateCounts();
+// },
 
-   const table = $el.DataTable({
-        "data": dataSet,
-        "deferRender": true,
-        "pageLength": 10,
-        "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"f><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-        "columns": [
-            { "title": "รหัสพัสดุ" },
-            { "title": "เอกสารการจัดซื้อ" },
-            { "title": "คลังพัสดุ" },
-            { "title": "Loc." },
-            { "title": "ปริมาณที่สั่ง" }
-           
-        ],
-        "responsive": true,
-        "language": { "emptyTable": "ไม่พบข้อมูลในตาราง" },
-        "columnDefs": [
-            { "targets": 0, "visible": false } // 🎯 3. ซ่อนคอลัมน์รหัสพัสดุไม่ให้ผู้ใช้เห็น แต่ยังใช้ Search ได้
-        ],
+ renderUpcomingTab(upcomingData, isFiltered = false) {
+    const $container = $('#tabUpcoming');
+    const $btn = $('#btnSeeMore');
+    let isExpanded = false;
+
+    // ถ้าไม่ใช่โหมดกรอง ให้บันทึกข้อมูลดิบลง rawData เสมอ
+    if (!isFiltered) {
+        rawData = upcomingData.rows || [];
+    }
+    
+    // กำหนดข้อมูลที่จะใช้แสดงผล
+    allData = isFiltered ? upcomingData.rows : rawData;
+
+    function showRows(limit) {
+        $container.empty();
+        const dataToRender = allData.slice(0, limit);
         
-       "drawCallback": function() {
-            updateCounts(); 
+        if (dataToRender.length === 0) {
+            $container.append('<div class="p-4 text-gray-500 text-center">ไม่พบข้อมูล</div>');
+            return;
         }
-    });
-    return table;
+
+        const htmlContent = dataToRender.map(row => {
+            const partID = getCellValue(row.c[0])
+            const docName = String(getCellValue(row.c[5]) || "");
+            const groupName = getCellValue(row.c[2]) || "-";
+            const totalStock = parseFloat(getCellValue(row.c[12]) || 0).toLocaleString();
+            const unit = getCellValue(row.c[13]) || "";
+
+            let bgColor = "bg-gray-100";
+            let textColor = "text-gray-600";
+            let icon = "fa-box";
+
+            if (groupName.includes("กฟส.") || groupName.includes("กฟจ.")) {
+                bgColor = "bg-green"; textColor = "text-white"; icon = "fa-shopping-cart";
+            } else if (groupName.includes("กจล.")) {
+                bgColor = "bg-blue"; textColor = "text-white"; icon = "fa-truck";
+            } else if (groupName.includes("ขอโอน")) {
+                bgColor = "bg-orange"; textColor = "text-white"; icon = "fa-sync-alt";
+            }
+
+             return `
+    <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 hover:bg-gray-50 transition">
+        <div class="flex items-center gap-3">
+            <!-- ส่วนวงกลมแสดง Icon -->
+            <div class="w-11 h-11 ${bgColor} ${textColor} rounded-full flex items-center justify-center shrink-0">
+                <i class="fas ${icon} text-[16px]"></i>
+            </div>
+            <div>
+                <div class="font-bold text-gray-900 text-[16px]">${docName || "ไม่มีชื่อเอกสาร"}</div>
+               
+                <div class="text-[14px] text-gray-500 leading-tight">${groupName}</div>
+            </div>
+        </div>
+        <div class="text-right">
+
+            <div class="font-bold text-gray-900 text-[16px]">
+                ${totalStock} <span class="text-xs font-normal text-gray-500">${unit}</span>
+            </div>
+        </div>
+    </div>`;
+        }).join('');
+        
+        $container.append(htmlContent);
+    }
+
+    showRows(10);
+
+    if (allData.length > 10) {
+        $btn.show().text('See More');
+        $btn.off('click').on('click', function() {
+            isExpanded = !isExpanded;
+            showRows(isExpanded ? allData.length : 10);
+            $(this).text(isExpanded ? 'See Less' : 'See More');
+        });
+    } else {
+        $btn.hide();
+    }
+    
+    if (typeof updateCounts === 'function') updateCounts();
 },
+// renderStockN2Tab(stockN2Data) {
+//     const $el = $('#tabStockN2');
+    
+//     if ($.fn.DataTable.isDataTable($el)) {
+//         $el.DataTable().destroy();
+//     }
+
+//     // 1. Group และ Sum ข้อมูล
+//     const groupedData = stockN2Data.rows.reduce((acc, row) => {
+//         const location = getCellValue(row.c[0])?.toString().trim();
+//         if (location === 'คลังพัสดุ พิษณุโลก') return acc;
+
+//         const partID = getCellValue(row.c[2])?.toString().trim();
+//         const locName = getCellValue(row.c[1])?.toString().trim();
+//         const qty = parseFloat(getCellValue(row.c[10]) || 0);
+//         const unit = getCellValue(row.c[9]) || "";
+
+//         const groupKey = `${location}|${partID}`;
+
+//         if (partID) {
+//             if (!acc[groupKey]) {
+//                 acc[groupKey] = { 
+//                     partID, 
+//                     location, 
+//                     locNames: new Set(), // ใช้ Set เพื่อไม่ให้ Loc ซ้ำ
+//                     totalQty: 0, 
+//                     unit 
+//                 };
+//             }
+//             acc[groupKey].totalQty += qty;
+//             if (locName) acc[groupKey].locNames.add(locName);
+//         }
+//         return acc;
+//     }, {});
+
+//     // 2. แปลงเป็น Array 4 คอลัมน์
+//     const dataSet = Object.values(groupedData).map(item => {
+//         return [
+//             item.partID,                                     // 0: รหัสพัสดุ
+//             item.location,                                   // 1: คลังพัสดุ
+//             Array.from(item.locNames).join(", "),            // 2: รวม Loc.
+//             `${item.totalQty.toLocaleString()} ${item.unit}` // 3: รวมจำนวน
+//         ];
+//     });
+
+//     // 3. สร้างตาราง
+//     const table = $el.DataTable({
+//         "data": dataSet,
+//         "deferRender": true,
+//         "pageLength": 10,
+//         "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"f><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
+//         "columns": [
+//             { "title": "รหัสพัสดุ" },
+//             { "title": "คลังพัสดุ" },
+//             { "title": "Loc." },
+//             { "title": "จำนวนคงคลัง" }
+//         ],
+//         "responsive": true,
+//         "language": { "emptyTable": "ไม่พบข้อมูลในตาราง" },
+//         "columnDefs": [
+//             { "targets": 0, "visible": false } // ซ่อนรหัสพัสดุไว้สำหรับ Search
+//         ],
+//         "drawCallback": function() {
+//             if (typeof updateCounts === 'function') updateCounts();
+//         }
+//     });
+    
+//     return table;
+// }
+// renderStockN2Tab(stockN2Data, isFiltered = false) {
+//     const $container = $('#tabStockN2');
+//     const $btn = $('#btnSeeMoreStockN2');
+//     let isExpanded = false;
+
+//     // เก็บข้อมูลดิบ (ที่ยังไม่ได้สรุปผล) ไว้ตอนโหลดครั้งแรกเท่านั้น
+//     if (!isFiltered) {
+//         // ทำการสรุปผล (Group/Sum) ครั้งเดียวตอนโหลดข้อมูลดิบมา
+//         const groupedData = stockN2Data.rows.reduce((acc, row) => {
+//             if (!row || !row.c) return acc;
+//             const location = getCellValue(row.c[0])?.toString().trim();
+//             if (location === 'คลังพัสดุ พิษณุโลก') return acc;
+
+//             const partID = getCellValue(row.c[2])?.toString().trim();
+//             const locName = getCellValue(row.c[1])?.toString().trim();
+//             const qty = parseFloat(getCellValue(row.c[10]) || 0);
+//             const unit = getCellValue(row.c[9]) || "";
+//             const groupKey = `${location}|${partID}`;
+
+//             if (partID) {
+//                 if (!acc[groupKey]) {
+//                     acc[groupKey] = { partID, location, locNames: new Set(), totalQty: 0, unit };
+//                 }
+//                 acc[groupKey].totalQty += qty;
+//                 if (locName) acc[groupKey].locNames.add(locName);
+//             }
+//             return acc;
+//         }, {});
+        
+//         // แปลงเป็น Array แล้วเก็บใน rawDataStockN2
+//         rawDataStockN2 = Object.values(groupedData);
+//     }
+    
+//     // allData ใช้ข้อมูลจาก rawDataStockN2 เสมอ
+//     const allData = isFiltered ? stockN2Data.rows : rawDataStockN2;
+//     currentStockN2Data = allData;
+//     function showRows(limit) {
+//         $container.empty();
+//         const dataToRender = allData.slice(0, limit);
+        
+//         if (dataToRender.length === 0) {
+//             $container.append('<div class="p-4 text-gray-500 text-center">ไม่พบข้อมูล</div>');
+//             return;
+//         }
+
+//         const htmlContent = dataToRender.map(item => {
+//             const locList = Array.from(item.locNames).join(", ");
+//             const totalQty = item.totalQty.toLocaleString();
+            
+//             // กำหนดสีและไอคอน (ใช้โลจิกตามตารางสต็อก)
+//             // กำหนดสีและไอคอนตามชื่อคลัง
+//             // กำหนดสีและไอคอนตามชื่อคลังที่ระบุมา
+//             let bgColor = "bg-gray-500"; 
+//             let textColor = "text-white";
+//             let icon = "fa-warehouse";
+
+//            const loc = item.location;
+
+//             if (loc.includes("คลังพัสดุ พิจิตร")) { bgColor = "bg-green"; }
+//             else if (loc.includes("คลังพัสดุ พิษณุโลก")) { bgColor = "bg-blue"; }
+//             else if (loc.includes("คลังพัสดุ ตาก")) { bgColor = "bg-amber"; }
+//             else if (loc.includes("คลังพัสดุ อุตรดิตถ์")) { bgColor = "bg-red"; }
+//             else if (loc.includes("คลังพัสดุ แม่สอด")) { bgColor = "bg-indigo"; }
+//             else if (loc.includes("คลังพัสดุ สุโขทัย")) { bgColor = "bg-violet"; }
+//             else if (loc.includes("คลังพัสดุ กำแพงเพชร")) { bgColor = "bg-teal"; }
+//             else if (loc.includes("คลังพัสดุ น่าน")) { bgColor = "bg-orange"; }
+//             else if (loc.includes("คลังพัสดุ ตะพานหิน")) { bgColor = "bg-cyan"; }
+//             else if (loc.includes("คลังพัสดุ ขาณุวรลักษบุรี")) { bgColor = "bg-fuchsia"; }
+//             else if (loc.includes("คลังพัสดุ แพร่")) { bgColor = "bg-pink"; }
+//             else if (loc.includes("คลังพัสดุ เพชรบูรณ์")) { bgColor = "bg-emerald"; }
+//             else { bgColor = "bg-slate-700"; }
+
+//             return `
+//             <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 hover:bg-gray-50 transition">
+//                 <div class="flex items-center gap-3">
+//                     <div class="w-11 h-11 ${bgColor} ${textColor} rounded-full flex items-center justify-center shrink-0">
+//                         <i class="fas ${icon} text-[16px]"></i>
+//                     </div>
+//                     <div>
+//                         <div class="font-bold text-gray-900 text-[16px]">${item.location}</div>
+//                         <div class="text-[12px] text-gray-500 leading-tight">${item.partID} </div>
+//                         <div class="text-[14px] text-gray-500 leading-tight font-bold"> Loc: ${locList}</div>
+//                     </div>
+//                 </div>
+//                 <div class="text-right">
+//                     <div class="font-bold text-gray-900 text-[16px]">
+//                         ${totalQty} <span class="text-xs font-normal text-gray-500">${item.unit}</span>
+//                     </div>
+//                 </div>
+//             </div>`;
+//         }).join('');
+        
+//         $container.append(htmlContent);
+//     }
+
+//     showRows(10);
+
+//     // จัดการปุ่ม See More
+//     if (allData.length > 10) {
+//         $btn.show().text('See More');
+//         $btn.off('click').on('click', function() {
+//             isExpanded = !isExpanded;
+//             showRows(isExpanded ? allData.length : 10);
+//             $(this).text(isExpanded ? 'See Less' : 'See More');
+//         });
+//     } else {
+//         $btn.hide();
+//     }
+    
+//     if (typeof updateCounts === 'function') updateCounts();
+// } ,
+
+
+// ตรวจสอบให้แน่ใจว่าตัวแปรเหล่านี้ประกาศไว้นอกฟังก์ชัน
+
+
+ renderStockN2Tab(stockN2Data, isFiltered = false) {
+    const $container = $('#tabStockN2');
+    const $btn = $('#btnSeeMoreStockN2');
+    let isExpanded = false;
+
+    // แก้ตรงนี้: 
+    // ถ้า isFiltered คือ true -> ใช้ข้อมูลที่ส่งมา (ข้อมูลที่กรองแล้ว)
+    // ถ้า isFiltered คือ false -> 
+    //    ถ้า stockN2Data.rows เป็น array ของ Object สรุปแล้ว (มี totalQty) -> ใช้ข้อมูลนั้นเลย
+    //    ถ้าไม่ใช่ (เป็นข้อมูลดิบ) -> ถึงค่อยทำ reduce
+    
+    let allData = [];
+    
+    // ตรวจสอบว่าข้อมูลที่ส่งมาคือข้อมูลที่สรุปแล้วหรือไม่
+    const isAlreadyGrouped = stockN2Data.rows.length > 0 && stockN2Data.rows[0].hasOwnProperty('totalQty');
+
+    if (isFiltered || isAlreadyGrouped) {
+        allData = stockN2Data.rows;
+    } else {
+        // ทำการสรุปผลเฉพาะครั้งแรกที่เป็นข้อมูลดิบ
+        const groupedData = stockN2Data.rows.reduce((acc, row) => {
+            if (!row || !row.c) return acc;
+            
+            const location = getCellValue(row.c[0])?.toString().trim();
+            if (location === 'คลังพัสดุ พิษณุโลก') return acc;
+
+            const partID = getCellValue(row.c[2])?.toString().trim();
+            const locName = getCellValue(row.c[1])?.toString().trim();
+            const qty = parseFloat(getCellValue(row.c[10]) || 0);
+            const unit = getCellValue(row.c[9]) || "";
+            const groupKey = `${location}|${partID}`;
+
+            if (partID) {
+                if (!acc[groupKey]) {
+                    acc[groupKey] = { partID, location, locNames: new Set(), totalQty: 0, unit };
+                }
+                acc[groupKey].totalQty += qty;
+                if (locName) acc[groupKey].locNames.add(locName);
+            }
+            return acc;
+        }, {});
+        
+        rawDataStockN2 = Object.values(groupedData);
+        allData = rawDataStockN2;
+    
+    }
+
+       currentStockN2Data = allData;
+       currentStockN2Data.sort((a, b) => (a.partID || "").toString().localeCompare((b.partID || "")));
+    allData = currentStockN2Data;
+    // 3. ฟังก์ชันแสดงผล
+    function showRows(limit) {
+        $container.empty();
+        const dataToRender = allData.slice(0, limit);
+        
+        if (dataToRender.length === 0) {
+            $container.append('<div class="p-4 text-gray-500 text-center">ไม่พบข้อมูล</div>');
+            return;
+        }
+
+        const htmlContent = dataToRender.map(item => {
+            const locList = Array.from(item.locNames).join(", ");
+            const totalQty = item.totalQty.toLocaleString();
+            
+            let bgColor = "bg-gray-500"; 
+            let textColor = "text-white";
+            const loc = item.location;
+
+            // Logic สี (เหมือนเดิม)
+            if (loc.includes("คลังพัสดุ พิจิตร")) bgColor = "bg-green";
+            else if (loc.includes("คลังพัสดุ พิษณุโลก")) bgColor = "bg-blue";
+            else if (loc.includes("คลังพัสดุ ตาก")) bgColor = "bg-amber";
+            else if (loc.includes("คลังพัสดุ อุตรดิตถ์")) bgColor = "bg-red";
+            else if (loc.includes("คลังพัสดุ แม่สอด")) bgColor = "bg-indigo";
+            else if (loc.includes("คลังพัสดุ สุโขทัย")) bgColor = "bg-violet";
+            else if (loc.includes("คลังพัสดุ กำแพงเพชร")) bgColor = "bg-teal";
+            else if (loc.includes("คลังพัสดุ น่าน")) bgColor = "bg-orange";
+            else if (loc.includes("คลังพัสดุ ตะพานหิน")) bgColor = "bg-cyan";
+            else if (loc.includes("คลังพัสดุ ขาณุวรลักษบุรี")) bgColor = "bg-fuchsia";
+            else if (loc.includes("คลังพัสดุ แพร่")) bgColor = "bg-pink";
+            else if (loc.includes("คลังพัสดุ เพชรบูรณ์")) bgColor = "bg-emerald";
+            else bgColor = "bg-slate-700";
+
+            return `
+            <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 hover:bg-gray-50 transition">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 ${bgColor} ${textColor} rounded-full flex items-center justify-center shrink-0">
+                        <i class="fas fa-warehouse text-[16px]"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-gray-900 text-[16px]">${item.location}</div>
+                        <div class="text-[12px] text-gray-500 leading-tight">${item.partID}</div>
+                        <div class="text-[14px] text-gray-500 leading-tight font-bold">Loc: ${locList}</div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="font-bold text-gray-900 text-[16px]">
+                        ${totalQty} <span class="text-xs font-normal text-gray-500">${item.unit}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        
+        $container.append(htmlContent);
+    }
+
+    showRows(10);
+
+    // 4. จัดการปุ่ม See More
+    if (allData.length > 10) {
+        $btn.show().text('See More');
+        $btn.off('click').on('click', function() {
+            isExpanded = !isExpanded;
+            showRows(isExpanded ? allData.length : 10);
+            $(this).text(isExpanded ? 'See Less' : 'See More');
+        });
+    } else {
+        $btn.hide();
+    }
+
+   if (typeof updateCounts === 'function') updateCounts();
+},
+
+//     const $container = $('#tabN2PO'); // เปลี่ยนจาก $el เป็น $container
+//     const $btn = $('#btnSeeMoreN2PO'); // สมมติว่ามีปุ่ม See More สำหรับตารางนี้
+//     let isExpanded = false;
+
+//     // 1. ประมวลผลข้อมูล (Group By) เฉพาะเมื่อเป็นข้อมูลดิบและไม่ใช่โหมดกรอง
+//     if (!isFiltered && n2poData.rows && Array.isArray(n2poData.rows)) {
+//         const groupedData = n2poData.rows.reduce((acc, row) => {
+//             const key = getCellValue(row.c[0]); // เอกสารการจัดซื้อ
+//             if (!key) return acc;
+            
+//             const partID = getCellValue(row.c[5]);
+//             const qty = parseFloat(getCellValue(row.c[7]) || 0);
+//             const unit = getCellValue(row.c[8]) || "";
+//             const warehouse = getCellValue(row.c[2]);
+//             const locCode = getCellValue(row.c[3]);
+
+//             if (!acc[key]) {
+//                 acc[key] = { partID, key, warehouse, locCode, totalQty: 0, unit };
+//             }
+//             acc[key].totalQty += qty;
+//             return acc;
+//         }, {});
+        
+//         rawDataN2PO = Object.values(groupedData);
+//     }
+
+//     // 2. เลือกข้อมูลที่จะแสดง
+//     const allData = isFiltered ? n2poData.rows : rawDataN2PO;
+//     currentN2POData = allData; // อัปเดตตัวแปร Global
+
+//     // 3. ฟังก์ชันแสดงผล (List Format)
+//     function showRows(limit) {
+//         $container.empty();
+//         const dataToRender = allData.slice(0, limit);
+        
+//         if (dataToRender.length === 0) {
+//             $container.append('<div class="p-4 text-gray-500 text-center">ไม่พบข้อมูล</div>');
+//             return;
+//         }
+
+//         const htmlContent = dataToRender.map(item => {
+//             // ดึงข้อมูล (รองรับทั้งแบบ Object สรุปแล้ว และ Row ดิบ)
+//             const docName = item.key || getCellValue(item.c?.[0]);
+//             const groupName = item.warehouse || getCellValue(item.c?.[2]);
+//             const totalQty = (item.totalQty || parseFloat(getCellValue(item.c?.[7]) || 0)).toLocaleString();
+//             const unit = item.unit || getCellValue(item.c?.[8]) || "";
+
+//             return `
+//             <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 hover:bg-gray-50 transition">
+//                 <div class="flex items-center gap-3">
+//                     <div class="w-11 h-11 bg-indigo-500 text-white rounded-full flex items-center justify-center shrink-0">
+//                         <i class="fas fa-file-invoice text-[16px]"></i>
+//                     </div>
+//                     <div>
+//                         <div class="font-bold text-gray-900 text-[16px]">${docName || "ไม่มีเลขเอกสาร"}</div>
+//                         <div class="text-[14px] text-gray-500 leading-tight">${groupName}</div>
+//                     </div>
+//                 </div>
+//                 <div class="text-right">
+//                     <div class="font-bold text-gray-900 text-[16px]">
+//                         ${totalQty} <span class="text-xs font-normal text-gray-500">${unit}</span>
+//                     </div>
+//                 </div>
+//             </div>`;
+//         }).join('');
+        
+//         $container.append(htmlContent);
+//     }
+
+//     showRows(10);
+
+//     // 4. จัดการปุ่ม See More
+//     if (allData.length > 10) {
+//         $btn.show().text('See More');
+//         $btn.off('click').on('click', function() {
+//             isExpanded = !isExpanded;
+//             showRows(isExpanded ? allData.length : 10);
+//             $(this).text(isExpanded ? 'See Less' : 'See More');
+//         });
+//     } else {
+//         $btn.hide();
+//     }
+
+//     if (typeof updateCounts === 'function') updateCounts();
+// },
 /**
  * แสดงตารางพัสดุที่ไม่ได้รับการจัดสรร (assigned = 0)
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
@@ -1017,7 +1239,7 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
 
               {
                 "targets": [0],
-                "className": "font-bold",
+                "className": "font-bold whitespace-nowrap",
                 // "render": $.fn.dataTable.render.number(',', '.', 0)
             },
              { 
@@ -2156,6 +2378,8 @@ const NoStock_AfterUpcomingTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "deferRender": true,
+    "scrollX": true,
+    "autoWidth": false, // ป้องกันตารางบีบเอง
     "pageLength": 10,
     "responsive": true,
     "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
@@ -2177,7 +2401,7 @@ const NoStock_AfterUpcomingTable = $el.DataTable({
     "columnDefs": [
         // col 0, 1: หมายเลขงาน, รหัสพัสดุ - บังคับแถวเดียว ไม่ตัดบรรทัด
         {
-            "targets": [0, 1],
+            "targets": [0],
             "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
             "createdCell": function (td) {
                 $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
@@ -2439,18 +2663,23 @@ window.calculateRowTotal = function(inputElement) {
 };
 // ฟังก์ชันอัปเดตจำนวนแถวที่แสดงในแต่ละแท็บ (Upcoming, StockN2, N2PO) และแสดงผลในช่องที่กำหนดไว้
 function updateCounts() {
+
+    const upcomingCount = (typeof allData !== 'undefined' && Array.isArray(allData)) ? allData.length : 0;
+    const stockN2Count = (typeof currentStockN2Data !== 'undefined' && Array.isArray(currentStockN2Data)) ? currentStockN2Data.length : 0;
+    // const n2poCount = (typeof rawDataN2PO !== 'undefined' && Array.isArray(rawDataN2PO)) ? rawDataN2PO.length : 0;
     // คำนวณจำนวนแถว
     const counts = {
-        upcoming: $.fn.DataTable.isDataTable('#tabUpcoming') ? $('#tabUpcoming').DataTable().rows({filter: 'applied'}).count() : 0,
-        stockN2: $.fn.DataTable.isDataTable('#tabStockN2') ? $('#tabStockN2').DataTable().rows({filter: 'applied'}).count() : 0,
-        n2po: $.fn.DataTable.isDataTable('#tabN2PO') ? $('#tabN2PO').DataTable().rows({filter: 'applied'}).count() : 0
+        upcoming: upcomingCount,
+        stockN2: stockN2Count,
+        // n2po: n2poCount
+        
     };
 
     // ใช้ .toLocaleString() เพื่อเพิ่มคอมม่า (เช่น 1000 กลายเป็น 1,000)
     const elements = [
         { id: 'count-upcoming', val: counts.upcoming },
         { id: 'count-stockN2', val: counts.stockN2 },
-        { id: 'count-n2po', val: counts.n2po }
+        // { id: 'count-n2po', val: counts.n2po }
     ];
 
     elements.forEach(el => {
@@ -2677,7 +2906,7 @@ function refreshTables() {
         { id: '#tableInfoPO', func: TableRenderer.renderInfoPOTable },
         { id: '#tableHole', func: TableRenderer.renderInfoHoleTable },
          { id: '#tableTransfer', func: TableRenderer.renderInfoTransferTable },
-         { id: '#tableNoStock', func: TableRenderer.renderNoStockTable },
+         { id: '#tableNoStock_warehouse', func: TableRenderer.renderNoStockTable },
          { id: '#tableWorkSummary', func: TableRenderer.renderWorkSummarytable },
         
     ];
@@ -2711,8 +2940,8 @@ function resetStatusNostock() {
     }
 
     // --- ส่วนแก้ไข: อัปเดตสถานะ Input ในตาราง NoStock ให้แสดงผลทันที ---
-    const $table = $('#tableNoStock');
-    if ($.fn.DataTable.isDataTable('#tableNoStock')) {
+    const $table = $('#tableNoStock_warehouse');
+    if ($.fn.DataTable.isDataTable('#tableNoStock_warehouse')) {
         // หา Select ทั้งหมดในตารางนี้
         $table.find('select').each(function() {
             $(this).val('จัดซื้อใหม่'); // เปลี่ยนค่า Dropdown เป็นค่าเริ่มต้น
@@ -2743,13 +2972,14 @@ function syncAllTables(mainTable) {
     const stockRegex = uniqueWBS.length > 0 ? uniqueWBS.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') : '^$|🚫';
 
     // 1. ซิงค์ตาราง Stock Match (คอลัมน์ 0)
-    if (typeof UpcomingTabInstance !== 'undefined' && UpcomingTabInstance) {
-        UpcomingTabInstance.column(0).search(stockRegex, true, false).draw();
-    }
+   // ใน syncAllTables
+// if (typeof UpcomingTabInstance !== 'undefined' && UpcomingTabInstance && $.fn.DataTable.isDataTable('#tabUpcoming')) {
+//     UpcomingTabInstance.column(0).search(stockRegex, true, false).draw();
+// }
     // 2. ซิงค์ตาราง No Stock (คอลัมน์ 0)
-    if (typeof noStockTableInstance !== 'undefined' && noStockTableInstance) {
-        noStockTableInstance.column(0).search(stockRegex, true, false).draw();
-    }
+    // if (typeof noStockTableInstance !== 'undefined' && noStockTableInstance) {
+    //     noStockTableInstance.column(0).search(stockRegex, true, false).draw();
+    // }
     // 3. ซิงค์ตาราง Obsolete (คอลัมน์ 0)
     if (typeof N2POTabInstance !== 'undefined' && N2POTabInstance) {
         N2POTabInstance.column(0).search(stockRegex, true, false).draw();
@@ -3079,44 +3309,63 @@ setupFilterID_WBS(table, allocatedData, materialTypeMap, stockData, upcomingData
 
 
 
+
+
 function setupRowClickEvent() {
-    $(document).off('click', '#tableNoStock tbody tr.clickable-requirement').on('click', '#tableNoStock tbody tr.clickable-requirement', function (e) {
-        
-        const isTargetElement = $(e.target).is('select, input') || 
-                                $(e.target).closest('select, input').length > 0;
-        // --- ส่วนที่เพิ่มเข้ามาเพื่อแก้ปัญหา ---
-        // ตรวจสอบว่าถ้าคลิกโดน select หรือปุ่ม ให้หยุดการทำงานทันที
-       if (isTargetElement) {
-            return; 
-        }
-        // -------------------------------------
+    $(document).off('click', '#tableNoStock_warehouse tbody tr.clickable-requirement').on('click', '#tableNoStock_warehouse tbody tr.clickable-requirement', function (e) {
+        if ($(e.target).is('select, input') || $(e.target).closest('select, input').length > 0) return;
 
         const materialCode = $(this).data('material-code');
-        console.log("กรองด้วยรหัส:", materialCode);
-
-        // ดึง Instance ใหม่สดๆ จาก DOM
-        const tables = ['#tabUpcoming', '#tabStockN2', '#tabN2PO'];
+        const tables = ['#tabUpcoming', '#tabStockN2'];
         
         tables.forEach(id => {
-            if ($.fn.DataTable.isDataTable(id)) {
-                $(id).DataTable().column(0).search(materialCode).draw();
-            }
+            if (id === '#tabUpcoming') {
+                // กรองจาก rawData เสมอ
+                const filteredData = rawData.filter(row => getCellValue(row.c[0]) === materialCode);
+                // เรียกใช้ผ่าน TableRenderer (ให้ตรวจสอบชื่อ Object ให้ตรงกับในโค้ดคุณ)
+                TableRenderer.renderUpcomingTab({ rows: filteredData }, true);
+                }
+            else if (id === '#tabStockN2') {
+        // rawDataStockN2 คือ Array ที่สรุปผลแล้ว (มี partID อยู่แล้ว)
+                const filteredRows = rawDataStockN2.filter(item => item.partID === materialCode);
+                
+                // ส่ง { rows: filteredRows } เข้าไป โดย isFiltered = true
+                TableRenderer.renderStockN2Tab({ rows: filteredRows }, true);
+            }  
+        //  
         });
         
         setTimeout(() => {
-            updateTabCounts();
+            if (typeof updateCounts === 'function') updateCounts();
         }, 300);
     });
 }
-
 function setupGlobalEvents() {
  
  $('#resetMB52').on('click', function () {
         // 1. ล้างการค้นหาและการกรองในตารางหลักทั้งหมดออก แล้ววาดตารางใหม่ (โค้ดดั้งเดิมของคุณ)
         if (noStockTableInstance) noStockTableInstance.search('').columns().search('').draw();
-        if (UpcomingTabInstance) UpcomingTabInstance.search('').columns().search('').draw();
-        if (StockN2TabInstance) StockN2TabInstance.search('').columns().search('').draw();
+        // if (StockN2TabInstance) StockN2TabInstance.search('').columns().search('').draw();
         if (N2POTabInstance) N2POTabInstance.search('').columns().search('').draw();
+
+        // 2. Reset tabUpcoming (ที่เป็นระบบ List แล้ว)
+        // ส่งข้อมูลเต็ม (rawData) กลับไปแสดงผลใหม่ และกำหนด flag isFiltered เป็น false
+        if (typeof TableRenderer !== 'undefined' && typeof TableRenderer.renderUpcomingTab === 'function') {
+            TableRenderer.renderUpcomingTab({ rows: rawData }, false);
+        } else if (typeof renderUpcomingTab === 'function') {
+            renderUpcomingTab({ rows: rawData }, false);
+        }
+
+        // 3. Reset tabStockN2 (ระบบ List ใหม่)
+        // ใช้ rawDataStockN2 ที่เก็บข้อมูลดิบไว้ตอนโหลดครั้งแรก
+       if (typeof TableRenderer !== 'undefined' && typeof TableRenderer.renderStockN2Tab === 'function') {
+            // ส่ง rawDataStockN2 กลับไปโดยตรง
+            TableRenderer.renderStockN2Tab({ rows: rawDataStockN2 }, false);
+        } else if (typeof renderStockN2Tab === 'function') {
+            renderStockN2Tab({ rows: rawDataStockN2 }, false);
+        }
+
+     
          });
 
     
@@ -3313,12 +3562,11 @@ async function initDashboard() {
                 HoleTableInstance = TableRenderer.renderInfoHoleTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 InfoPOTableInstance = TableRenderer.renderInfoPOTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 TransferTableInstance = TableRenderer.renderInfoTransferTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
-                UpcomingTabInstance = TableRenderer.renderUpcomingTab(upcomingData);
+                TableRenderer.renderUpcomingTab(upcomingData);
                 StockN2TabInstance =TableRenderer.renderStockN2Tab(dataMap['StockN2_Data']);
-                N2POTabInstance =TableRenderer.renderN2POTab(dataMap['N2PO_Data']);
                 // 1. เรียกใช้ฟิลเตอร์ประเภทวัสดุ
-                FilterModule.setupNoStockFilter('#tableNoStock', '.filter-type');
-                FilterModule.setupBulkMaterialFilter('#tableNoStock');
+                FilterModule.setupNoStockFilter('#tableNoStock_warehouse', '.filter-type');
+                FilterModule.setupBulkMaterialFilter('#tableNoStock_warehouse');
                 // เปลี่ยนจากบรรทัดเดิมของคุณเป็น:
                 FilterModule.setupFilterID_WBS(
                     parcelTable, 
@@ -3333,7 +3581,7 @@ async function initDashboard() {
                
                  // ตัวอย่างการใช้งานเมื่อกดปุ่ม "ยกเว้นรหัส"
                 $('#btnExcludeFilter').on('click', function() {
-                    FilterModule.setupExcludeBulkMaterialFilter('#tableNoStock', '#bulkMaterialInput');
+                    FilterModule.setupExcludeBulkMaterialFilter('#tableNoStock_warehouse', '#bulkMaterialInput');
                 });
 
                 FilterModule.initClearButtons();

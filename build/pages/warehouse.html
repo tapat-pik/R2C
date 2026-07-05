@@ -8,13 +8,14 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <!-- <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet"> -->
-    <link rel="stylesheet" href="../src/style.css">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
 
 <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="../src/style.css">
     <link
       rel="apple-touch-icon"
       sizes="76x76"
@@ -495,14 +496,14 @@
               <div class="flex flex-col justify-center w-full">
     <div class="w-full overflow-x-auto">
       
-        <table id="tableNoStock" class="table table-hover align-middle mb-0 text-sm leading-normal break-words whitespace-normal" style="width: 100%;">
+        <table id="tableNoStock_warehouse" class="table table-hover align-middle mb-0 text-sm leading-normal break-words whitespace-normal" style="width: 100%;">
         </table>
     </div>
 
     <div class="d-flex justify-content-end mb-3 mt-3">
    <button type="button" 
             onclick="refreshTables()" 
-            class="btn-modern-save">
+            class="border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
         <i class="fas fa-sync-alt mr-2"></i> บันทึก
     </button>
     </div>
@@ -545,24 +546,29 @@
         <span id="count-stockN2" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
     </button>
 
-    <button @click="activeTab = 'N2PO'; toggleTab('N2PO')" 
-            class="py-2 text-sm font-medium transition-all relative border-b-2"
-            :class="activeTab === 'N2PO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-        รอตรวจรับ (กบพ.)
-        <span id="count-n2po" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-    </button>
+  
 </div>
         <div class="p-4">
             <div x-show="activeTab === 'Upcoming'" class="overflow-x-auto w-full">
-                <table id="tabUpcoming" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
+                <!-- <table id="tabUpcoming" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table> -->
+                <div id="tabUpcoming" class="space-y-4">
+    <!-- ข้อมูลจะถูก render เข้ามาที่นี่ -->
+</div>
+<!-- ปุ่ม See More -->
+<div id="btnContainer" class="mt-4 text-center">
+    <button id="btnSeeMore" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition">
+        See More
+    </button>
+</div>
             </div>
 
             <div x-show="activeTab === 'StockN2'" class="overflow-x-auto w-full">
-                <table id="tabStockN2" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
+               <div id="tabStockN2" class="space-y-4"></div>
+              <div class="mt-4 text-center">
+                  <button id="btnSeeMoreStockN2" class="px-4 py-2 bg-gray-100 rounded text-sm hidden">See More</button>
+              </div>
             </div>
-            <div x-show="activeTab === 'N2PO'" class="overflow-x-auto w-full">
-                <table id="tabN2PO" class="table table-hover align-middle mb-0 text-sm" style="width: 100% !important;"></table>
-            </div>
+           
         </div>
     </div>
 </div>
@@ -790,11 +796,14 @@
               </div>
           </div>
       </div>
-
-      <div class="w-full overflow-x-auto py-2">
-        <table id="tableNoStock_AfterUpcoming" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>
-      </div>
-
+<div class="table-responsive">
+<div class="w-full overflow-x-auto py-2">
+<table id="tableNoStock_AfterUpcoming" 
+           style="min-width: 1000px;" 
+           class="table table-hover align-middle w-full mb-0 text-sm leading-normal">
+        <!-- เนื้อหาตาราง -->
+    </table>      </div>
+</div>
     </div>
   
   </div> 
@@ -993,7 +1002,7 @@
  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-
+<!-- <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script> -->
 
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
