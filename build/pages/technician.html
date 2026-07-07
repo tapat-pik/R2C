@@ -747,6 +747,24 @@
     </div>
 </div>
 
+<div class="col-xl col-md-4">
+    <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
+        <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">มูลค่าตามแผน</label>
+        <button id="dropdownBudgetProjectButton" data-dropdown-toggle="dropdownSearchBudgetProject" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+            <span class="text-slate-500 text-sm truncate">ทั้งหมด (มูลค่าตามแผน)</span>
+            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+        </button>
+        <div id="dropdownSearchBudgetProject" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+            <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
+                <input type="text" id="searchBudgetProject" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหางบ..." />
+            </div>
+            <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownBudgetProjectButton"></ul>
+            <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
+                <button type="button" id="clearBudgetFilterProject" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">ล้างค่าที่เลือกทั้งหมด</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 
    

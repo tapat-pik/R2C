@@ -2009,7 +2009,13 @@ function syncAllTables(mainTable) {
     if (typeof obsoleteTableInstance !== 'undefined' && obsoleteTableInstance) {
         obsoleteTableInstance.column(0).search(stockRegex, true, false).draw();
     }
+
+     // 3. ซิงค์ตาราง Obsolete (คอลัมน์ 0)
+    if (typeof fulfilledTableInstance !== 'undefined' && fulfilledTableInstance) {
+        fulfilledTableInstance.column(0).search(stockRegex, true, false).draw();
+    }
     updateDashboardCardsDebounced('#tableRequirement_Data');
+    // updateDashboardCountsBasedOnFiltered(filteredRows);
 }
 // ==================== Filter Module ====================
 const FilterModule = {
@@ -2283,9 +2289,170 @@ setupFilterBudgetCIP(table, data) {
     });
 },
 
+// =================================================================
+// [ุ6] ฟังก์ชันกรองงบประมาณ Budget CIP (คอลัมน์ที่ 12 ในตารางหลัก)
+// =================================================================
+// setupFilterBudgetProject(table) {
+//     const $dropdownMenu = $('#dropdownSearchBudgetProject'); // ID ของ dropdown/container ของฟิลเตอร์นี้
+//     const $searchContainer = $dropdownMenu.find('ul');
+//     const $clearButton = $('#clearBudgetFilterProject');
+
+//     // นิยามช่วงมูลค่า
+//     const ranges = [
+//         { label: "ไม่เกิน 500,000 บาท", min: 0, max: 500000 },
+//         { label: "500,000 ถึง 4,999,999 บาท", min: 500000, max: 4999999 },
+//         { label: "5,000,000 ถึง 49,999,999 บาท", min: 5000000, max: 49999999 },
+//         { label: "ตั้งแต่ 50,000,000 บาทขึ้นไป", min: 50000000, max: Infinity }
+//     ];
+
+//     $searchContainer.empty();
+
+//     // สร้าง Checkbox ตามช่วงที่กำหนด
+//     ranges.forEach((range, index) => {
+//         $searchContainer.append(`
+//             <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium rounded budget-project-item">
+//                 <label class="w-full flex items-center justify-between cursor-pointer m-0">
+//                     <span class="text-sm">${range.label}</span>
+//                     <input type="checkbox" class="budget-project-checkbox w-4 h-4" 
+//                            data-min="${range.min}" data-max="${range.max}">
+//                 </label>
+//             </li>
+//         `);
+//     });
+
+//     // Custom Filter Logic สำหรับ DataTables
+// $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+//     const selectedCheckboxes = $searchContainer.find('.budget-project-checkbox:checked');
+//     if (selectedCheckboxes.length === 0) return true;
+
+//     // 1. ดึง HTML String ออกมา
+//     let rawValue = data[6] || "";
+
+//     // 2. ใช้ Regex ดึงเฉพาะตัวเลขออกมาจาก HTML (หรือถ้าเป็นเครื่องหมาย - ให้เป็น 0)
+//     // การทำ .replace(/<[^>]*>/g, '') คือการลบ tag html ทิ้งให้เหลือแต่ข้อความ
+//     let cleanText = rawValue.replace(/<[^>]*>/g, '').trim(); 
+    
+//     // 3. ถ้าเป็นเครื่องหมาย '-' ให้มองเป็น 0
+//     if (cleanText === '-') cleanText = '0';
+// console.log("Row Index:", dataIndex, "Raw Value from Col 6:", cleanText);
+//     // 4. ลบ comma และแปลงเป็นเลข
+//     const budgetValue = parseFloat(cleanText.replace(/,/g, '')) || 0;
+
+//     // ตรวจสอบช่วง (เหมือนเดิม)
+//     let isMatch = false;
+//     selectedCheckboxes.each(function() {
+//         const min = parseFloat($(this).data('min'));
+//         const max = parseFloat($(this).data('max'));
+//         if (budgetValue >= min && budgetValue <= max) {
+//             isMatch = true;
+//         }
+//     });
+
+//     return isMatch;
+// });
+   
+//      const applyFilter = () => {
+//         let selected = [];
+//         $searchContainer.find('.typewbs-checkbox:checked').each(function () { selected.push($(this).val()); });
+//         const regex = selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+//         table.column(6).search(regex, true, false).draw();
+//         syncAllTables(table); // ⚡ ซิงค์ตารางย่อยทั้งหมด
+//     };
 
 
+//     $searchContainer.off('change', '.budget-project-checkbox').on('change', '.budget-project-checkbox', applyFilter);
+//     $clearButton.off('click').on('click', function() {
+//         $searchInput.val('').trigger('input');
+//         $searchContainer.find('.budget-project-checkbox').prop('checked', false);
+//         applyFilter();
+//     });
 
+
+   
+
+//     // const applyFilter = () => {
+//     //     let selected = [];
+//     //     $searchContainer.find('.budget-checkbox:checked').each(function () { selected.push($(this).val()); });
+//     //     const regex = selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+//     //     table.column(6).search(regex, true, false).draw();
+//     //     syncAllTables(table); // ⚡ ซิงค์ตารางย่อยทั้งหมด
+//     // };
+
+//     // $searchContainer.off('change', '.budget-checkbox').on('change', '.budget-checkbox', applyFilter);
+//     // $clearButton.off('click').on('click', function() {
+//     //     $searchContainer.find('.budget-checkbox').prop('checked', false); 
+//     //     $searchInput.val('').trigger('input');
+//     //     applyFilter();
+//     // });
+// },
+
+
+setupFilterBudgetProject(table) {
+    const $dropdownMenu = $('#dropdownSearchBudgetProject');
+    const $searchContainer = $dropdownMenu.find('ul');
+    const $clearButton = $('#clearBudgetFilterProject');
+
+    const ranges = [
+        { label: "ไม่เกิน 500,000 บาท", min: 0, max: 500000 },
+        { label: "500,000 ถึง 4,999,999 บาท", min: 500000, max: 4999999 },
+        { label: "5,000,000 ถึง 49,999,999 บาท", min: 5000000, max: 49999999 },
+        { label: "ตั้งแต่ 50,000,000 บาทขึ้นไป", min: 50000000, max: Infinity }
+    ];
+
+    $searchContainer.empty();
+    ranges.forEach((range) => {
+        $searchContainer.append(`
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium rounded budget-project-item">
+                <label class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <span class="text-sm">${range.label}</span>
+                    <input type="checkbox" class="budget-project-checkbox w-4 h-4" 
+                           data-min="${range.min}" data-max="${range.max}">
+                </label>
+            </li>
+        `);
+    });
+
+    // 1. ล้างฟิลเตอร์เก่าออกเสมอ เพื่อป้องกันการสะสม
+    $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(func => !func.isBudgetFilter);
+
+    // 2. สร้างฟิลเตอร์ใหม่
+    const budgetSearchFunc = function(settings, data, dataIndex) {
+        // กรองเฉพาะตารางนี้เท่านั้น (ถ้ามีหลายตาราง)
+        if (settings.nTable !== table.table().node()) return true;
+
+        const selectedCheckboxes = $searchContainer.find('.budget-project-checkbox:checked');
+        if (selectedCheckboxes.length === 0) return true;
+
+        let rawValue = data[6] || "";
+        let cleanText = rawValue.replace(/<[^>]*>/g, '').trim(); 
+        if (cleanText === '-') cleanText = '0';
+
+        const budgetValue = parseFloat(cleanText.replace(/,/g, '')) || 0;
+
+        let isMatch = false;
+        selectedCheckboxes.each(function() {
+            const min = parseFloat($(this).data('min'));
+            const max = parseFloat($(this).data('max'));
+            if (budgetValue >= min && budgetValue <= max) isMatch = true;
+        });
+        return isMatch;
+    };
+    budgetSearchFunc.isBudgetFilter = true;
+    $.fn.dataTable.ext.search.push(budgetSearchFunc);
+
+    // 3. ปรับปรุง applyFilter
+    const applyFilter = () => {
+        // ไม่ต้องใช้ table.column(6).search(...) เพราะเราใช้ ext.search แล้ว
+        table.draw(); 
+        // สั่ง sync ใน callback ของตารางจะแม่นยำกว่า (ดูด้านล่าง)
+    };
+
+    $searchContainer.off('change', '.budget-project-checkbox').on('change', '.budget-project-checkbox', applyFilter);
+    $clearButton.off('click').on('click', function() {
+        $searchContainer.find('.budget-project-checkbox').prop('checked', false);
+        applyFilter();
+    });
+},
 // =========== filter ตัวใหม่ล่าสุดสำหรับตารางพัสดุที่กำลังจะมาถึง (Upcoming Material) =========== //
 
 
@@ -2668,7 +2835,8 @@ function setupGlobalEvents() {
             '#searchProjGroup, #searchBudget'
         ).val('');
         // หมายเหตุ: หากตัวกรอง Light มีไอดีช่องเสิร์ช สามารถนำมาใส่เพิ่มในกลุ่มด้านบนนี้ได้เลยครับ
-        
+        $('#dropdownSearchBudgetProject').find('.budget-project-checkbox').prop('checked', false);
+        if (parcelTable) parcelTable.draw();
         // 3. รีเซ็ตข้อความบนหน้าปุ่มกดเลือกตัวกรองให้กลับเป็นสถานะเริ่มต้น
         $('#dropdownLightButton span').text('ทั้งหมด (สัญญาณไฟ)'); // ปรับเปลี่ยนข้อความเริ่มต้นตามจริงของคุณได้เลยครับ
         $('#dropdownTypeWBSButton span').text('ทั้งหมด (สถานะงาน)');
@@ -2905,14 +3073,17 @@ updateDashboardCounts(
                 if (typeof WarehouseService !== 'undefined') {
                     WarehouseService.renderNoStock_warehouse(processedAllocData, materialTypeMap);
                 }
-
+                // เพิ่มบรรทัดนี้ลงไปเพื่อให้ Sync ตลอดเวลาไม่ว่าจะกรองด้วยวิธีไหน
+                parcelTable.on('draw', function () {
+                    syncAllTables(parcelTable);
+                });
                 FilterModule.setupFilterID_WBS(parcelTable, data);
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
                 FilterModule.setupFilterLight(parcelTable, data, alloc.wbsStatusMap);
                 FilterModule.setupFilterProjectGroup(parcelTable, data);
                 FilterModule.setupFilterBudgetCIP(parcelTable, data);
-
+                FilterModule.setupFilterBudgetProject(parcelTable, data);
                 updateGraph.updateDashboardCharts(sheet.target);
 
             } else if (sheet.name === 'Stock_Data') {
