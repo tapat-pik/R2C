@@ -352,89 +352,231 @@ const AllocationService = {
             allocatedByWBS.get(item.wbs).push(item);
         });
 
-        uniqueWBS.forEach(wbs => {
-            const items = allocatedByWBS.get(wbs) || [];
+        // uniqueWBS.forEach(wbs => {
+        //     const items = allocatedByWBS.get(wbs) || [];
             
-            // 1. แยกกลุ่มตรวจสอบพัสดุตามประเภทก่อนคิดไฟจราจร
-            let hasLockedMaterial = false;
+        //     // 1. แยกกลุ่มตรวจสอบพัสดุตามประเภทก่อนคิดไฟจราจร
+        //     let hasLockedMaterial = false;
             
-            // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
-               const normalItems = items.filter(i => {
-               const currentID = i.partID?.toString().trim();
-               const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
-                // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
-                const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
-                // ทีนี้ type ก็จะเป็น String "พัสดุล้าสมัย" แล้ว!
-                if (type.includes("พัสดุล้าสมัย") || type.includes("เปลี่ยนรหัสพัสดุ")) {
-                    hasLockedMaterial = true;
-                    return false;
-                }
-                return true;
+        //     // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
+        //        const normalItems = items.filter(i => {
+        //        const currentID = i.partID?.toString().trim();
+        //        const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
+        //         // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
+        //         const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
+        //         // ทีนี้ type ก็จะเป็น String "พัสดุล้าสมัย" แล้ว!
+        //         if (type.includes("พัสดุล้าสมัย") || type.includes("เปลี่ยนรหัสพัสดุ")) {
+        //             hasLockedMaterial = true;
+        //             return false;
+        //         }
+        //         return true;
    
 
-            });
+        //     });
 
-            let status = "yellow"; // ค่าเริ่มต้นกรณีไม่เข้าเงื่อนไขอื่น (ไฟเหลือง)
-            let isGreen = false;
+        //     let status = "yellow"; // ค่าเริ่มต้นกรณีไม่เข้าเงื่อนไขอื่น (ไฟเหลือง)
+        //     let isGreen = false;
 
-            // 🔒 ชั้นที่ 1: ตรวจสอบเงื่อนไขล็อกขั้นสูงสุด (ถ้าเจอล้าสมัย/เปลี่ยนรหัส ต้องเป็นกุญแจเท่านั้น)
-            if (hasLockedMaterial) {
-                status = "lock";
-            } else if (normalItems.length > 0) {
-                // 🔵 🟢 🔴 🟡 ชั้นที่ 2: งานปกติที่ไม่มีพัสดุล้าสมัย/เปลี่ยนรหัสพัสดุ
+        //     // 🔒 ชั้นที่ 1: ตรวจสอบเงื่อนไขล็อกขั้นสูงสุด (ถ้าเจอล้าสมัย/เปลี่ยนรหัส ต้องเป็นกุญแจเท่านั้น)
+        //     if (hasLockedMaterial) {
+        //         status = "lock";
+        //     } else if (normalItems.length > 0) {
+        //         // 🔵 🟢 🔴 🟡 ชั้นที่ 2: งานปกติที่ไม่มีพัสดุล้าสมัย/เปลี่ยนรหัสพัสดุ
 
-                // กรองเฉพาะกลุ่มพัสดุหลัก
-                    const mainItems = normalItems.filter(i => {
-                    const currentID = i.partID?.toString().trim();
-                    const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
-                    // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
-                     const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
-                    return type.includes("พัสดุหลัก");
-                });
+        //         // กรองเฉพาะกลุ่มพัสดุหลัก
+        //             const mainItems = normalItems.filter(i => {
+        //             const currentID = i.partID?.toString().trim();
+        //             const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
+        //             // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
+        //              const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
+        //             return type.includes("พัสดุหลัก");
+        //         });
                 
-                // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
-                const isMainCompleted = mainItems.length > 0 && mainItems.every(i => {
-                    // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 ให้ถือว่าครบ
-                    if (i.pending <= 0) return true;
-                    return i.assigned >= i.pending;
-                });
+        //         // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
+        //         const isMainCompleted = mainItems.length > 0 && mainItems.every(i => {
+        //             // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 ให้ถือว่าครบ
+        //             if (i.pending <= 0) return true;
+        //             return i.assigned >= i.pending;
+        //         });
 
-                // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
-                const isAllCompleted = normalItems.every(i => {
-                const currentID = i.partID?.toString().trim();
-                const materialInfo = materialTypeMap[currentID];
-                const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
+        //         // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
+        //         const isAllCompleted = normalItems.every(i => {
+        //         const currentID = i.partID?.toString().trim();
+        //         const materialInfo = materialTypeMap[currentID];
+        //         const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
                 
-                if (type.includes("พัสดุไม่เบิกจากคลัง")) return true;
+        //         if (type.includes("พัสดุไม่เบิกจากคลัง")) return true;
                 
-                // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 คือได้ของครบแล้ว (เพราะไม่มีความต้องการ)
-                if (i.pending <= 0) return true; 
+        //         // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 คือได้ของครบแล้ว (เพราะไม่มีความต้องการ)
+        //         if (i.pending <= 0) return true; 
                 
-                return i.assigned >= i.pending;
-            });
+        //         return i.assigned >= i.pending;
+        //     });
 
-                // 🔴 เช็คเงื่อนไขไฟสีแดง: ทุกรายการปกติได้ของรวมเป็น 0
-                const isRed = normalItems.every(i => i.assigned === 0);
+        //         // 🔴 เช็คเงื่อนไขไฟสีแดง: ทุกรายการปกติได้ของรวมเป็น 0
+        //         const isRed = normalItems.every(i => i.assigned === 0);
 
-                // 🎯 ตัดสินสัญญาณไฟตามเกณฑ์ความสำคัญของพัสดุ
-                if (isMainCompleted) {
-                    status = "blue"; // พัสดุหลักครบ ยืนพื้นด้วยไฟน้ำเงินก่อน
+        //         // 🎯 ตัดสินสัญญาณไฟตามเกณฑ์ความสำคัญของพัสดุ
+        //         if (isMainCompleted) {
+        //             status = "blue"; // พัสดุหลักครบ ยืนพื้นด้วยไฟน้ำเงินก่อน
                     
-                    // 🟢 แต่ถ้าตรวจสอบแล้ว พัสดุประเภทอื่นๆ ครบหมดด้วย (หรือไม่มีประเภทอื่นอยู่เลย) ให้ปรับเป็นไฟเขียว
-                    if (isAllCompleted) {
-                        status = "green";
-                        isGreen = true; // เปิด Flag ไปรับโบนัส +2000 แต้ม
-                    }
-                } else if (isAllCompleted) {
-                    // เคสยกเว้น: งานนั้นไม่มีพัสดุหลักเลย แต่รายการประเภทอื่นๆ ที่มี ดันได้ครบทั้งหมด
-                    status = "green";
-                    isGreen = true;
-                } else if (isRed) {
-                    status = "red";
-                } else {
-                    status = "yellow"; // พัสดุหลักไม่ครบ และยอดไม่เป็น 0 ทั้งหมด (ได้ของบางส่วน)
-                }
-            }
+        //             // 🟢 แต่ถ้าตรวจสอบแล้ว พัสดุประเภทอื่นๆ ครบหมดด้วย (หรือไม่มีประเภทอื่นอยู่เลย) ให้ปรับเป็นไฟเขียว
+        //             if (isAllCompleted) {
+        //                 status = "green";
+        //                 isGreen = true; // เปิด Flag ไปรับโบนัส +2000 แต้ม
+        //             }
+        //         } else if (isAllCompleted) {
+        //             // เคสยกเว้น: งานนั้นไม่มีพัสดุหลักเลย แต่รายการประเภทอื่นๆ ที่มี ดันได้ครบทั้งหมด
+        //             status = "green";
+        //             isGreen = true;
+        //         } else if (isRed) {
+        //             status = "red";
+        //         } else {
+        //             status = "yellow"; // พัสดุหลักไม่ครบ และยอดไม่เป็น 0 ทั้งหมด (ได้ของบางส่วน)
+        //         }
+        //     }
+// ... (โค้ดก่อนหน้านี้ใน STEP 3 จนถึงส่วนที่เริ่มลูป uniqueWBS)
+uniqueWBS.forEach(wbs => {
+    const items = allocatedByWBS.get(wbs) || [];
+    const allItems = items.map(i => {
+        const type = materialTypeMap[i.partID?.toString().trim()]?.type || "";
+        return { ...i, type,
+            isSpecial: type.includes("พัสดุล้าสมัย") || type.includes("เปลี่ยนรหัสพัสดุ"),
+            isNoStock: type.includes("พัสดุไม่เบิกจากคลัง"),
+            isMain: type.includes("พัสดุหลัก")
+        };
+    });
+
+    const activeItems = allItems.filter(i => !i.isSpecial && !i.isNoStock);
+    const mainItems = activeItems.filter(i => i.isMain);
+    const otherItems = activeItems.filter(i => !i.isMain);
+
+    const hasLocked = allItems.some(i => i.isSpecial && i.pending > 0);
+    const isOnlyNoStock = allItems.every(i => i.isNoStock);
+    
+    // กรองรายการที่ต้องเบิกจริง (pending > 0)
+    const itemsNeedingAllocation = activeItems.filter(i => i.pending > 0);
+
+    // เช็คความครบถ้วนแบบเข้มงวด: เฉพาะรายการที่ต้องเบิก (pending > 0) ต้องมี assigned === pending
+    const isMainFully = mainItems.length > 0 && mainItems.filter(i => i.pending > 0).every(i => i.assigned === i.pending && i.assigned > 0);
+    const isMainFullyCompleted = mainItems.every(i => i.pending <= 0 || (i.assigned === i.pending && i.assigned > 0));
+    const isOthersFullyCompleted = otherItems.every(i => i.pending <= 0 || (i.assigned === i.pending && i.assigned > 0));
+    
+    // ไฟแดง: ถ้ามีของต้องเบิก (pending > 0) แต่ได้ assigned = 0 ทุกตัว
+    const isAllPendingZeroAssigned = itemsNeedingAllocation.length > 0 && itemsNeedingAllocation.every(i => i.assigned === 0);
+    
+    const isMainPendingAllZero = mainItems.every(i => i.pending <= 0);
+    const isOtherMismatch = otherItems.some(i => i.pending > 0 && i.assigned !== i.pending);
+
+    let status = "yellow";
+    let isGreen = false;
+
+    // --- ลำดับการตัดสินไฟ ---
+    // 
+    // 2. ถ้ามีของล็อค -> ล็อค
+        if (hasLocked) { 
+        status = "lock"; 
+    }
+    //1. ถ้าไม่มีรายการต้องเบิกเลย หรือเป็นของไม่เบิกคลังทั้งหมด -> เขียว
+    else if (itemsNeedingAllocation.length === 0 || isOnlyNoStock) {
+        status = "green";
+        isGreen = true;
+    }
+    
+     
+    // 3. ไฟแดง (ของที่ต้องเบิกได้ 0 ทุกตัว)
+    else if (isAllPendingZeroAssigned) { 
+        status = "red"; 
+    }
+    // 4. ไฟเขียว (หลักครบ และ อื่นๆ ครบ)
+    else if (isMainFullyCompleted && isOthersFullyCompleted) { 
+        status = "green"; 
+        isGreen = true; 
+    }
+    // 5. ไฟน้ำเงิน (หลักครบ แต่รายการอื่นไม่ครบ)
+    else if (isMainFully) { 
+        status = "blue"; 
+    }
+    // 6. กรณีอื่น -> เหลือง
+    else { 
+        status = "yellow"; 
+    }
+
+    // ... (ส่วนอัปเดต finalWbsScores และ finalRankPrepList ต่อตามเดิม)
+// uniqueWBS.forEach(wbs => {
+//     const items = allocatedByWBS.get(wbs) || [];
+    
+//     // 1. เตรียมข้อมูล
+//     const allItems = items.map(i => {
+//         const type = materialTypeMap[i.partID?.toString().trim()]?.type || "";
+//         return {
+//             ...i,
+//             type,
+//             isSpecial: type.includes("พัสดุล้าสมัย") || type.includes("เปลี่ยนรหัสพัสดุ"),
+//             isNoStock: type.includes("พัสดุไม่เบิกจากคลัง"),
+//             isMain: type.includes("พัสดุหลัก")
+//         };
+//     });
+
+//     const activeItems = allItems.filter(i => !i.isSpecial && !i.isNoStock);
+//     const mainItems = activeItems.filter(i => i.isMain);
+//     const otherItems = activeItems.filter(i => !i.isMain);
+
+//     // 2. วิเคราะห์เงื่อนไข
+//     const hasLocked = allItems.some(i => i.isSpecial && i.pending > 0);
+//     const isOnlyNoStock = allItems.every(i => i.isNoStock);
+    
+//     // รวมพัสดุทุกตัวที่ยังมีค้างเบิก (pending > 0)
+//     const pendingItems = activeItems.filter(i => i.pending > 0);
+//     const allPendingZero = pendingItems.length === 0; // ค้างเบิก = 0 ทุกรายการ
+    
+//     // ตรวจสอบสถานะการจ่าย (Assigned vs Pending)
+//     const isMainFully = mainItems.length > 0 && mainItems.every(i => i.pending > 0 && i.assigned === i.pending);
+//     const isOthersFully = otherItems.length > 0 && otherItems.every(i => i.pending > 0 && i.assigned === i.pending);
+    
+//     // ตรวจสอบกรณีเฉพาะ: พัสดุหลัก pending > 0 แต่ assigned = 0
+//     const isMainAllAssignedZero = mainItems.length > 0 && mainItems.every(i => i.pending > 0 && i.assigned === 0);
+//     const isAllAssignedZero = activeItems.filter(i => i.pending > 0).every(i => i.assigned === 0);
+
+//     let status = "yellow";
+//     let isGreen = false;
+
+//     // --- ลำดับการตัดสิน (Priority Logic) ---
+
+//     // 5. ถ้าค้างเบิก = 0 ทุกรายการ -> เขียว
+//     if (allPendingZero) {
+//         status = "green";
+//         isGreen = true;
+//     }
+//     // 3. มีพัสดุล้าสมัย/เปลี่ยนรหัส -> ล็อค (เช็คก่อนสีอื่น)
+//     else if (hasLocked) {
+//         status = "lock";
+//     }
+//     // 1 & 2. พัสดุหลักครบ และ อื่นๆ ครบ -> เขียว
+//     else if (isMainFully && otherItems.length === 0 && isOthersFully) {
+//         status = "green";
+//         isGreen = true;
+//     }
+//     // 1. พัสดุหลักครบ แต่พัสดุอื่นยังไม่ครบ -> น้ำเงิน
+//     else if (isMainFully) {
+//         status = "blue";
+//     }
+//     // 4 & 6. พัสดุหลัก Pending 0 (กรณีไม่มี Main หรือ Main เคลียร์หมดแล้ว)
+//     // เงื่อนไข: ถ้า pending > 0 แต่ assign = 0 -> แดง
+//     else if (isAllAssignedZero) {
+//         status = "red";
+//     }
+//     // เงื่อนไข: ถ้า assign < pending หรือ assign > pending (คือไม่เท่ากัน) -> เหลือง
+//     else {
+//         status = "yellow";
+//     }
+
+    // ... (ส่วนการอัปเดต finalWbsScores และ finalRankPrepList ต่อจากนี้ได้เลย)
+
+    // ... (ส่วนการอัปเดต finalWbsScores และ finalRankPrepList ต่อจากนี้ได้เลย)
+
+
+    // ... (ส่วนที่เหลือของการอัปเดต finalWbsScores และ finalRankPrepList เหมือนเดิม)
 
             const firstItem = items[0];
             if (firstItem) {
@@ -461,6 +603,8 @@ const AllocationService = {
                     isFullyAllocated: isGreen
                 });
             }
+        
+        
         });
 
         // ================================================================================================
