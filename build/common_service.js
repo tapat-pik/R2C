@@ -1,3 +1,6 @@
+
+ let finalRankPrepList = [];
+
 // ==================== Configuration ====================
 const config = [
     { name: 'Material_Master', target: '#tableParcel' },
@@ -342,7 +345,7 @@ const AllocationService = {
         // ================================================================================================
         // STEP 3: สรุปผลลัพธ์และบันทึกข้อมูลเพื่อเตรียมจัดอันดับสุดท้าย
         // ================================================================================================
-        const finalRankPrepList = [];
+       
         const allocatedByWBS = new Map();
 
         allocatedResults.forEach(item => {
@@ -352,89 +355,7 @@ const AllocationService = {
             allocatedByWBS.get(item.wbs).push(item);
         });
 
-        // uniqueWBS.forEach(wbs => {
-        //     const items = allocatedByWBS.get(wbs) || [];
-            
-        //     // 1. แยกกลุ่มตรวจสอบพัสดุตามประเภทก่อนคิดไฟจราจร
-        //     let hasLockedMaterial = false;
-            
-        //     // กรองเอาเฉพาะพัสดุปกติ (ที่ไม่ใช่ พัสดุล้าสมัย และ ไม่ใช่ เปลี่ยนรหัสพัสดุ) เอาไว้คิดไฟจราจร
-        //        const normalItems = items.filter(i => {
-        //        const currentID = i.partID?.toString().trim();
-        //        const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
-        //         // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
-        //         const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
-        //         // ทีนี้ type ก็จะเป็น String "พัสดุล้าสมัย" แล้ว!
-        //         if (type.includes("พัสดุล้าสมัย") || type.includes("เปลี่ยนรหัสพัสดุ")) {
-        //             hasLockedMaterial = true;
-        //             return false;
-        //         }
-        //         return true;
-   
-
-        //     });
-
-        //     let status = "yellow"; // ค่าเริ่มต้นกรณีไม่เข้าเงื่อนไขอื่น (ไฟเหลือง)
-        //     let isGreen = false;
-
-        //     // 🔒 ชั้นที่ 1: ตรวจสอบเงื่อนไขล็อกขั้นสูงสุด (ถ้าเจอล้าสมัย/เปลี่ยนรหัส ต้องเป็นกุญแจเท่านั้น)
-        //     if (hasLockedMaterial) {
-        //         status = "lock";
-        //     } else if (normalItems.length > 0) {
-        //         // 🔵 🟢 🔴 🟡 ชั้นที่ 2: งานปกติที่ไม่มีพัสดุล้าสมัย/เปลี่ยนรหัสพัสดุ
-
-        //         // กรองเฉพาะกลุ่มพัสดุหลัก
-        //             const mainItems = normalItems.filter(i => {
-        //             const currentID = i.partID?.toString().trim();
-        //             const materialInfo = materialTypeMap[currentID]; // อันนี้คือ Object { type: "...", cost: ... }
-        //             // 🎯 ดึงค่า type ออกมาตรงๆ แบบนี้ครับ:
-        //              const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
-        //             return type.includes("พัสดุหลัก");
-        //         });
-                
-        //         // 🔵 เช็คเงื่อนไขไฟสีน้ำเงิน: พัสดุหลักมีอยู่ในงาน และทุกรายการพัสดุหลักได้ครบ (ไม่สนใจพัสดุประเภทอื่น)
-        //         const isMainCompleted = mainItems.length > 0 && mainItems.every(i => {
-        //             // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 ให้ถือว่าครบ
-        //             if (i.pending <= 0) return true;
-        //             return i.assigned >= i.pending;
-        //         });
-
-        //         // 🟢 เช็คเงื่อนไขไฟสีเขียว: พัสดุทุกรายการได้ครบ (โดยมองข้ามประเภท "พัสดุไม่เบิกจากคลัง")
-        //         const isAllCompleted = normalItems.every(i => {
-        //         const currentID = i.partID?.toString().trim();
-        //         const materialInfo = materialTypeMap[currentID];
-        //         const type = (materialInfo && materialInfo.type) ? materialInfo.type : "";
-                
-        //         if (type.includes("พัสดุไม่เบิกจากคลัง")) return true;
-                
-        //         // 🎯 แก้ตรงนี้: ถ้า pending เป็น 0 คือได้ของครบแล้ว (เพราะไม่มีความต้องการ)
-        //         if (i.pending <= 0) return true; 
-                
-        //         return i.assigned >= i.pending;
-        //     });
-
-        //         // 🔴 เช็คเงื่อนไขไฟสีแดง: ทุกรายการปกติได้ของรวมเป็น 0
-        //         const isRed = normalItems.every(i => i.assigned === 0);
-
-        //         // 🎯 ตัดสินสัญญาณไฟตามเกณฑ์ความสำคัญของพัสดุ
-        //         if (isMainCompleted) {
-        //             status = "blue"; // พัสดุหลักครบ ยืนพื้นด้วยไฟน้ำเงินก่อน
-                    
-        //             // 🟢 แต่ถ้าตรวจสอบแล้ว พัสดุประเภทอื่นๆ ครบหมดด้วย (หรือไม่มีประเภทอื่นอยู่เลย) ให้ปรับเป็นไฟเขียว
-        //             if (isAllCompleted) {
-        //                 status = "green";
-        //                 isGreen = true; // เปิด Flag ไปรับโบนัส +2000 แต้ม
-        //             }
-        //         } else if (isAllCompleted) {
-        //             // เคสยกเว้น: งานนั้นไม่มีพัสดุหลักเลย แต่รายการประเภทอื่นๆ ที่มี ดันได้ครบทั้งหมด
-        //             status = "green";
-        //             isGreen = true;
-        //         } else if (isRed) {
-        //             status = "red";
-        //         } else {
-        //             status = "yellow"; // พัสดุหลักไม่ครบ และยอดไม่เป็น 0 ทั้งหมด (ได้ของบางส่วน)
-        //         }
-        //     }
+      
 // ... (โค้ดก่อนหน้านี้ใน STEP 3 จนถึงส่วนที่เริ่มลูป uniqueWBS)
 uniqueWBS.forEach(wbs => {
     const items = allocatedByWBS.get(wbs) || [];
@@ -456,9 +377,13 @@ uniqueWBS.forEach(wbs => {
     
     // กรองรายการที่ต้องเบิกจริง (pending > 0)
     const itemsNeedingAllocation = activeItems.filter(i => i.pending > 0);
+    // เปลี่ยนจากเช็คแค่ .every เป็นเช็คว่าต้องมีตัวที่ pending > 0 ก่อนด้วย
+    const mainNeedingAllocation = mainItems.filter(i => i.pending > 0);
 
+    const isMainFully = mainNeedingAllocation.length > 0 && 
+                    mainNeedingAllocation.every(i => i.assigned === i.pending);
     // เช็คความครบถ้วนแบบเข้มงวด: เฉพาะรายการที่ต้องเบิก (pending > 0) ต้องมี assigned === pending
-    const isMainFully = mainItems.length > 0 && mainItems.filter(i => i.pending > 0).every(i => i.assigned === i.pending && i.assigned > 0);
+    // const isMainFully = mainItems.length > 0 && mainItems.filter(i => i.pending > 0).every(i => i.assigned === i.pending && i.assigned > 0);
     const isMainFullyCompleted = mainItems.every(i => i.pending <= 0 || (i.assigned === i.pending && i.assigned > 0));
     const isOthersFullyCompleted = otherItems.every(i => i.pending <= 0 || (i.assigned === i.pending && i.assigned > 0));
     
@@ -467,7 +392,7 @@ uniqueWBS.forEach(wbs => {
     
     const isMainPendingAllZero = mainItems.every(i => i.pending <= 0);
     const isOtherMismatch = otherItems.some(i => i.pending > 0 && i.assigned !== i.pending);
-
+    const isAllPendingAllZero = allItems.every(i => i.pending <= 0);
     let status = "yellow";
     let isGreen = false;
 
@@ -503,77 +428,6 @@ uniqueWBS.forEach(wbs => {
     }
 
     // ... (ส่วนอัปเดต finalWbsScores และ finalRankPrepList ต่อตามเดิม)
-// uniqueWBS.forEach(wbs => {
-//     const items = allocatedByWBS.get(wbs) || [];
-    
-//     // 1. เตรียมข้อมูล
-//     const allItems = items.map(i => {
-//         const type = materialTypeMap[i.partID?.toString().trim()]?.type || "";
-//         return {
-//             ...i,
-//             type,
-//             isSpecial: type.includes("พัสดุล้าสมัย") || type.includes("เปลี่ยนรหัสพัสดุ"),
-//             isNoStock: type.includes("พัสดุไม่เบิกจากคลัง"),
-//             isMain: type.includes("พัสดุหลัก")
-//         };
-//     });
-
-//     const activeItems = allItems.filter(i => !i.isSpecial && !i.isNoStock);
-//     const mainItems = activeItems.filter(i => i.isMain);
-//     const otherItems = activeItems.filter(i => !i.isMain);
-
-//     // 2. วิเคราะห์เงื่อนไข
-//     const hasLocked = allItems.some(i => i.isSpecial && i.pending > 0);
-//     const isOnlyNoStock = allItems.every(i => i.isNoStock);
-    
-//     // รวมพัสดุทุกตัวที่ยังมีค้างเบิก (pending > 0)
-//     const pendingItems = activeItems.filter(i => i.pending > 0);
-//     const allPendingZero = pendingItems.length === 0; // ค้างเบิก = 0 ทุกรายการ
-    
-//     // ตรวจสอบสถานะการจ่าย (Assigned vs Pending)
-//     const isMainFully = mainItems.length > 0 && mainItems.every(i => i.pending > 0 && i.assigned === i.pending);
-//     const isOthersFully = otherItems.length > 0 && otherItems.every(i => i.pending > 0 && i.assigned === i.pending);
-    
-//     // ตรวจสอบกรณีเฉพาะ: พัสดุหลัก pending > 0 แต่ assigned = 0
-//     const isMainAllAssignedZero = mainItems.length > 0 && mainItems.every(i => i.pending > 0 && i.assigned === 0);
-//     const isAllAssignedZero = activeItems.filter(i => i.pending > 0).every(i => i.assigned === 0);
-
-//     let status = "yellow";
-//     let isGreen = false;
-
-//     // --- ลำดับการตัดสิน (Priority Logic) ---
-
-//     // 5. ถ้าค้างเบิก = 0 ทุกรายการ -> เขียว
-//     if (allPendingZero) {
-//         status = "green";
-//         isGreen = true;
-//     }
-//     // 3. มีพัสดุล้าสมัย/เปลี่ยนรหัส -> ล็อค (เช็คก่อนสีอื่น)
-//     else if (hasLocked) {
-//         status = "lock";
-//     }
-//     // 1 & 2. พัสดุหลักครบ และ อื่นๆ ครบ -> เขียว
-//     else if (isMainFully && otherItems.length === 0 && isOthersFully) {
-//         status = "green";
-//         isGreen = true;
-//     }
-//     // 1. พัสดุหลักครบ แต่พัสดุอื่นยังไม่ครบ -> น้ำเงิน
-//     else if (isMainFully) {
-//         status = "blue";
-//     }
-//     // 4 & 6. พัสดุหลัก Pending 0 (กรณีไม่มี Main หรือ Main เคลียร์หมดแล้ว)
-//     // เงื่อนไข: ถ้า pending > 0 แต่ assign = 0 -> แดง
-//     else if (isAllAssignedZero) {
-//         status = "red";
-//     }
-//     // เงื่อนไข: ถ้า assign < pending หรือ assign > pending (คือไม่เท่ากัน) -> เหลือง
-//     else {
-//         status = "yellow";
-//     }
-
-    // ... (ส่วนการอัปเดต finalWbsScores และ finalRankPrepList ต่อจากนี้ได้เลย)
-
-    // ... (ส่วนการอัปเดต finalWbsScores และ finalRankPrepList ต่อจากนี้ได้เลย)
 
 
     // ... (ส่วนที่เหลือของการอัปเดต finalWbsScores และ finalRankPrepList เหมือนเดิม)
@@ -600,7 +454,8 @@ uniqueWBS.forEach(wbs => {
                     budget: firstItem.budget,
                     status: status,
                     raw: firstItem.raw,
-                    isFullyAllocated: isGreen
+                    isFullyAllocated: isGreen,
+                    isAllPendingAllZero: isAllPendingAllZero
                 });
             }
         
@@ -632,6 +487,11 @@ uniqueWBS.forEach(wbs => {
             );
         });
 
+
+
+// --- สิ้นสุดการแทนที่ ---
+      
+
         return { allocatedResults, finalWbsScores, wbsStatusMap };
     },
 
@@ -643,34 +503,57 @@ uniqueWBS.forEach(wbs => {
     }
 };
 
-// ในไฟล์ CommonService.js (หรือไฟล์ Service ที่คุณเลือก)
+
 const RankingService = {
-    // ฟังก์ชันนี้จะทำหน้าที่คำนวณอันดับทั้งหมดล่วงหน้า
     calculateAllWbsRanks(dataRows, budgetMapping, finalScores) {
         const uniqueMap = new Map();
         const countMap = new Map();
 
-        // 1. จัดกลุ่มข้อมูล
+        // 1. จัดกลุ่มข้อมูลและตรวจสอบสถานะการเบิก
         dataRows.forEach(row => {
             let valA = CommonService.getCellValue(row.c[0]).toString().trim();
+            let pending = parseFloat(CommonService.getCellValue(row.c[14])) || 0;
+            
             if (valA !== "") {
-                countMap.set(valA, (countMap.get(valA) || 0) + 1);
-                if (!uniqueMap.has(valA)) uniqueMap.set(valA, row);
+                // เก็บสถานะว่างานนี้มีรายการที่ต้องเบิกค้างอยู่หรือไม่
+                if (!uniqueMap.has(valA)) {
+                    uniqueMap.set(valA, {
+                        valA: valA,
+                        isAllPendingZero: true, // ตั้งต้นว่าครบแล้ว
+                        rowCount: 0,
+                        budget: budgetMapping[valA] || 0,
+                        score: finalScores?.get(valA) || 0
+                    });
+                }
+
+                // ถ้าเจอรายการที่มี pending > 0 แสดงว่างานนี้ยังเบิกไม่ครบ
+                if (pending > 0) {
+                    uniqueMap.get(valA).isAllPendingZero = false;
+                    uniqueMap.get(valA).rowCount += 1; // นับเฉพาะรายการที่ต้องเบิก
+                }
             }
         });
 
-        // 2. คำนวณ Score และเก็บลง List เพื่อ Sort
-        const sortedList = [];
-        uniqueMap.forEach((row, valA) => {
-            let rowCount = countMap.get(valA) || 0;
-            let budget = budgetMapping[valA] || 0;
-            let score = finalScores?.get(valA) || 0; // สมมติว่ามีคะแนนเตรียมไว้แล้ว
-            
-            sortedList.push({ valA, rowCount, budget, score });
-        });
+        // 2. แปลง Map เป็น Array เพื่อเตรียม Sort
+        const sortedList = Array.from(uniqueMap.values());
 
-        // 3. เรียงลำดับ (ตามเกณฑ์ของคุณ)
-        sortedList.sort((a, b) => b.score - a.score || a.rowCount - b.rowCount || b.budget - a.budget);
+        // 3. เรียงลำดับตามเงื่อนไขที่ตกลงกัน
+        // เงื่อนไข: งานที่ครบแล้ว (isAllPendingZero = true) จะถูกผลักไปไว้ท้ายเสมอ
+        sortedList.sort((a, b) => {
+            // ชั้นที่ 0: คัดงานที่ของครบ (Pending=0) ไปไว้ท้ายตาราง
+            if (a.isAllPendingZero !== b.isAllPendingZero) {
+                return a.isAllPendingZero ? 1 : -1;
+            }
+            
+            // ชั้นที่ 1: คะแนนรวมสูงสุด (เหมือนเดิม)
+            if (b.score !== a.score) return b.score - a.score;
+            
+            // ชั้นที่ 2: พัสดุน้อยสุด (เหมือนเดิม)
+            if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
+            
+            // ชั้นที่ 3: มูลค่างานสูงสุด (เหมือนเดิม)
+            return b.budget - a.budget;
+        });
 
         // 4. สร้าง Map ของอันดับ [WBS: Rank]
         const rankMap = {};

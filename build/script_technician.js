@@ -29,6 +29,7 @@ let stockMatchTableInstance = null;
 let noStockTableInstance = null;
 let obsoleteTableInstance = null;
 let fulfilledTableInstance = null;
+let completedTableInstance = null; // เพิ่มตัวแปรสำหรับตาราง Completed Order
 // ==================== Constants ====================
 const TABLE_STYLES = {
     headerStyle: 'color: #344767 !important;',
@@ -1198,10 +1199,14 @@ return matchTable;
             $el.DataTable().destroy();
             $el.empty();
         }
+        const incompleteWBS = new Set();
+        data.rows.forEach(r => { if(parseFloat(getCellValue(r.c[14])) > 0) incompleteWBS.add(getCellValue(r.c[0]).toString().trim()); });
+        
+        const filteredRows = data.rows.filter(row => incompleteWBS.has(getCellValue(row.c[0]).toString().trim()));
+        const filteredData = { ...data, rows: filteredRows };
 
-        let html = this._buildTableHTML(data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
-        $el.html(html);
-
+        let html = this._buildTableHTML(filteredData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
+    $el.html(html);
 
    // 🎯 1. ประกาศตัวแปรรับค่าตาราง (เปลี่ยนจาก return เป็น const ตัวแปรไว้ก่อนเพื่อเอาไปสั่งย้ายปุ่ม)
 const RequirementTable = $el.DataTable({
@@ -1320,12 +1325,19 @@ return RequirementTable;
 
         const uniqueMap = new Map();
         const countMap = new Map();
-
+        const incompleteWBS = new Set();
         data.rows.forEach(row => {
             if (!row || !row.c) return;
             let valA = getCellValue(row.c[0]).toString().trim();
-            if (valA !== "") {
-                countMap.set(valA, (countMap.get(valA) || 0) + 1);
+            let pending = parseFloat(getCellValue(row.c[14])) || 0;
+           if (valA !== "") {
+                // 🎯 นับจำนวนเฉพาะที่ pending > 0 เพื่อเอาไว้แสดงในช่อง "ค้างเบิก"
+                if (pending > 0) {
+                  
+                    countMap.set(valA, (countMap.get(valA) || 0) + 1);
+                }
+             
+                // 🎯 เก็บรายการเข้า uniqueMap เพื่อแสดงในตาราง (เอาทุกรายการ ไม่ต้องสน pending > 0)
                 if (!uniqueMap.has(valA)) {
                     uniqueMap.set(valA, row);
                 }
@@ -1363,12 +1375,20 @@ return RequirementTable;
         });
 
         // 🎯 จัดเรียงลำดับ 3 ชั้น: 1. คะแนนรวมสูงสุด -> 2. พัสดุน้อยสุด -> 3. มูลค่างานสูงสุด
-        sortedWBSList.sort((a, b) => {
-            if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-            if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
-            return b.budget - a.budget;
-        });
+        // sortedWBSList.sort((a, b) => {
+        //     if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        //     if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
+        //     return b.budget - a.budget;
+        // });
 
+        const rankMap = window.GLOBAL_RANK_MAP || {};
+
+        sortedWBSList.sort((a, b) => {
+            // ดึงอันดับที่ RankingService คำนวณไว้แล้วมาเรียง
+            let rankA = rankMap[a.valA] || 9999;
+            let rankB = rankMap[b.valA] || 9999;
+            return rankA - rankB;
+        });
         // 🎯 ส่วนที่เพิ่ม 1: ตัวแปรเก็บสถิติส่งหากราฟ
         const activeRowsDataForChart = [];
 
@@ -1377,12 +1397,14 @@ return RequirementTable;
         // ================================================================================================
         // 1. สร้างสมุดจด (Object) ไว้ข้างนอกลูป
         // const rankMap = {}; 
-        const rankMap = window.GLOBAL_RANK_MAP || {};
+        // const rankMap = window.GLOBAL_RANK_MAP || {};
         sortedWBSList.forEach((item, index) => {
             // const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
             // // 2. บันทึกอันดับลงสมุด โดยใช้ WBS (item.valA) เป็นกุญแจ (Key)
             // rankMap[item.valA] = rank;
-            
+            // if (!incompleteWBS.has(item.valA)) return;
+            // if (mode === 'incomplete' && !incompleteWBS.has(item.valA)) return;
+            // if (mode === 'completed' && incompleteWBS.has(item.valA)) return;
 
             const valA = item.valA;
             const row = item.row;
@@ -1483,8 +1505,102 @@ return RequirementTable;
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
+ // ให้เอาฟังก์ชันนี้ไปวางไว้ใน Object TableRenderer ของคุณครับ
+// renderCompletedOrderTable: function(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
+//     const $el = $(selector);
+    
+//     // 1. สร้าง Set ของงานที่ยังไม่เสร็จ (ค้างเบิก > 0)
+//     const incompleteWBS = new Set();
+//     data.rows.forEach(row => {
+//         let pending = parseFloat(getCellValue(row.c[14])) || 0;
+//         if (pending > 0) {
+//             let valA = getCellValue(row.c[0]).toString().trim();
+//             incompleteWBS.add(valA);
+//         }
+//     });
 
+//     // 2. กรองข้อมูล: เก็บเฉพาะงานที่ "ไม่อยู่ใน" Set งานที่ค้างเบิก
+//     // สำคัญ: วิธีนี้จะได้เฉพาะงานที่ทุกรายการ pending = 0
+//     const completedRows = data.rows.filter(row => {
+//         let valA = getCellValue(row.c[0]).toString().trim();
+//         return !incompleteWBS.has(valA) && valA !== ""; 
+//     });
 
+//     // 3. ตรวจสอบว่ามีข้อมูลเหลือไหม?
+//     if (completedRows.length === 0) {
+//         console.warn("⚠️ CompletedOrderTable: ไม่พบงานที่เสร็จสมบูรณ์");
+//     }
+//     const completedData = {
+//         ...data,
+//         rows: completedRows
+//     };
+
+//     // 3. ทำลายตารางเก่า
+//     if ($.fn.DataTable.isDataTable(selector)) {
+//         $el.DataTable().destroy();
+//         $el.empty();
+//     }
+
+//     // 4. วาดตารางด้วยข้อมูลที่กรองมาแล้ว
+//     let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
+//     $el.html(html);
+// renderCompletedOrderTable: function(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
+//     const $el = $(selector);
+
+//     // 1. หา WBS ที่ยังมีรายการค้าง (Pending > 0)
+//     const incompleteWBS = new Set();
+//     data.rows.forEach(row => {
+//         let valA = getCellValue(row.c[0]).toString().trim();
+//         let pending = parseFloat(getCellValue(row.c[14])) || 0;
+//         if (pending > 0) incompleteWBS.add(valA);
+//     });
+
+//     // 2. กรอง: เอาเฉพาะแถวที่ WBS นั้น "ไม่อยู่ในกลุ่มค้างเบิก"
+//     const completedRows = data.rows.filter(row => {
+//         let valA = getCellValue(row.c[0]).toString().trim();
+//         return valA !== "" && !incompleteWBS.has(valA);
+//     });
+
+//     // 3. เตรียมข้อมูล (ระวัง: ถ้า completedRows ว่างเปล่า ให้ส่ง Array ว่าง)
+//     const completedData = { ...data, rows: completedRows };
+
+//     // 4. วาดตาราง (ใช้ _buildTableHTML ชุดเดิม)
+//     if ($.fn.DataTable.isDataTable(selector)) {
+//         $el.DataTable().destroy();
+//         $el.empty();
+//     }
+
+//     let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
+//     $el.html(html);
+
+renderCompletedOrderTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
+    const $el = $(selector);
+    
+    // หา WBS ที่ยังไม่เสร็จ (ที่มี pending > 0)
+    const incompleteWBS = new Set();
+    data.rows.forEach(r => { if(parseFloat(getCellValue(r.c[14])) > 0) incompleteWBS.add(getCellValue(r.c[0]).toString().trim()); });
+
+    // กรองเอาเฉพาะ WBS ที่ "ไม่อยู่" ในกลุ่มงานค้าง (คือเสร็จแล้ว)
+    const completedRows = data.rows.filter(r => !incompleteWBS.has(getCellValue(r.c[0]).toString().trim()));
+    const completedData = { ...data, rows: completedRows };
+
+    let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
+    $el.html(html);
+    // 5. สร้าง DataTable
+    return $el.DataTable({
+        "deferRender": true,
+        "pageLength": 10,
+        "responsive": true,
+        "scrollX": true,
+        "order": [[0, "asc"]],
+        "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+        "initComplete": function() {
+            this.api().columns.adjust();
+            const $wrapper = $el.parent().css({ 'overflow-x': 'auto' });
+            $('<style>').text(`#${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }`).appendTo('head');
+        }
+    });
+},
     renderNoStockTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
     
@@ -1647,7 +1763,7 @@ const NoStockTable = $el.DataTable({
     // 🎯 3. สั่งครอบตัวอุ้มตาราง คัดสไตล์สกรอลบาร์ออก (ในคอมไม่มีแถบวิ่ง แต่ในมือถือปัดขวาได้สวยๆ)
     "initComplete": function() {
         this.api().columns.adjust();
-        
+        updateDashboardCounts();
         // เจาะจงที่ parent wrapper ของตารางนี้โดยตรง
         const $wrapper = $('#tableNoStock').parent().css({ 'overflow-x': 'auto' });
         
@@ -1830,9 +1946,9 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
  */
 renderFulfilledTable(rawDatabase, materialTypeMap) {
     if (!rawDatabase || !rawDatabase.rows) return null;
-
+    const allRows = rawDatabase.rows || [];
     // 1. กรองเอาเฉพาะรายการที่ค้างเบิก (column 14) เป็น 0
-    const fulfilledData = rawDatabase.rows.filter(row => {
+    const fulfilledData = allRows.filter(row => {
         const pending = parseFloat(getCellValue(row.c[14])) || 0;
         return pending === 0;
     });
@@ -1930,61 +2046,95 @@ renderFulfilledTable(rawDatabase, materialTypeMap) {
 // =================================================================
 // 🌟 ฟังก์ชันสำหรับนับจำนวนแถวในตาราง NoStock, Obsolete, Fulfilled และ Stock (Match) แสดง
 // =================================================================
-function getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
-    // 1. นับ NoStock
-    const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
-    const noStockCount = (allocatedData || []).filter(res => {
-        const partID = res.partID?.toString().trim();
-        const materialInfo = materialTypeMap[partID] || { type: "-" };
-        return (res.assigned || 0) < (res.pending || 0) && !EXCLUDED_TYPES.includes(materialInfo.type);
-    }).length;
+// function getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
+//     // 1. นับ NoStock
+//     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+//     const noStockCount = (allocatedData || []).filter(res => {
+//         const partID = res.partID?.toString().trim();
+//         const materialInfo = materialTypeMap[partID] || { type: "-" };
+//         return (res.assigned || 0) < (res.pending || 0) && !EXCLUDED_TYPES.includes(materialInfo.type);
+//     }).length;
 
-    // 2. นับ Obsolete
-    const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
-    const obsoleteCount = (allocatedData || []).filter(res => {
-        if (res.assigned !== 0 || res.pending <= 0) return false;
-        const partID = res.partID?.toString().trim();
-        const materialInfo = materialTypeMap[partID] || { type: "-" };
-        return OBSOLETE_TYPES.includes(materialInfo.type);
-    }).length;
+//     // 2. นับ Obsolete
+//     const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+//     const obsoleteCount = (allocatedData || []).filter(res => {
+//         if (res.assigned !== 0 || res.pending <= 0) return false;
+//         const partID = res.partID?.toString().trim();
+//         const materialInfo = materialTypeMap[partID] || { type: "-" };
+//         return OBSOLETE_TYPES.includes(materialInfo.type);
+//     }).length;
 
-    // 3. นับ Fulfilled (จาก rawDatabase)
-    let fulfilledCount = 0;
-    if (rawDatabase && rawDatabase.rows) {
-        fulfilledCount = rawDatabase.rows.filter(row => {
-            const pending = parseFloat(getCellValue(row.c[14])) || 0;
-            return pending === 0;
-        }).length;
-    }
+//     // 3. นับ Fulfilled (จาก rawDatabase)
+//     let fulfilledCount = 0;
+//     if (rawDatabase && rawDatabase.rows) {
+//         fulfilledCount = rawDatabase.rows.filter(row => {
+//             const pending = parseFloat(getCellValue(row.c[14])) || 0;
+//             return pending === 0;
+//         }).length;
+//     }
 
- // 4. นับ Match Stock (ต้องนับจาก allocatedData ตัวเดียวกันกับที่ส่งไป renderInitialStockMatch)
-    // ตรงนี้คือจุดที่ทำให้ค่าไม่ขึ้น เพราะคุณไปนับจากที่อื่น
-    const matchStockCount = (allocatedData || []).filter(res => {
-        const assignedValue = parseFloat(res.assigned) || 0;
-        return assignedValue > 0;
-    }).length;
+//  // 4. นับ Match Stock (ต้องนับจาก allocatedData ตัวเดียวกันกับที่ส่งไป renderInitialStockMatch)
+//     // ตรงนี้คือจุดที่ทำให้ค่าไม่ขึ้น เพราะคุณไปนับจากที่อื่น
+//     const matchStockCount = (allocatedData || []).filter(res => {
+//         const assignedValue = parseFloat(res.assigned) || 0;
+//         return assignedValue > 0;
+//     }).length;
+
+//     return {
+//         noStock: noStockCount,
+//         obsolete: obsoleteCount,
+//         fulfilled: fulfilledCount,
+//         matchStock: matchStockCount,
+//         totalStockcount: noStockCount + obsoleteCount + fulfilledCount + matchStockCount
+//     };
+// }
+
+// function updateDashboardCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
+//     // 1. คำนวณข้อมูลจากฟังก์ชันที่ทำไว้ก่อนหน้า
+//     const counts = getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap);
+
+//     // 2. อัปเดตค่าลงใน element ตาม ID ที่กำหนดไว้
+//     document.getElementById('count-fulfilled').innerText = counts.fulfilled.toLocaleString();
+//     document.getElementById('count-matchStock').innerText = counts.matchStock.toLocaleString();
+//     document.getElementById('count-noStock').innerText = counts.noStock.toLocaleString();
+//     document.getElementById('count-obsolete').innerText = counts.obsolete.toLocaleString();
+//     document.getElementById('count-totalStockcount').innerText = counts.totalStockcount.toLocaleString();
+
+// }
+
+function getTableCounts() {
+    // ฟังก์ชันย่อยสำหรับนับข้อมูลจาก DataTable Instance
+    const getCount = (instance) => {
+        if (!instance) return 0;
+        // ถ้ามีการค้นหาใน column 0 (WBS) ให้เลือกนับเฉพาะข้อมูลที่กรองแล้ว
+        const searchVal = instance.column(0).search();
+        return searchVal ? instance.rows({ filter: 'applied' }).count() : instance.rows().count();
+    };
+
+    const noStock = getCount(noStockTableInstance);
+    const obsolete = getCount(obsoleteTableInstance);
+    const fulfilled = getCount(fulfilledTableInstance);
+    const matchStock = getCount(stockMatchTableInstance);
 
     return {
-        noStock: noStockCount,
-        obsolete: obsoleteCount,
-        fulfilled: fulfilledCount,
-        matchStock: matchStockCount,
-        totalStockcount: noStockCount + obsoleteCount + fulfilledCount + matchStockCount
+        noStock,
+        obsolete,
+        fulfilled,
+        matchStock,
+        totalStockcount: noStock + obsolete + fulfilled + matchStock
     };
 }
 
-function updateDashboardCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
-    // 1. คำนวณข้อมูลจากฟังก์ชันที่ทำไว้ก่อนหน้า
-    const counts = getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap);
+function updateDashboardCounts() {
+    const counts = getTableCounts();
 
-    // 2. อัปเดตค่าลงใน element ตาม ID ที่กำหนดไว้
     document.getElementById('count-fulfilled').innerText = counts.fulfilled.toLocaleString();
     document.getElementById('count-matchStock').innerText = counts.matchStock.toLocaleString();
     document.getElementById('count-noStock').innerText = counts.noStock.toLocaleString();
     document.getElementById('count-obsolete').innerText = counts.obsolete.toLocaleString();
     document.getElementById('count-totalStockcount').innerText = counts.totalStockcount.toLocaleString();
-
 }
+
 
 // วิธีเรียกใช้: ให้เรียกฟังก์ชันนี้หลังจากข้อมูลโหลดเสร็จแล้ว
 // updateDashboardCounts(allocatedData, rawDatabase, stockData, materialTypeMap);
@@ -2807,11 +2957,15 @@ function setupRowClickEvent() {
 
           if (fulfilledTableInstance) {
             fulfilledTableInstance.column(0).search('^' + selectedWBS + '$', true, false).draw();
+            
         }
 
         // ✨ ดักฟังหลังจากคลิกแถวแล้ว: สั่งให้อัปเดต Dashboard ของตารางนั้นๆ ทันที
         // สมมติว่าตารางที่คุณใช้คือ #tableRequirement_Data ให้ส่ง Selector ของตารางนั้นเข้าไปครับ
         updateDashboardCardsDebounced('#tableRequirement_Data'); 
+        setTimeout(() => {
+            updateDashboardCounts();
+        }, 100);
     });
 }
 
@@ -2823,8 +2977,18 @@ function setupGlobalEvents() {
         if (stockMatchTableInstance) stockMatchTableInstance.search('').columns().search('').draw();
         if (noStockTableInstance) noStockTableInstance.search('').columns().search('').draw();
         if (obsoleteTableInstance) obsoleteTableInstance.search('').columns().search('').draw();
-        if (mb52Table) mb52Table.search('').draw();
+        // if (fulfilledTableInstance) fulfilledTableInstance.search('').columns().search('').draw();
+        if (fulfilledTableInstance) {
+        // 1. ล้าง filter WBS ที่เคยคลิกเลือกไว้
+        fulfilledTableInstance.column(0).search('').draw(); 
         
+        // 2. ถ้าคุณอยากให้มันมั่นใจว่าโชว์แค่ pending === 0 (รายการที่ค้างเบิก = 0)
+        // คุณต้องสั่ง filter คอลัมน์ที่เก็บค่า pending ด้วย (สมมติ pending อยู่คอลัมน์ 4 หรือตามที่คุณ map ไว้)
+        // ถ้าคอลัมน์ที่เช็คค้างเบิกไม่ได้อยู่ในตาราง ให้ข้ามข้อนี้ไปครับ
+    }
+        if (mb52Table) mb52Table.search('').draw();
+        // if (mb52Table) mb52Table.search('').draw();
+        console.log("สถานะ rawDatabase ตอนกด Reset:", rawDatabase.rows.length);
         // ====================================================================
         // 🎯 เคลียร์ 6 ตัวกรองหลักตามโครงสร้างและเงื่อนไขของคุณเป๊ะๆ
         // ====================================================================
@@ -3038,25 +3202,49 @@ updateDashboardCounts(
     materialTypeMap
 );
         const wbsProgressMap = getWBSProgressMap(alloc.allocatedResults);
-          const globalRankMap = RankingService.calculateAllWbsRanks(
-            dataMap['Requirement_Data'].rows, 
-            budgetMapping, 
-            alloc.finalWbsScores
-        );
+        //   const globalRankMap = RankingService.calculateAllWbsRanks(
+        //     dataMap['Requirement_Data'].rows, 
+        //     budgetMapping, 
+        //     alloc.finalWbsScores
+        // );
  
-        // เอาไปแปะไว้ใน window หรือตัวแปร Global เพื่อให้ตารางต่างๆ ดึงไปใช้ได้ทันที
-        window.GLOBAL_RANK_MAP = globalRankMap;
+        // // เอาไปแปะไว้ใน window หรือตัวแปร Global เพื่อให้ตารางต่างๆ ดึงไปใช้ได้ทันที
+        // window.GLOBAL_RANK_MAP = globalRankMap;
+
+        const globalRankMap = (alloc && alloc.finalWbsScores) 
+    ? RankingService.calculateAllWbsRanks(
+        dataMap['Requirement_Data'].rows, 
+        budgetMapping, 
+        alloc.finalWbsScores, 
+        alloc.wbsStatusMap || new Map() // ถ้า wbsStatusMap เป็น undefined ให้ส่ง Map ว่างไปแทน
+      ) 
+    : {}; // ถ้า alloc พัง ให้เป็น Object ว่าง
+
+window.GLOBAL_RANK_MAP = globalRankMap;
         // ================= วาดตาราง ================= //
         config.forEach(sheet => {
             const data = dataMap[sheet.name];
             if (!data) return;
 
             if (sheet.name === 'Requirement_Data') {
-                parcelTable = TableRenderer.renderRequirementTable(
-                    sheet.target, data, globalVVIP, peaNameMapping,
-                    alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
-                );
-                
+                // parcelTable = TableRenderer.renderRequirementTable(
+                //     sheet.target, data, globalVVIP, peaNameMapping,
+                //     alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
+                // );
+
+            // ตารางที่ 1: งานค้างเบิก
+parcelTable = TableRenderer.renderRequirementTable(
+    '#tableRequirement_Data', 
+    rawRequirementDatabase, 
+    globalVVIP, peaNameMapping, alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
+);
+
+// ตารางที่ 2: งานที่เบิกครบแล้ว
+completedTableInstance = TableRenderer.renderCompletedOrderTable(
+    '#tableCompletedOrder', 
+    rawRequirementDatabase, 
+    globalVVIP, peaNameMapping, alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
+);
                 renderInitialStockMatch(processedAllocData, materialTypeMap);
                 updateDashboardCards(sheet.target); 
 
@@ -3064,7 +3252,7 @@ updateDashboardCounts(
                     updateDashboardCardsDebounced(sheet.target);
                     if (e.type === 'search') updateGraph.updateDashboardCharts(sheet.target);
                 });                
-                
+
                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
                 obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
                 // แนะนำให้เปลี่ยนชื่อตัวแปรให้ตรงกับสถานะของข้อมูล
@@ -3077,6 +3265,9 @@ updateDashboardCounts(
                 parcelTable.on('draw', function () {
                     syncAllTables(parcelTable);
                 });
+
+                   
+
                 FilterModule.setupFilterID_WBS(parcelTable, data);
                 FilterModule.setupFilterType_WBS(parcelTable, data);
                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
@@ -3092,7 +3283,16 @@ updateDashboardCounts(
                 TableRenderer.renderGenericTable(sheet.target, data);
             }
         });
+        setTimeout(() => {
+            updateDashboardCounts(); // เรียกครั้งแรกเพื่อให้แสดงยอดรวมทั้งหมด
+        }, 500); 
 
+        // และเพิ่ม Listener ให้ตารางย่อยด้วยเพื่อความแม่นยำ
+        [stockMatchTableInstance, noStockTableInstance, obsoleteTableInstance, fulfilledTableInstance].forEach(table => {
+            if (table) {
+                table.on('draw', () => updateDashboardCounts());
+            }
+        });
         if (upcomingData?.rows?.length > 0) {
              upcomingTableInstance = renderUpcomingTable(upcomingData);
              if (upcomingTableInstance) {
@@ -3101,6 +3301,8 @@ updateDashboardCounts(
                 FilterModule.setupFilterUpcoming_PurchaseGroup(upcomingTableInstance, upcomingData);
              }
         }
+   // ใน initDashboard()
+// ใน initDashboard() หลังจบการ Render ตารางหลัก
 
         setupGlobalEvents();
         $('#main-page-loader').fadeOut(100, function() { $(this).remove(); });
