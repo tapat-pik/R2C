@@ -1105,7 +1105,10 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
         ];
     });
 
-
+        // ตรวจสอบว่ามีข้อมูลไหม
+    if (dataSet.length === 0) {
+        console.warn("ยังไม่มีข้อมูล SUMMARY_DATA");
+    }
     const $el = $('#tableInfoPO');
     if ($.fn.DataTable.isDataTable($el)) {
         $el.DataTable().destroy();
@@ -1147,21 +1150,20 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
         ],
 
 
-"footerCallback": function (row, data, start, end, display) {
-    var api = this.api();
-    // คำนวณจากข้อมูลที่แสดงผลอยู่ปัจจุบัน (applied filter)
-    var total = api.column(6, { search: 'applied' }).data().reduce(function (a, b) {
-        return parseFloat(a) + parseFloat(typeof b === 'string' ? b.replace(/,/g, '') : b || 0);
-    }, 0);
+// "footerCallback": function (row, data, start, end, display) {
+//     var api = this.api();
+//     // คำนวณจากข้อมูลที่แสดงผลอยู่ปัจจุบัน (applied filter)
+//     var total = api.column(6, { search: 'applied' }).data().reduce(function (a, b) {
+//         return parseFloat(a) + parseFloat(typeof b === 'string' ? b.replace(/,/g, '') : b || 0);
+//     }, 0);
 
-    $('#footer-total-price').html(
-        `<div style="background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #22c55e; color: #166534; font-weight: 800; font-size: 20px;">
-            ${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท
-        </div>`
-    );
-},
+//     $('#footer-total-price').html(
+//         `<div style="background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #22c55e; color: #166534; font-weight: 800; font-size: 20px;">
+//             ${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท
+//         </div>`
+//     );
+// },
 
-    
 
 
     "deferRender": true,
@@ -1365,6 +1367,7 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
 
     "drawCallback": function() {
              updateCounts_Orderlist();
+             updateGrandTotal();
         }
 
 
@@ -2560,7 +2563,28 @@ return NoStock_AfterUpcomingTable;
 
 };
 
+function updateGrandTotal() {
+    const table = $('#tableInfoPO').DataTable();
+    let total = 0;
 
+    // ดึงข้อมูลทั้งหมดที่อยู่ใน DataTable (ไม่สนว่าอยู่หน้าไหน หรือ Filter อะไร)
+    // ถ้าอยากได้เฉพาะที่ Filter อยู่ ให้ใช้ table.rows({search: 'applied'}).data()
+    const allData = table.rows().data();
+
+    allData.each(function(rowData) {
+        // rowData คือ Array ของข้อมูลในแต่ละแถว 
+        // อ้างอิงจากโครงสร้าง dataSet ของคุณ:
+        // rowData[4] = cost, rowData[5] = จำนวนสั่งซื้อ
+        
+        let cost = parseFloat(rowData[4]) || 0;
+        let qty = parseFloat(rowData[5]) || 0;
+        
+        total += (qty * cost);
+    });
+
+    // อัปเดต UI
+    $('#grand-total-display').text(total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บาท');
+}
 //============== 🎯 ฟังก์ชันช่วยสร้าง Worksummary ของข้อมูลย่อย ===============================//
 
 // วางไว้นอกฟังก์ชัน render เพื่อผูก Event ไว้ที่ตัวตารางถาวร
@@ -2647,6 +2671,7 @@ window.calculateRowTotal = function(inputElement) {
     const totalRaw = qty * cost; // ใช้ค่าดิบ (Raw value)
 
     const table = $('#tableInfoPO').DataTable();
+    
     const row = table.row($(inputElement).closest('tr'));
 
     // อัปเดต Data Store ด้วยค่าดิบเสมอ เพื่อใช้ในการคำนวณรวมตอน Export
@@ -2658,7 +2683,7 @@ window.calculateRowTotal = function(inputElement) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }));
-
+updateGrandTotal();
     table.draw(false); // เรียกให้ Footer คำนวณใหม่จากค่าดิบใน Data Store
 };
 // ฟังก์ชันอัปเดตจำนวนแถวที่แสดงในแต่ละแท็บ (Upcoming, StockN2, N2PO) และแสดงผลในช่องที่กำหนดไว้
@@ -2848,7 +2873,7 @@ function getTopRankedWbsData(fullData, limit) {
         newOrderMap: newOrderMap
     };
 }
-/** * 1. ฟังก์ชันอัปเดตค่าที่แสดงผล (ทำหน้าที่แค่ Sync UI) 
+/** * 1. ฟังก์ชันอัปเดตค่า rankSlider ที่แสดงผล (ทำหน้าที่แค่ Sync UI) 
    */
   function updateUI(value) {
     const slider = document.getElementById('rankSlider');
