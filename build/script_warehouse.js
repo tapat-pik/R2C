@@ -1115,25 +1115,36 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
         $el.empty();
     }
 // 1. เพิ่ม <thead> และ <tfoot> ลงในตารางก่อนสร้าง DataTable
-  $el.html(`
-        <thead>
-            <tr>
-                <th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ประเภท</th>
-                <th>ความต้องการสุทธิ</th><th>ราคากลาง</th><th>จำนวนสั่งซื้อ</th>
-                <th>ราคารวม</th><th>จำนวนงานที่ใช้</th><th>สถานะ</th>
-            </tr>
-        </thead>
-      // ในส่วนของ $el.html(...)
-<tfoot>
+// ในฟังก์ชัน renderInfoPOTable ส่วนที่กำหนด $el.html
+$el.html(`
+    <thead>
+        <tr>
+            <th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ประเภท</th>
+            <th>ความต้องการสุทธิ</th><th>ราคากลาง</th><th>จำนวนสั่งซื้อ</th>
+            <th>ราคารวม</th><th>จำนวนงานที่ใช้</th><th>สถานะ</th>
+        </tr>
+    </thead>
+   <tfoot>
     <tr>
-        <th colspan="8" style="text-align:right !important; vertical-align: middle !important; font-size: 20px;">
-            รวมมูลค่าการสั่งซื้อทั้งหมด:
-        </th>
-        <th id="footer-total-price" style="text-align:right !important; vertical-align: middle !important; padding: 10px !important;">
-            </th>
+        <td colspan="9" style="padding: 0 !important;">
+            <div class="summary-dashboard-footer" style="display: flex; justify-content: flex-end; align-items: stretch; background: #f8fafc; border-top: 1px solid #e2e8f0; width: 100%;">
+                
+                <div class="summary-item" style="padding: 18px 30px; text-align: right;">
+                    <div style="font-size: 16px; color: #64748b; text-transform: uppercase;">รวมมูลค่าพัสดุที่ต้องจัดซื้อ</div>
+                    <div id="grand-total-display" style="font-size: 26px; font-weight: 700; color: #0f172a;">0.00 บาท</div>
+                </div>
+
+                <div style="width: 1px; background: #cbd5e1; margin: 10px 0;"></div>
+
+                <div class="summary-item" style="padding: 18px 30px; text-align: right;">
+                    <div id="deficit-label" style="font-size: 16px; color: #64748b; text-transform: uppercase;">จำนวนเงินที่ขาด/เกิน</div>
+                    <div id="deficit-display" style="font-size: 26px; font-weight: 700; color: #dc2626;">0.00 บาท</div>
+                </div>
+            </div>
+        </td>
     </tr>
 </tfoot>
-    `);
+`);
      return  $el.DataTable({
     // const INFOPOTable =  $el.DataTable({
         data: dataSet,
@@ -1149,20 +1160,6 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
             { title: "สถานะ" }
         ],
 
-
-// "footerCallback": function (row, data, start, end, display) {
-//     var api = this.api();
-//     // คำนวณจากข้อมูลที่แสดงผลอยู่ปัจจุบัน (applied filter)
-//     var total = api.column(6, { search: 'applied' }).data().reduce(function (a, b) {
-//         return parseFloat(a) + parseFloat(typeof b === 'string' ? b.replace(/,/g, '') : b || 0);
-//     }, 0);
-
-//     $('#footer-total-price').html(
-//         `<div style="background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #22c55e; color: #166534; font-weight: 800; font-size: 20px;">
-//             ${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท
-//         </div>`
-//     );
-// },
 
 
 
@@ -1278,12 +1275,8 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
         const displayValue = Number.isInteger(num) ? num : num.toFixed(1);
 
         
-        return `<input type="number" class="qty-input" 
-                value="${displayValue}" 
-                data-cost="${row[5]}" 
-                min="0" 
-                step="1" 
-                   oninput="calculateRowTotal(this)">`;
+       // เปลี่ยน class เป็น cost-input
+        return `<input type="number" class="cost-input" value="${displayValue}" ... oninput="calculateRowTotal(this)">`;
      }
     },
            {
@@ -1297,12 +1290,8 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
         const displayValue = Number.isInteger(num) ? num : num.toFixed(1);
 
         
-        return `<input type="number" class="qty-input" 
-                value="${displayValue}" 
-                data-cost="${row[4]}" 
-                min="0" 
-                step="1" 
-                   oninput="calculateRowTotal(this)">`;
+       // คง class qty-input ไว้
+        return `<input type="number" class="qty-input" value="${displayValue}" ... oninput="calculateRowTotal(this)">`;
      }
     },
     {
@@ -1368,6 +1357,7 @@ renderInfoPOTable(allocatedData, materialTypeMap) {
     "drawCallback": function() {
              updateCounts_Orderlist();
              updateGrandTotal();
+             updateDeficit();
         }
 
 
@@ -1413,25 +1403,28 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
         $el.empty();
     }
 // 1. เพิ่ม <thead> และ <tfoot> ลงในตารางก่อนสร้าง DataTable
-  $el.html(`
-        <thead>
-            <tr>
-                <th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ประเภท</th>
-                <th>ความต้องการสุทธิ</th><th>ราคากลาง</th>
-                <th>ราคารวม</th><th>จำนวนงานที่ใช้</th><th>สถานะ</th>
-            </tr>
-        </thead>
-      // ในส่วนของ $el.html(...)
-<tfoot>
-    <tr>
-        <th colspan="7" style="text-align:right !important; vertical-align: middle !important; font-size: 20px;">
-            รวมมูลค่าการสั่งซื้อทั้งหมด:
-        </th>
-        <th id="footer-total-price" style="text-align:right !important; vertical-align: middle !important; padding: 10px !important;">
-            </th>
-    </tr>
-</tfoot>
-    `);
+ // ในส่วนของ $el.html(...)
+$el.html(`
+    <thead>
+        <tr>
+            <th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ประเภท</th>
+            <th>ความต้องการสุทธิ</th><th>ราคากลาง</th>
+            <th>ราคารวม</th><th>จำนวนงานที่ใช้</th><th>สถานะ</th>
+        </tr>
+    </thead>
+    <tfoot>
+        <tr>
+            <td colspan="8" style="padding: 0 !important;">
+                <div style="display: flex; justify-content: flex-end; padding: 18px 30px; background: #f8fafc; border-top: 1px solid #e2e8f0; width: 100%;">
+                    <div style="text-align: right;">
+                        <div style="font-size: 16px; color: #64748b; text-transform: uppercase; font-weight: 700;"">รวมมูลค่างบประมาณขาดแคลน</div>
+                        <div id="hole-total-display" style="font-size: 26px; font-weight: 700; color: #0f172a;">0.00 บาท</div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </tfoot>
+`); 
 
     const HoleTable = $el.DataTable({
         data: dataSet,
@@ -1445,23 +1438,7 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
             { title: "จำนวนงานที่ใช้" },
             { title: "สถานะ" }
         ],
-        "footerCallback": function (row, data, start, end, display) {
-    var api = this.api();
-
-    // ข้อมูลใน api.column(6).data() จะได้รับค่าล่าสุดที่คุณใส่ไปใน rowData[6]
-    var total = api.column(5).data().reduce(function (a, b) {
-        var valB = typeof b === 'string' ? b.replace(/,/g, '') : b;
-        return parseFloat(a) + parseFloat(valB || 0);
-    }, 0);
-
-    // ยิงค่าเข้า ID ที่เราย้ายมาอยู่ที่ index 8 (คอลัมน์ที่ 9)
-    $('#footer-total-price').html(
-                `<div style="background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #22c55e; color: #166534; font-weight: 800; font-size: 20px; display: inline-block; min-width: 200px; text-align: right;">
-
-            ${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท
-        </div>`
-    );
-},
+    
     "deferRender": true,
     "pageLength": 10,
     "responsive": true,
@@ -1531,7 +1508,7 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
         }
     ],
 
-"dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',
+"dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',    
    
      "columnDefs": [
 
@@ -1641,6 +1618,7 @@ renderInfoHoleTable(allocatedData, materialTypeMap) {
     },
      "drawCallback": function() {
              updateCounts_Orderlist();
+             updateHoleTotal();
         }
     });
 
@@ -1689,26 +1667,30 @@ renderInfoTransferTable(allocatedData, materialTypeMap) {
         $el.empty();
     }
 // 1. เพิ่ม <thead> และ <tfoot> ลงในตารางก่อนสร้าง DataTable
-  $el.html(`
-        <thead>
-            <tr>
-                <th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ประเภท</th>
-                <th>ความต้องการสุทธิ</th><th>ราคากลาง</th><th>จำนวนที่ขอโอน</th>
-                <th>ราคารวม</th><th>จำนวนงานที่ใช้</th><th>สถานะ</th>
-            </tr>
-        </thead>
-      // ในส่วนของ $el.html(...)
-<tfoot>
-    <tr>
-        <th colspan="8" style="text-align:right !important; vertical-align: middle !important; font-size: 20px;">
-            รวมมูลค่าการสั่งซื้อทั้งหมด:
-        </th>
-        <th id="footer-total-price" style="text-align:right !important; vertical-align: middle !important; padding: 10px !important;">
-            </th>
-    </tr>
-</tfoot>
-    `);
-
+// ใส่ HTML นี้ไว้ก่อนสร้าง DataTable
+$el.html(`
+    <thead>
+        <tr>
+            <th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ประเภท</th>
+            <th>ความต้องการสุทธิ</th><th>ราคากลาง</th><th>จำนวนที่ขอโอน</th>
+            <th>ราคารวม</th><th>จำนวนงานที่ใช้</th><th>สถานะ</th>
+        </tr>
+    </thead>
+    <tfoot>
+        <tr>
+            <td colspan="9" style="padding: 0 !important;">
+                <div style="display: flex; justify-content: flex-end; padding: 18px 30px; background: #f8fafc; border-top: 1px solid #e2e8f0; width: 100%;">
+                    <div style="text-align: right;">
+                      <div style="font-size: 16px; color: #64748b; text-transform: uppercase; font-weight: 700;">
+    รวมมูลค่างบประมาณที่ประหยัดได้
+</div>
+                        <div id="transfer-total-display" style="font-size: 26px; font-weight: 700; color: #0f172a;">0.00 บาท</div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </tfoot>
+`);
     const TransferTable = $el.DataTable({
         data: dataSet,
         columns: [
@@ -1723,23 +1705,7 @@ renderInfoTransferTable(allocatedData, materialTypeMap) {
             { title: "สถานะ" }
         ],
 
-"footerCallback": function (row, data, start, end, display) {
-    var api = this.api();
 
-    // 1. ใช้ api.column(6) เพื่อดึงข้อมูลคอลัมน์ที่ 7 (ราคารวม)
-    var total = api.column(6, {page: 'current'}).data().reduce(function (a, b) {
-        // จัดการกรณีเป็น String ที่มี comma หรือเป็น object
-        var val = typeof b === 'string' ? b.replace(/,/g, '') : (b || 0);
-        return parseFloat(a) + parseFloat(val);
-    }, 0);
-
-    // 2. ใช้ $(this).find('#footer-total-price') เพื่อให้มั่นใจว่าหา ID ในตารางนี้เท่านั้น
-    $(this).find('#footer-total-price').html(
-        `<div style="background-color: #f0fdf4; padding: 10px 20px; border-radius: 6px; border: 1px solid #22c55e; color: #166534; font-weight: 800; font-size: 20px; display: inline-block; min-width: 200px; text-align: right;">
-            ${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท
-        </div>`
-    );
-},
     "deferRender": true,
     "pageLength": 10,
     "responsive": true,
@@ -1918,6 +1884,7 @@ renderInfoTransferTable(allocatedData, materialTypeMap) {
     },
      "drawCallback": function() {
              updateCounts_Orderlist();
+             updateTransferTotal()
         }
     });
 
@@ -1925,117 +1892,92 @@ renderInfoTransferTable(allocatedData, materialTypeMap) {
     return TransferTable;
 },
 
+
 // renderWorkSummarytable() {
 //     const $el = $('#tableWorkSummary');
 //     if ($el.length === 0) return;
 
-//     // 1. ดึงข้อมูลดิบและเช็คความพร้อม
-//     const allocatedData = window.DATA_STORE?.allocated;
-//     if (!allocatedData || !Array.isArray(allocatedData)) return;
+//     // กรองเอาเฉพาะ WBS ที่มีสถานะ hasMissingItems เป็น true (ถ้าต้องการโชว์แค่ที่ขาด)
+//     const summaryList = Object.values(window.WORK_SUMMARY_MAP || {}).filter(item => item.hasMissingItems);
 
-//     // 2. Group by WBS และรวมค่าที่ต้องการ
-//     // ใช้ Object เก็บข้อมูลเพื่อเป็น Map (Key = WBS)
-//     const groupedData = allocatedData.reduce((acc, curr) => {
-//         const wbs = curr.wbs;
-//         if (!wbs) return acc;
+//     const dataSet = summaryList.map(item => {
+//        const info = window.WORK_INFO_MAP[item.wbs] || { jobName: "-", pea: "-" };
+//     const peaFullName = window.PEAName_MAP[info.pea?.toString().trim()] || info.pea;
+    
+//     // 🎯 แก้ไขตรงนี้: ตรวจสอบค่า budget ให้เป็นตัวเลขก่อนเสมอ
+//     const budget = window.BUDGET_MAP[item.wbs] || 0; 
 
-//         // ถ้ายังไม่มี WBS นี้ในกลุ่ม ให้สร้างโครงสร้างไว้
-//         if (!acc[wbs]) {
-//             const info = window.WORK_INFO_MAP[wbs] || { jobName: "-", pea: "-" };
-//             const peaShort = info.pea?.toString().trim();
-//             const peaFullName = window.PEAName_MAP[peaShort] || peaShort;
-//             acc[wbs] = {
-//                 wbs: wbs,
-//                 rank: window.GLOBAL_RANK_MAP[wbs] || 999,
-//                 jobName: info.jobName,
-//                 pea: peaFullName,
-//                 budget: window.BUDGET_MAP[wbs] || 0,
-//                 hasMissingItems: false // flag ไว้เช็คว่ามีของขาดไหม
-//             };
-//         }
-
-//         // เช็คสถานะขาดของ (จาก SUMMARY_USAGE_COUNT ที่คุณทำไว้)
-//         const partID = curr.partID?.trim();
-//         if (window.SUMMARY_USAGE_COUNT && window.SUMMARY_USAGE_COUNT[partID] > 0) {
-//             acc[wbs].hasMissingItems = true;
-//         }
-
-//         return acc;
-//     }, {});
-
-//     // 3. แปลง Object เป็น Array สำหรับ DataTable
-//   // ดึงข้อมูลงานทั้งหมดจาก Map ที่สร้างไว้
-//     const dataSet = Object.values(window.WORK_SUMMARY_MAP || {}).map(item => {
-//         const info = window.WORK_INFO_MAP[item.wbs] || { jobName: "-", pea: "-" };
-//         const peaFullName = window.PEAName_MAP[info.pea?.toString().trim()] || info.pea;
-//         const budget = window.BUDGET_MAP[item.wbs] || 0;
-
-//         return [null, 
-//             item.rank,
-//             item.wbs,
-//             info.jobName,
-//             peaFullName,
-//             budget.toLocaleString()];
+//     return [
+//         null, 
+//         item.rank,
+//         item.wbs,
+//         info.jobName,
+//         peaFullName,
+//         // ใช้การตรวจสอบก่อนเรียก toLocaleString หรือแปลงเป็น Number ก่อน
+//         (typeof budget === 'number' ? budget : parseFloat(budget) || 0).toLocaleString()
+//     ];
 //     });
 
-//     // 4. เรนเดอร์ DataTable
-//  if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
+//     if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
     
 //     const table = $el.DataTable({
 //         data: dataSet,
 //         columns: [
-//             { className: 'details-control', orderable: false, data: null, defaultContent: '➕' }, // ปุ่มกด
+//             { className: 'details-control', orderable: false, data: null, defaultContent: '➕' },
 //             { title: "อันดับ" }, 
 //             { title: "หมายเลขงาน" }, 
 //             { title: "ชื่องาน" }, 
 //             { title: "การไฟฟ้า" }, 
 //             { title: "มูลค่างาน" }
 //         ],
-//         order: [[1, 'asc']] // เรียงตามอันดับ (index 1 ในตารางใหม่เพราะเพิ่มปุ่ม)
+//         order: [[1, 'asc']],
+//         "dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',    
 //     });
 
-//     // 🎯 เพิ่ม Event คลิกเพื่อแสดงข้อมูลย่อย (Child Rows)
-//     $el.find('tbody').on('click', 'td.details-control', function () {
-//         const tr = $(this).closest('tr');
-//         const row = table.row(tr);
-//         const wbs = row.data()[2]; // หมายเลขงานอยู่คอลัมน์ที่ 2
-
-//         if (row.child.isShown()) {
-//             row.child.hide();
-//             tr.removeClass('shown');
-//             $(this).text('➕');
-//         } else {
-//             // ดึงรายการพัสดุที่ขาดของใน WBS นี้
-//             const details = getMaterialDetailsByWBS(wbs);
-//             row.child(formatChildRow(details)).show();
-//             tr.addClass('shown');
-//             $(this).text('➖');
-//         }
-//     });
 // },
 renderWorkSummarytable() {
     const $el = $('#tableWorkSummary');
     if ($el.length === 0) return;
 
-    // กรองเอาเฉพาะ WBS ที่มีสถานะ hasMissingItems เป็น true (ถ้าต้องการโชว์แค่ที่ขาด)
+    // 1. วิเคราะห์สถานะ WBS จากข้อมูลที่ประมวลผลไว้แล้ว
+    const wbsStatusMap = {};
+    (window.FINAL_CALCULATED_DATA || []).forEach(item => {
+        if (!wbsStatusMap[item.wbs]) {
+            wbsStatusMap[item.wbs] = { total: 0, ครบ: 0, ขาด: 0, รอ: 0 };
+        }
+        wbsStatusMap[item.wbs].total++;
+        
+        // ตรงนี้ต้องเช็คว่า status ของพัสดุเป็นอะไร 
+        // (อ้างอิงจากตัวแปร budgetStatus ที่คุณสร้างไว้ในขั้นตอนก่อนหน้า)
+        const status = item.budgetStatus || "ไม่ต้องการเงิน"; 
+        if (status === "เงินครบ" || status === "ไม่ต้องการเงิน") wbsStatusMap[item.wbs].ครบ++;
+        else if (status === "เงินขาด") wbsStatusMap[item.wbs].ขาด++;
+        else if (status === "รอแจกเงิน") wbsStatusMap[item.wbs].รอ++;
+    });
+
     const summaryList = Object.values(window.WORK_SUMMARY_MAP || {}).filter(item => item.hasMissingItems);
 
     const dataSet = summaryList.map(item => {
-       const info = window.WORK_INFO_MAP[item.wbs] || { jobName: "-", pea: "-" };
-    const peaFullName = window.PEAName_MAP[info.pea?.toString().trim()] || info.pea;
-    
-    // 🎯 แก้ไขตรงนี้: ตรวจสอบค่า budget ให้เป็นตัวเลขก่อนเสมอ
-    const budget = window.BUDGET_MAP[item.wbs] || 0; 
+        const info = window.WORK_INFO_MAP[item.wbs] || { jobName: "-", pea: "-" };
+        const peaFullName = window.PEAName_MAP[info.pea?.toString().trim()] || info.pea;
+        const budget = window.BUDGET_MAP[item.wbs] || 0;
 
-    return [
-        null, 
-        item.rank,
-        item.wbs,
-        info.jobName,
-        peaFullName,
-        // ใช้การตรวจสอบก่อนเรียก toLocaleString หรือแปลงเป็น Number ก่อน
-        (typeof budget === 'number' ? budget : parseFloat(budget) || 0).toLocaleString()
-    ];
+        // 2. ตัดสินสถานะ WBS
+        const stats = wbsStatusMap[item.wbs] || { total: 0, ครบ: 0, ขาด: 0, รอ: 0 };
+        let wbsStatus = "";
+        if (stats.ครบ === stats.total) wbsStatus = "ปิดงานได้";
+        else if (stats.รอ === stats.total) wbsStatus = "รอจัดสรรงบ";
+        else wbsStatus = "ได้ของบางส่วน";
+
+        return [
+            null, 
+            item.rank,
+            item.wbs,
+            info.jobName,
+            peaFullName,
+            (typeof budget === 'number' ? budget : parseFloat(budget) || 0).toLocaleString(),
+            wbsStatus // เพิ่มสถานะเข้าไปเป็นคอลัมน์สุดท้าย
+        ];
     });
 
     if ($.fn.DataTable.isDataTable($el)) $el.DataTable().destroy();
@@ -2048,32 +1990,26 @@ renderWorkSummarytable() {
             { title: "หมายเลขงาน" }, 
             { title: "ชื่องาน" }, 
             { title: "การไฟฟ้า" }, 
-            { title: "มูลค่างาน" }
+            { title: "มูลค่างาน" },
+            { title: "สถานะการจัดสรร" } // เพิ่มหัวคอลัมน์ใหม่
         ],
         order: [[1, 'asc']],
-        "dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',    
+        dom: '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',
+        columnDefs: [
+            {
+                targets: 6, // คอลัมน์สถานะที่เพิ่มใหม่
+                className: "text-center",
+                render: function(data) {
+                    let color = "";
+                    if (data === "ปิดงานได้") color = "bg-green-100 text-green-700";
+                    else if (data === "รอจัดสรรงบ") color = "bg-gray-100 text-gray-600";
+                    else color = "bg-yellow-100 text-yellow-700";
+                    return `<span class="px-3 py-1 rounded-full text-xs font-bold ${color}">${data}</span>`;
+                }
+            }
+        ]
     });
-
-    // // Event คลิกเพื่อดึงข้อมูลจาก เปิดข้อมูลพัสดุที่ซ่อนอยู่
-    //  $el.find('tbody').on('click', 'td.details-control', function () {
-    //     const tr = $(this).closest('tr');
-    //     const row = table.row(tr);
-    //     const wbs = row.data()[2]; // หมายเลขงานอยู่คอลัมน์ที่ 2
-
-    //     if (row.child.isShown()) {
-    //         row.child.hide();
-    //         tr.removeClass('shown');
-    //         $(this).text('➕');
-    //     } else {
-    //         // ดึงรายการพัสดุที่ขาดของใน WBS นี้
-    //         const details = getMaterialDetailsByWBS(wbs);
-    //         row.child(formatChildRow(details)).show();
-    //         tr.addClass('shown');
-    //         $(this).text('➖');
-    //     }
-    // });
 },
-
 renderNoStock_AfterUpcomingTable: function(allocatedData, materialTypeMap, budget) {
         if (!allocatedData || !Array.isArray(allocatedData)) return null;
 // renderNoStock_AfterUpcomingTable(allocatedData, materialTypeMap) {
@@ -2169,47 +2105,92 @@ renderNoStock_AfterUpcomingTable: function(allocatedData, materialTypeMap, budge
         // let budgetAllocated = 0;
         // let budgetDeficit = 0;
     //    // คำนวณเงินที่ได้รับ
-        let budgetAllocated = 0;
-        if (remainingBudget >= totalCost) {
-            budgetAllocated = totalCost;
-            remainingBudget -= totalCost;
-        } else if (remainingBudget > 0) {
-            budgetAllocated = remainingBudget;
-            remainingBudget = 0;
-        }
+        // let budgetAllocated = 0;
+        // if (remainingBudget >= totalCost) {
+        //     budgetAllocated = totalCost;
+        //     remainingBudget -= totalCost;
+        // } else if (remainingBudget > 0) {
+        //     budgetAllocated = remainingBudget;
+        //     remainingBudget = 0;
+        // }
 
-        // คำนวณเงินที่ขาด
-        const budgetDeficit = totalCost - budgetAllocated;
+        // // คำนวณเงินที่ขาด
+        // const budgetDeficit = totalCost - budgetAllocated;
 
-        // คำนวณสถานะ (ปรับเงื่อนไขใหม่)
-        let budgetStatus;
-        if (budgetAllocated === 0 && remainingBudget === 0) {
-            budgetStatus = "รอแจกเงิน"; // กรณีงบหมดก่อนถึงรายการนี้
-        } else if (budgetDeficit <= 0) {
-            budgetStatus = "เงินครบ";
-        } else {
-            budgetStatus = "เงินขาด";
-        }
+        // // คำนวณสถานะ (ปรับเงื่อนไขใหม่)
+        // let budgetStatus;
+        // if (budgetAllocated === 0 && remainingBudget === 0) {
+        //     budgetStatus = "รอแจกเงิน"; // กรณีงบหมดก่อนถึงรายการนี้
+        // } else if (budgetDeficit <= 0) {
+        //     budgetStatus = "เงินครบ";
+        // } else {
+        //     budgetStatus = "เงินขาด";
+        // }
+// let budgetAllocated = 0;
+//     let budgetDeficit = 0;
+//     let budgetStatus ="" ;// Default
+// // console.log("Check Hold Logic -> Status:", finalsaveStatus, "FinalNetRequired:", finalNetRequired);
+//     // 🎯 แก้ไขเงื่อนไขแจกงบ: ต้องเป็นรายการที่ "ขาดของ" และ "ไม่ใช่สถานะ Hold"
+   
 
-    // 2. เช็กเงื่อนไขแจกงบ
-// if (statusfinal === "ขาดของ") {
-//     // ถ้าระบบยังไม่มีการกรอกงบหรือ remainingBudget เป็น 0
-//     if (remainingBudget <= 0) {
-//         budgetStatus = "รอแจกเงิน";
-//     } else {
-//         // แจกงบเฉพาะรายการที่ "ขาดของ"
-//         const totalCost = unitCost * finalNetRequired;
-//         if (remainingBudget >= totalCost) {
-//             budgetAllocated = totalCost;
-//             remainingBudget -= totalCost;
+//      if (statusfinal === "ขาดของ" && finalsaveStatus !== "Hold") {
+//         if (remainingBudget > 0) {
+//             // แจกงบให้รายการนี้
+//             if (remainingBudget >= totalCost) {
+//                 budgetAllocated = totalCost;
+//                 remainingBudget -= totalCost;
+//             } else {
+//                 budgetAllocated = remainingBudget;
+//                 remainingBudget = 0;
+//             }
+//             budgetDeficit = totalCost - budgetAllocated;
+//             budgetStatus = (budgetDeficit <= 0) ? "เงินครบ" : "เงินขาด";
 //         } else {
-//             budgetAllocated = remainingBudget;
-//             remainingBudget = 0;
+//             // งบหมดก่อนถึงรายการนี้
+//             budgetDeficit = totalCost;
+//             budgetStatus = "รอแจกเงิน";
 //         }
-//         budgetDeficit = totalCost - budgetAllocated;
-//         budgetStatus = (budgetDeficit <= 0) ? "เงินครบ" : "เงินขาด";
 //     }
-// }
+//      else if ( statusfinal === "ขาดของ" && finalsaveStatus === "Hold") {
+//         console.log("เข้าเงื่อนไข Hold แล้ว!");
+//         // รายการติด Hold ไม่ได้รับงบ
+//         budgetDeficit = totalCost;
+//         budgetStatus = "ไม่ได้รับจัดสรร (Hold)";
+//     }
+   
+
+    // ... โค้ดเดิมก่อนถึงส่วนแจกงบ ...
+
+let budgetAllocated = 0;
+let budgetDeficit = 0;
+let budgetStatus = "";
+
+// 🎯 ปรับ Logic ใหม่: ต้องเป็นรายการที่ "ขาดของ" และ "ไม่ใช่ Hold"
+if (statusfinal === "ขาดของ" && finalsaveStatus !== "Hold") {
+    
+    // เงื่อนไข: เงินต้องมีพอสำหรับทั้งก้อน (totalCost) ถึงจะแจก
+    if (remainingBudget >= totalCost && totalCost > 0) {
+        // แจกงบเต็มจำนวน
+        budgetAllocated = totalCost;
+        remainingBudget -= totalCost;
+        budgetDeficit = 0;
+        budgetStatus = "เงินครบ";
+    } else {
+        // ถ้าเงินไม่พอ หรือเงินหมดแล้ว -> ไม่แจก
+        budgetAllocated = 0;
+        budgetDeficit = totalCost;
+        budgetStatus = "รอแจกเงิน";
+    }
+} 
+else if (statusfinal === "ขาดของ" && finalsaveStatus === "Hold") {
+    budgetDeficit = totalCost;
+    budgetStatus = "ไม่ได้รับจัดสรร (Hold)";
+} else {
+    // กรณี "ได้ของครบ" ไม่ต้องใช้เงิน
+    budgetStatus = "ไม่ต้องการเงิน";
+}
+
+// ... โค้ดที่เหลือตามเดิม ...
       
         //  นับจำนวนงานของพัสดุ
         if (statusfinal === "ขาดของ") {
@@ -2324,7 +2305,8 @@ if (statusfinal === "ขาดของ") {
             partName: res.partName,
             pending: remaining, 
             finalNetRequired: finalNetRequired,
-            status: statusfinal
+            status: statusfinal,
+            budgetStatus: budgetStatus
         });
         return [
             // savedRankMap[res.wbs] || "-",
@@ -2340,10 +2322,10 @@ if (statusfinal === "ขาดของ") {
             allocatedTransfer, // รวมที่ได้โอน
             finalNetRequired, // ความต้องการหลังขอโอน
            
-            statusfinal, // สถานะของหลังโอน
-            savedStatus,
-            finalsaveStatus, // สถานะการจัดซื้อ
-            newOrder,
+            statusfinal, // สถานะของหลังโอน (ได้ของครบ, ขาดของ)
+            savedStatus,// สถานะที่บันทึกไว้ (จัดซื้อใหม่, ขอโอน, Hold)
+            finalsaveStatus, // สถานะการจัดซื้อ (จัดซื้อใหม่, ขอโอน, Hold)
+            newOrder,// อันดับใหม่
             unitCost.toLocaleString(),      // ราคากลาง
             totalCost.toLocaleString(undefined, {minimumFractionDigits: 2}), // ราคารวม
             budgetAllocated.toLocaleString(undefined, {minimumFractionDigits: 2}), // เงินที่ได้รับ
@@ -2520,6 +2502,8 @@ const NoStock_AfterUpcomingTable = $el.DataTable({
                 return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ เงินขาด</span>`;
             case "รอแจกเงิน":
                 return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">⌛ รอแจกเงิน</span>`;
+            case "ไม่ได้รับจัดสรร (Hold)":
+                return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ ไม่ได้รับจัดสรร (Hold)</span>`;
             default: // "ไม่ต้องการเงิน"
                 return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">─ ไม่ต้องการเงิน</span>`;
         }
@@ -2563,28 +2547,165 @@ return NoStock_AfterUpcomingTable;
 
 };
 
+
+// ================ ฟังชั่นคำนวณราคารวมทั้งหมด (Grand Total) ของตาราง InfoPO ===============//
 function updateGrandTotal() {
     const table = $('#tableInfoPO').DataTable();
     let total = 0;
 
-    // ดึงข้อมูลทั้งหมดที่อยู่ใน DataTable (ไม่สนว่าอยู่หน้าไหน หรือ Filter อะไร)
-    // ถ้าอยากได้เฉพาะที่ Filter อยู่ ให้ใช้ table.rows({search: 'applied'}).data()
-    const allData = table.rows().data();
-
-    allData.each(function(rowData) {
-        // rowData คือ Array ของข้อมูลในแต่ละแถว 
-        // อ้างอิงจากโครงสร้าง dataSet ของคุณ:
-        // rowData[4] = cost, rowData[5] = จำนวนสั่งซื้อ
-        
-        let cost = parseFloat(rowData[4]) || 0;
-        let qty = parseFloat(rowData[5]) || 0;
-        
-        total += (qty * cost);
+    // table.rows().data() คือการดึงข้อมูล "ทุกแถว" ในระบบ
+    table.rows().data().each(function(rowData) {
+        // rowData[6] คือ ราคารวมที่เราเพิ่งอัปเดตเข้าไปใน Cell (ด้านบน)
+        total += parseFloat(rowData[6]) || 0;
     });
 
-    // อัปเดต UI
-    $('#grand-total-display').text(total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' บาท');
+    // อัปเดต UI ที่เราเตรียมไว้แสดงผลข้างนอกตาราง
+    $('#grand-total-display').text(total.toLocaleString(undefined, {
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2
+    }) + ' บาท');
 }
+
+// ================ ฟังชั่นคำนวณส่วนต่าง (Deficit) ของตาราง InfoPO ===============//
+function updateDeficit() {
+    // 1. ดึงราคารวมทั้งหมดจาก DataTable (เหมือนฟังก์ชัน updateGrandTotal)
+    const table = $('#tableInfoPO').DataTable();
+    let total = 0;
+    table.rows().data().each(function(rowData) {
+        total += parseFloat(rowData[6]) || 0;
+    });
+
+    // 2. ดึงงบประมาณที่กรอก
+    const budget = parseFloat($('#amount').val()) || 0;
+
+    // 3. คำนวณส่วนต่าง (งบประมาณ - ราคารวม)
+    // ถ้าติดลบ แสดงว่าขาดเงิน
+    const deficit = budget - total;
+    const labelText = deficit < 0 ? "งบประมาณขาดแคลน:" : "งบประมาณคงเหลือ:";
+    const $label = $('#deficit-label');
+    
+    // 4. แสดงผล
+    const $display = $('#deficit-display');
+    $display.text(deficit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    // ตรวจสอบก่อนว่าหาเจอไหม
+    if ($label.length === 0) {
+        console.error("ไม่พบ element ที่มี id='deficit-label' ในหน้าเว็บ!");
+    } else {
+        $label.text(labelText); // เปลี่ยนข้อความ
+        console.log("เปลี่ยน Label เป็น:", labelText); // ดูใน Console ว่ามันสั่งเปลี่ยนไหม
+    }
+    // เปลี่ยนสีตามสถานะ (ถ้าติดลบให้เป็นสีแดง)
+    $display.css('color', deficit < 0 ? '#dc2626' : '#16a34a');
+}
+// ================ ฟังชั่นคำนวณราคารวมทั้งหมด (Grand Total) ของตาราง Hole ===============//
+function updateHoleTotal() {
+    const table = $('#tableHole').DataTable();
+    let total = 0;
+
+    // คำนวณจากคอลัมน์ Index 5 (ราคารวม)
+    table.rows().data().each(function(rowData) {
+        total += parseFloat(rowData[5]) || 0;
+    });
+
+    $('#hole-total-display').text(total.toLocaleString(undefined, {
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2
+    }) + ' บาท');
+}
+
+// ================ ฟังชั่นคำนวณราคารวมทั้งหมด (Grand Total) ของตาราง Transfer ===============//
+function updateTransferTotal() {
+    const table = $('#tableTransfer').DataTable();
+    let total = 0;
+
+    // คำนวณจากคอลัมน์ Index 5 (ราคารวม)
+    table.rows().data().each(function(rowData) {
+        total += parseFloat(rowData[6]) || 0;
+    });
+
+    $('#transfer-total-display').text(total.toLocaleString(undefined, {
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2
+    }) + ' บาท');
+}
+
+/**
+ * คำนวณราคารวมต่อแถวแบบ Real-time
+ * @param {HTMLInputElement} inputElement - องค์ประกอบ input ที่มีการเปลี่ยนแปลงค่า
+ */
+// กรอกเงินแล้วกดปุ่ม Process เพื่อคำนวณและแสดงผล
+function buttonRunProcess() {
+    const budget = parseFloat($('#amount').val()) || 0;
+    if (budget <= 0) {
+        alert("กรุณากรอกจำนวนเงินให้ถูกต้อง");
+        return;
+    }
+    
+    // 🎯 แก้ไขบรรทัดนี้: เรียกใช้ฟังก์ชันจาก TableRenderer แทนการเรียกชื่อลอย ๆ
+    TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap, budget);
+    // 2. 🎯 เพิ่มบรรทัดนี้ เพื่อสั่งให้ตารางสรุปงานอัปเดตสถานะตามงบใหม่ทันที
+    TableRenderer.renderWorkSummarytable(); 
+  
+    // ตั้งสถานะว่าประมวลผลแล้ว
+    window.IS_PROCESSED = true;
+    $('.summary-dashboard-footer').parent().parent().show();
+}
+
+$(document).ready(function() {
+    $('#btn-process').on('click', function() {
+        buttonRunProcess(); 
+    });
+});
+
+
+
+// window.calculateRowTotal = function(inputElement) {
+//     const qty = parseFloat(inputElement.value) || 0;
+//     const cost = parseFloat(inputElement.getAttribute('data-cost')) || 0;
+//     const totalRaw = qty * cost;
+
+//     const table = $('#tableInfoPO').DataTable();
+//     const row = table.row($(inputElement).closest('tr'));
+
+//     // 1. อัปเดต Data Store ของคอลัมน์ที่ 5 (จำนวนสั่งซื้อ) 
+//     // เพื่อให้เวลา Export ข้อมูลมันถูกต้อง
+//     table.cell(row.index(), 5).data(qty); 
+
+//     // 2. อัปเดต Data Store ของคอลัมน์ที่ 6 (ราคารวม)
+//     // การใช้ table.cell().data() จะทำให้ DataTables จดจำค่าใหม่นี้ไว้
+//     table.cell(row.index(), 6).data(totalRaw);
+
+//     // 3. เรียกคำนวณรวมใหม่
+//     updateGrandTotal();
+//     updateDeficit();
+//     // 4. สั่งวาดใหม่เพื่อให้คอลัมน์ที่ 6 อัปเดตแสดงผลตัวเลขที่ format แล้ว
+//     table.draw(false); 
+// };
+window.calculateRowTotal = function(inputElement) {
+    const $row = $(inputElement).closest('tr');
+    const table = $('#tableInfoPO').DataTable();
+    const rowIdx = table.row($row).index();
+    
+    // 1. หาค่าจาก Input ในแถวนั้นๆ โดยระบุ class
+    // สมมติว่า input ราคากลางมี class="cost-input" และ จำนวนมี class="qty-input"
+    // ถ้ายังไม่มี ให้เติม class ใน render function ของคอลัมน์ 4 และ 5 ด้วยครับ
+    const cost = parseFloat($row.find('.cost-input').val()) || 0;
+    const qty = parseFloat($row.find('.qty-input').val()) || 0;
+    
+    const totalRaw = qty * cost;
+
+    // 2. อัปเดตข้อมูลใน DataTables (Internal Store) เพื่อให้ตอน Export ข้อมูลไม่เพี้ยน
+    table.cell(rowIdx, 4).data(cost); // อัปเดตราคากลาง
+    table.cell(rowIdx, 5).data(qty);  // อัปเดตจำนวน
+    table.cell(rowIdx, 6).data(totalRaw); // อัปเดตราคารวม
+
+    // 3. เรียกฟังก์ชันคำนวณผลรวมหน้าจอ
+    updateGrandTotal();
+    updateDeficit();
+
+    // 4. วาดใหม่
+    table.draw(false);
+};
 //============== 🎯 ฟังก์ชันช่วยสร้าง Worksummary ของข้อมูลย่อย ===============================//
 
 // วางไว้นอกฟังก์ชัน render เพื่อผูก Event ไว้ที่ตัวตารางถาวร
@@ -2643,49 +2764,7 @@ function getMaterialDetailsByWBS(wbs) {
 }
 
 // ช=========================================================================//
-/**
- * คำนวณราคารวมต่อแถวแบบ Real-time
- * @param {HTMLInputElement} inputElement - องค์ประกอบ input ที่มีการเปลี่ยนแปลงค่า
- */
 
-function buttonRunProcess() {
-    const budget = parseFloat($('#amount').val()) || 0;
-    if (budget <= 0) {
-        alert("กรุณากรอกจำนวนเงินให้ถูกต้อง");
-        return;
-    }
-    
-    // 🎯 แก้ไขบรรทัดนี้: เรียกใช้ฟังก์ชันจาก TableRenderer แทนการเรียกชื่อลอย ๆ
-    TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap, budget);
-}
-
-$(document).ready(function() {
-    $('#btn-process').on('click', function() {
-        buttonRunProcess(); 
-    });
-});
-
-window.calculateRowTotal = function(inputElement) {
-    const qty = parseFloat(inputElement.value) || 0;
-    const cost = parseFloat(inputElement.getAttribute('data-cost')) || 0;
-    const totalRaw = qty * cost; // ใช้ค่าดิบ (Raw value)
-
-    const table = $('#tableInfoPO').DataTable();
-    
-    const row = table.row($(inputElement).closest('tr'));
-
-    // อัปเดต Data Store ด้วยค่าดิบเสมอ เพื่อใช้ในการคำนวณรวมตอน Export
-    const rowData = row.data();
-    rowData[6] = totalRaw; 
-    
-    // อัปเดตหน้าจอ (ทำเฉพาะการแสดงผล)
-    $(inputElement).closest('tr').find('td').eq(6).text(totalRaw.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }));
-updateGrandTotal();
-    table.draw(false); // เรียกให้ Footer คำนวณใหม่จากค่าดิบใน Data Store
-};
 // ฟังก์ชันอัปเดตจำนวนแถวที่แสดงในแต่ละแท็บ (Upcoming, StockN2, N2PO) และแสดงผลในช่องที่กำหนดไว้
 function updateCounts() {
 
@@ -2910,6 +2989,11 @@ function getTopRankedWbsData(fullData, limit) {
 
     // พิมพ์ที่ Input -> เรียกใช้ updateUI
     input.addEventListener('input', (e) => updateUI(e.target.value));
+
+    // เมื่อกรอกตัวเลขในช่องงบประมาณ
+    $('#amount').on('input', function() {
+        updateDeficit();
+    });
   });
 
 
