@@ -2102,62 +2102,7 @@ renderNoStock_AfterUpcomingTable: function(allocatedData, materialTypeMap, budge
         const finalNetRequired = netAfterUpcoming - allocatedTransfer;
         const statusfinal = finalNetRequired <= 0 ? "ได้ของครบ" : "ขาดของ";
         const totalCost = unitCost * finalNetRequired; // คำนวณราคารวม
-        // let budgetAllocated = 0;
-        // let budgetDeficit = 0;
-    //    // คำนวณเงินที่ได้รับ
-        // let budgetAllocated = 0;
-        // if (remainingBudget >= totalCost) {
-        //     budgetAllocated = totalCost;
-        //     remainingBudget -= totalCost;
-        // } else if (remainingBudget > 0) {
-        //     budgetAllocated = remainingBudget;
-        //     remainingBudget = 0;
-        // }
-
-        // // คำนวณเงินที่ขาด
-        // const budgetDeficit = totalCost - budgetAllocated;
-
-        // // คำนวณสถานะ (ปรับเงื่อนไขใหม่)
-        // let budgetStatus;
-        // if (budgetAllocated === 0 && remainingBudget === 0) {
-        //     budgetStatus = "รอแจกเงิน"; // กรณีงบหมดก่อนถึงรายการนี้
-        // } else if (budgetDeficit <= 0) {
-        //     budgetStatus = "เงินครบ";
-        // } else {
-        //     budgetStatus = "เงินขาด";
-        // }
-// let budgetAllocated = 0;
-//     let budgetDeficit = 0;
-//     let budgetStatus ="" ;// Default
-// // console.log("Check Hold Logic -> Status:", finalsaveStatus, "FinalNetRequired:", finalNetRequired);
-//     // 🎯 แก้ไขเงื่อนไขแจกงบ: ต้องเป็นรายการที่ "ขาดของ" และ "ไม่ใช่สถานะ Hold"
-   
-
-//      if (statusfinal === "ขาดของ" && finalsaveStatus !== "Hold") {
-//         if (remainingBudget > 0) {
-//             // แจกงบให้รายการนี้
-//             if (remainingBudget >= totalCost) {
-//                 budgetAllocated = totalCost;
-//                 remainingBudget -= totalCost;
-//             } else {
-//                 budgetAllocated = remainingBudget;
-//                 remainingBudget = 0;
-//             }
-//             budgetDeficit = totalCost - budgetAllocated;
-//             budgetStatus = (budgetDeficit <= 0) ? "เงินครบ" : "เงินขาด";
-//         } else {
-//             // งบหมดก่อนถึงรายการนี้
-//             budgetDeficit = totalCost;
-//             budgetStatus = "รอแจกเงิน";
-//         }
-//     }
-//      else if ( statusfinal === "ขาดของ" && finalsaveStatus === "Hold") {
-//         console.log("เข้าเงื่อนไข Hold แล้ว!");
-//         // รายการติด Hold ไม่ได้รับงบ
-//         budgetDeficit = totalCost;
-//         budgetStatus = "ไม่ได้รับจัดสรร (Hold)";
-//     }
-   
+     
 
     // ... โค้ดเดิมก่อนถึงส่วนแจกงบ ...
 
@@ -2567,35 +2512,82 @@ function updateGrandTotal() {
 }
 
 // ================ ฟังชั่นคำนวณส่วนต่าง (Deficit) ของตาราง InfoPO ===============//
+// function updateDeficit() {
+//     // 1. ดึงราคารวมทั้งหมดจาก DataTable (เหมือนฟังก์ชัน updateGrandTotal)
+//     const table = $('#tableInfoPO').DataTable();
+//     let total = 0;
+//     table.rows().data().each(function(rowData) {
+//         total += parseFloat(rowData[6]) || 0;
+//     });
+
+//     // 2. ดึงงบประมาณที่กรอก
+//     const budget = parseFloat($('#amount').val()) || 0;
+
+//     // 3. คำนวณส่วนต่าง (งบประมาณ - ราคารวม)
+//     // ถ้าติดลบ แสดงว่าขาดเงิน
+//     const deficit = budget - total;
+//     const labelText = deficit < 0 ? "งบประมาณขาดแคลน:" : "งบประมาณคงเหลือ:";
+//     const $label = $('#deficit-label');
+    
+//     // 4. แสดงผล
+//     const $display = $('#deficit-display');
+//     $display.text(deficit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+//     // ตรวจสอบก่อนว่าหาเจอไหม
+//     if ($label.length === 0) {
+//         console.error("ไม่พบ element ที่มี id='deficit-label' ในหน้าเว็บ!");
+//     } else {
+//         $label.text(labelText); // เปลี่ยนข้อความ
+//         console.log("เปลี่ยน Label เป็น:", labelText); // ดูใน Console ว่ามันสั่งเปลี่ยนไหม
+//     }
+//     // เปลี่ยนสีตามสถานะ (ถ้าติดลบให้เป็นสีแดง)
+//     $display.css('color', deficit < 0 ? '#dc2626' : '#16a34a');
+// }
+
 function updateDeficit() {
-    // 1. ดึงราคารวมทั้งหมดจาก DataTable (เหมือนฟังก์ชัน updateGrandTotal)
-    const table = $('#tableInfoPO').DataTable();
-    let total = 0;
+    // 1. ดึงงบประมาณตั้งต้นที่กรอกไว้
+    const totalBudgetInput = parseFloat($('#amount').val()) || 0;
+
+    // 2. ดึงข้อมูลจากตาราง NoStock_AfterUpcoming
+    // เราจะดึงข้อมูลผ่าน DataTable instance เพื่อให้แม่นยำที่สุด
+    const table = $('#tableNoStock_AfterUpcoming').DataTable();
+    let totalAllocated = 0;
+    let totaldeficit = 0;
+
+    // คอลัมน์ที่ 17 คือ "งบที่ได้รับ" (จาก colHeaders ของคุณ: 0-16 คือคอลัมน์ก่อนหน้า, 17 คือ งบที่ได้รับ)
+    // ตรวจสอบ Index ให้ตรงกับ colHeaders ของคุณ (ถ้าเปลี่ยนโครงสร้างตาราง ให้เช็ก index อีกที)
     table.rows().data().each(function(rowData) {
-        total += parseFloat(rowData[6]) || 0;
+        // rowData[17] คือ งบที่ได้รับ (budgetAllocated)
+        // ต้องลบ comma ออกก่อน parseFloat เพราะ .toLocaleString() ใส่ comma ไว้
+        const allocated = parseFloat(rowData[17].replace(/,/g, '')) || 0;
+        // const deficit = parseFloat(rowData[18].replace(/,/g, '')) || 0;
+        totalAllocated += allocated;
+        totaldeficit += deficit;
     });
 
-    // 2. ดึงงบประมาณที่กรอก
-    const budget = parseFloat($('#amount').val()) || 0;
-
-    // 3. คำนวณส่วนต่าง (งบประมาณ - ราคารวม)
-    // ถ้าติดลบ แสดงว่าขาดเงิน
-    const deficit = budget - total;
-    const labelText = deficit < 0 ? "งบประมาณขาดแคลน:" : "งบประมาณคงเหลือ:";
+    // 3. คำนวณส่วนต่าง (งบประมาณที่กรอก - งบที่จ่ายให้รายการไปแล้วจริง)
+    const remaining = totalBudgetInput - totalAllocated;
+    // const remaining = totalBudgetInput - (totalAllocated + totaldeficit);
+    // 4. เปลี่ยน Label และสี
     const $label = $('#deficit-label');
-    
-    // 4. แสดงผล
     const $display = $('#deficit-display');
-    $display.text(deficit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-    // ตรวจสอบก่อนว่าหาเจอไหม
-    if ($label.length === 0) {
-        console.error("ไม่พบ element ที่มี id='deficit-label' ในหน้าเว็บ!");
-    } else {
-        $label.text(labelText); // เปลี่ยนข้อความ
-        console.log("เปลี่ยน Label เป็น:", labelText); // ดูใน Console ว่ามันสั่งเปลี่ยนไหม
+    
+    // ถ้า remaining ติดลบ แปลว่าใช้งบเกิน (แต่ตาม Logic ของคุณคือเราจะไม่จ่ายเกินงบ)
+    // ดังนั้นโดยปกติค่านี้ควรจะเป็น >= 0
+    const labelText = "งบประมาณคงเหลือ:"; 
+    
+    // 5. แสดงผล
+    $display.text(remaining.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    
+    if ($label.length > 0) {
+        $label.text(labelText);
     }
-    // เปลี่ยนสีตามสถานะ (ถ้าติดลบให้เป็นสีแดง)
-    $display.css('color', deficit < 0 ? '#dc2626' : '#16a34a');
+    
+    // เปลี่ยนสีตามงบที่เหลือ (ถ้าเหลือน้อยกว่า 0 คือผิดปกติ/ติดลบ)
+    $display.css('color', remaining < 0 ? '#dc2626' : '#16a34a');
+    
+    console.log("Budget Input:", totalBudgetInput);
+    console.log("Total Allocated:", totalAllocated);
+    console.log("Remaining:", remaining);
 }
 // ================ ฟังชั่นคำนวณราคารวมทั้งหมด (Grand Total) ของตาราง Hole ===============//
 function updateHoleTotal() {
@@ -2645,7 +2637,8 @@ function buttonRunProcess() {
     TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap, budget);
     // 2. 🎯 เพิ่มบรรทัดนี้ เพื่อสั่งให้ตารางสรุปงานอัปเดตสถานะตามงบใหม่ทันที
     TableRenderer.renderWorkSummarytable(); 
-  
+    // window.IS_PROCESSED = false;
+    updateDeficit();
     // ตั้งสถานะว่าประมวลผลแล้ว
     window.IS_PROCESSED = true;
     $('.summary-dashboard-footer').parent().parent().show();
@@ -2732,37 +2725,84 @@ $(document).on('click', '#tableWorkSummary tbody td.details-control', function (
     }
 });
 
+// function formatChildRow(items) {
+//     let html = '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px; width:100%; background:#f9f9f9;">';
+//     html += '<thead><tr><th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ค้างเบิก</th><th>จำนวนที่ได้</th></tr></thead><tbody>';
+//     items.forEach(item => {
+//         html += `<tr><td>${item.partID}</td>
+//         <td>${item.partName}</td>
+//         <td>${item.pending}</td>
+//         <td>${item.receivedQty}</td>
+//         </tr>`;
+//     });
+//     html += '</tbody></table>';
+//     return html;
+// }
+
+// // 🎯 ฟังก์ชันดึงพัสดุที่เกี่ยวข้องกับ WBS นั้นๆ แสดง
+// function getMaterialDetailsByWBS(wbs) {
+//     const data = window.FINAL_CALCULATED_DATA || [];
+    
+//     // Debug ดูว่าข้อมูลที่กรองมามีค่า finalNetRequired หรือไม่
+//     console.log("Filtered Data for WBS:", data.filter(res => res.wbs === wbs));
+
+//     return data
+//         .filter(res => res.wbs === wbs)
+//         .map(res => ({
+//             partID: res.partID,
+//             partName: res.partName,
+//             pending: res.pending || 0,
+//             receivedQty: (res.pending || 0) - (res.finalNetRequired || 0)
+//         }));
+// }
+
 function formatChildRow(items) {
     let html = '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px; width:100%; background:#f9f9f9;">';
-    html += '<thead><tr><th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ค้างเบิก</th><th>จำนวนที่ได้</th></tr></thead><tbody>';
+    html += '<thead style="background: #eee;"><tr><th>รหัสพัสดุ</th><th>ชื่อพัสดุ</th><th>ค้างเบิก</th><th>จำนวนที่ได้รับทั้งหมด</th></tr></thead><tbody>';
+    
     items.forEach(item => {
-        html += `<tr><td>${item.partID}</td>
-        <td>${item.partName}</td>
-        <td>${item.pending}</td>
-        <td>${item.receivedQty}</td>
+        // หากต้องการแสดงแยก สามารถทำได้ในส่วนนี้
+        html += `<tr>
+            <td>${item.partID}</td>
+            <td>${item.partName}</td>
+            <td style="font-weight:bold;">${item.pending}</td>
+            <td style="color: green; font-weight:bold;">${item.receivedQty}</td>
         </tr>`;
     });
     html += '</tbody></table>';
     return html;
 }
-
-// 🎯 ฟังก์ชันดึงพัสดุที่เกี่ยวข้องกับ WBS นั้นๆ แสดง
 function getMaterialDetailsByWBS(wbs) {
     const data = window.FINAL_CALCULATED_DATA || [];
-    
-    // Debug ดูว่าข้อมูลที่กรองมามีค่า finalNetRequired หรือไม่
-    console.log("Filtered Data for WBS:", data.filter(res => res.wbs === wbs));
+    // ดึงแผนผังราคากลางมาคำนวณ
+    const materialMap = window.DATA_STORE.materialMap || {};
 
     return data
         .filter(res => res.wbs === wbs)
-        .map(res => ({
-            partID: res.partID,
-            partName: res.partName,
-            pending: res.pending || 0,
-            receivedQty: (res.pending || 0) - (res.finalNetRequired || 0)
-        }));
-}
+        .map(res => {
+            const materialInfo = materialMap[res.partID?.trim()] || { cost: 0 };
+            const unitCost = parseFloat(materialInfo.cost) || 0;
+            
+            // 1. จำนวนที่ได้จาก Upcoming + Transfer (ตาม logic เดิม)
+            const receivedFromStock = (res.pending || 0) - (res.finalNetRequired || 0);
+            
+            // 2. ถ้าสถานะเป็น "เงินครบ" ให้บวกจำนวนที่ซื้อได้จากงบเพิ่มเข้าไป
+            let receivedFromBudget = 0;
+            if (res.budgetStatus === "เงินครบ" && unitCost > 0) {
+                // คำนวณว่าเงินที่ได้รับ (ซึ่งคือ totalCost ของรายการนั้น) ซื้อของได้กี่ชิ้น
+                // ในโค้ดเดิมคุณเก็บ budgetStatus ไว้แล้ว
+                receivedFromBudget = res.finalNetRequired; 
+            }
 
+            return {
+                partID: res.partID,
+                partName: res.partName,
+                pending: res.pending || 0,
+                // จำนวนที่ได้รวม = ของจากคลัง + ของจากงบที่เพิ่งแจก
+                receivedQty: receivedFromStock + receivedFromBudget
+            };
+        });
+}
 // ช=========================================================================//
 
 // ฟังก์ชันอัปเดตจำนวนแถวที่แสดงในแต่ละแท็บ (Upcoming, StockN2, N2PO) และแสดงผลในช่องที่กำหนดไว้
