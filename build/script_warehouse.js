@@ -2561,7 +2561,7 @@ function updateDeficit() {
         const allocated = parseFloat(rowData[17].replace(/,/g, '')) || 0;
         // const deficit = parseFloat(rowData[18].replace(/,/g, '')) || 0;
         totalAllocated += allocated;
-        totaldeficit += deficit;
+        // totaldeficit += deficit;
     });
 
     // 3. คำนวณส่วนต่าง (งบประมาณที่กรอก - งบที่จ่ายให้รายการไปแล้วจริง)
