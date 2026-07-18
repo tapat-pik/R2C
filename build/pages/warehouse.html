@@ -576,63 +576,106 @@
 </div>
      
         <!-------------------------- cards row 3 : StockMatch ซ้าย | NoStock+Obsolete ขวา ------------------------>
-     <div class="flex flex-wrap md:flex-nowrap items-stretch -mx-3 mt-2 mb-3">
+   <div class="flex flex-wrap md:flex-nowrap items-stretch -mx-3 mt-2 mb-3">
 
-   <div id="summary-order" class="w-full px-3 mb-2" x-data="{ activeTab: 'InfoPO' }">
-
-    <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
-        
-        <div class="p-4  rounded-t-2xl flex justify-between items-center">
-            <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
-                <i class="fa-solid fa-cart-plus me-3" style="color: rgb(75, 199, 66);font-size: 24px; filter: drop-shadow(0 0 6px rgb(194, 235, 191));" ></i>
-                สรุปรายการสั่งซื้อ
-            </h6>
-        </div>
-
-        <div class="flex space-x-6 border-b border-gray-200 px-4 pt-2">
-            <button @click="activeTab = 'InfoPO'; toggleInfoTab('InfoPO')" 
-                    class="py-2 text-sm font-medium transition-all relative border-b-2"
-                    :class="activeTab === 'InfoPO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-                รายการพัสดุรอจัดซื้อใหม่
-                <span id="count-InfoPO" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-            </button>
-
-            <button @click="activeTab = 'InfoHole'; toggleInfoTab('InfoHole')" 
-                    class="py-2 text-sm font-medium transition-all relative border-b-2"
-                    :class="activeTab === 'InfoHole' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-                รายการพัสดุ Hole
-                <span id="count-InfoHole" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-            </button>
-            <button @click="activeTab = 'InfoTransfer'; toggleInfoTab('InfoTransfer')" 
-                    class="py-2 text-sm font-medium transition-all relative border-b-2"
-                    :class="activeTab === 'InfoTransfer' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-                สรุปรายการพัสดุขอโอน
-                <span id="count-InfoTransfer" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
-            </button>
-        </div>
-
-        <div class="p-4 w-full">
-           <div x-show="activeTab === 'InfoPO'" class="overflow-x-auto w-full">
-         
-                <table id="tableInfoPO" class="w-full text-left" style="width: 100% !important;"></table>
-           
-</div>
-              </div>
-            <div x-show="activeTab === 'InfoHole'" class="overflow-x-auto w-full">
-                <table id="tableHole" class="w-full text-left" style="width: 100% !important;"></table>
+    <!-- ส่วนที่ 1: สรุปรายการสั่งซื้อ (ใช้ x-data เดิม) -->
+    <div id="summary-order" class="w-full px-3 mb-2" x-data="{ activeTab: 'InfoPO' }">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
+            
+            <div class="p-4 rounded-t-2xl flex justify-between items-center">
+                <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
+                    <i class="fa-solid fa-cart-plus me-3" style="color: rgb(75, 199, 66);font-size: 24px; filter: drop-shadow(0 0 6px rgb(194, 235, 191));" ></i>
+                    สรุปรายการสั่งซื้อ
+                </h6>
             </div>
-             <div x-show="activeTab === 'InfoTransfer'" class="overflow-x-auto w-full">
-                <table id="tableTransfer" class="w-full text-left" style="width: 100% !important;"></table>
+            
+            <div class="p-4 w-full">
+                <div class="proc-container">
+                    <div class="proc-input-group">
+                        <label for="amount">กรอกค่าจำนวนเงิน</label>
+                        <div class="input-wrapper">
+                            <span class="currency-icon">฿</span>
+                            <input type="number" id="amount" placeholder="เช่น 5,000,000">
+                        </div>
+                    </div>
+                    <button id="btn-process" class="btn-process">
+                        <i class="fa fa-cog"></i> รันประมวลผล
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex space-x-6 border-b border-gray-200 px-4 pt-2">
+                <button @click="activeTab = 'InfoPO'; toggleInfoTab('InfoPO')" 
+                        class="py-2 text-sm font-medium transition-all relative border-b-2"
+                        :class="activeTab === 'InfoPO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                    รายการพัสดุรอจัดซื้อใหม่
+                    <span id="count-InfoPO" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+                </button>
+                <button @click="activeTab = 'InfoHole'; toggleInfoTab('InfoHole')" 
+                        class="py-2 text-sm font-medium transition-all relative border-b-2"
+                        :class="activeTab === 'InfoHole' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                    รายการพัสดุ Hole
+                    <span id="count-InfoHole" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+                </button>
+                <button @click="activeTab = 'InfoTransfer'; toggleInfoTab('InfoTransfer')" 
+                        class="py-2 text-sm font-medium transition-all relative border-b-2"
+                        :class="activeTab === 'InfoTransfer' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                    สรุปรายการพัสดุขอโอน
+                    <span id="count-InfoTransfer" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span>
+                </button>
+            </div>
+
+            <div class="p-4 w-full">
+                <div x-show="activeTab === 'InfoPO'" class="overflow-x-auto w-full">
+                    <table id="tableInfoPO" class="w-full text-left" style="width: 100% !important;"></table>
+                </div>
+                <div x-show="activeTab === 'InfoHole'" class="overflow-x-auto w-full">
+                    <table id="tableHole" class="w-full text-left" style="width: 100% !important;"></table>
+                </div>
+                <div x-show="activeTab === 'InfoTransfer'" class="overflow-x-auto w-full">
+                    <table id="tableTransfer" class="w-full text-left" style="width: 100% !important;"></table>
+                </div>
             </div>
         </div>
+    </div>
 
+    <!-- ส่วนที่ 2: แผนตามงบ (แยก x-data ให้เป็น activeBudgetTab) -->
+    <div id="summary-budget" class="w-full px-3 mb-2" x-data="{ activeBudgetTab: 'ManageBudget' }" style="display: none;">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-soft-xl rounded-2xl p-6 border border-gray-100">
+              <div class="p-4 rounded-t-2xl flex justify-between items-center">
+                <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
+                    <i class="fa-solid fa-cart-plus me-3" style="color: rgb(75, 199, 66);font-size: 24px; filter: drop-shadow(0 0 6px rgb(194, 235, 191));" ></i>
+                    แผนการจัดซื้อที่แนะนำ
+                </h6>
+            </div>
+            <div class="flex space-x-6 border-b border-gray-200 px-4 pt-2">
+                <button @click="activeBudgetTab = 'ManageBudget'; toggleManageBudgetTab('ManageBudget')" 
+                        class="py-2 text-sm font-medium transition-all relative border-b-2"
+                        :class="activeBudgetTab === 'ManageBudget' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                    รายการพัสดุจัดซื้อใหม่
+                    <!-- <span id="count-ManageBudget" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span> -->
+                </button>
+                <button @click="activeBudgetTab = 'ManageDeficit'; toggleManageBudgetTab('ManageDeficit')" 
+                        class="py-2 text-sm font-medium transition-all relative border-b-2"
+                        :class="activeBudgetTab === 'ManageDeficit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                    รายการพัสดุรอจัดสรรงบ
+                    <!-- <span id="count-ManageDeficit" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span> -->
+                </button>
+            </div>
 
-
-     
+            <div class="p-4 w-full">
+                <div x-show="activeBudgetTab === 'ManageBudget'" class="overflow-x-auto w-full">
+                    <table id="tableManageBudget" class="w-full text-left" style="width: 100% !important;"></table>
+                </div>
+                <div x-show="activeBudgetTab === 'ManageDeficit'" class="overflow-x-auto w-full">
+                    <!-- โค้ดเดิมคุณใช้ตาราง ID นี้อยู่ อย่าลืมตรวจสอบ ID ใน JS ให้ตรงกัน -->
+                    <table id="tableManageDeficit" class="w-full text-left" style="width: 100% !important;"></table>
+                </div>
+            </div>
+            
+        </div>
     </div>
 </div>
-
-     </div>
        <!----------- cards row 4 ------------------>
 
 <div class="flex flex-wrap md:flex-nowrap items-stretch -mx-3 mt-2 mb-3">
@@ -666,21 +709,7 @@
       </div>
 
       <div class="row mb-3 g-3">
-            <div class="p-4 w-full">
-        <div class="proc-container">
-          <div class="proc-input-group">
-              <label for="amount">กรอกค่าจำนวนเงิน</label>
-              <div class="input-wrapper">
-                  <span class="currency-icon">฿</span>
-                  <input type="number" id="amount" placeholder="เช่น 5,000,000">
-              </div>
-          </div>
-
-          <button id="btn-process" class="btn-process">
-              <i class="fa fa-cog"></i> รันประมวลผล
-          </button>
-      </div>
-</div>
+         
 
        <div class="px-4 pb-4 w-full pt-0">
         <table id="tableWorkSummary" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>

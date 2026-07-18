@@ -34,6 +34,8 @@ let N2POTabInstance = null;
 let InfoPOTableInstance = null;
 let HoleTableInstance = null;
 let TransferTableInstance = null;
+let manageBudgetTable = null;
+let manageDeficitTable =null;
 // ==================== Constants ====================
 // --- ส่วนที่ 1: ประกาศตัวแปรเก็บข้อมูล (Global) ---
 let globalAllocatedResults = [];
@@ -1127,20 +1129,21 @@ $el.html(`
    <tfoot>
     <tr>
         <td colspan="9" style="padding: 0 !important;">
-            <div class="summary-dashboard-footer" style="display: flex; justify-content: flex-end; align-items: stretch; background: #f8fafc; border-top: 1px solid #e2e8f0; width: 100%;">
-                
-                <div class="summary-item" style="padding: 18px 30px; text-align: right;">
-                    <div style="font-size: 16px; color: #64748b; text-transform: uppercase;">รวมมูลค่าพัสดุที่ต้องจัดซื้อ</div>
-                    <div id="grand-total-display" style="font-size: 26px; font-weight: 700; color: #0f172a;">0.00 บาท</div>
-                </div>
+         
+<!-- แถวที่ 1: รายการเดิมของคุณ -->
+<div class="summary-dashboard-footer" style="display: flex; justify-content: flex-end; align-items: stretch; background: #f8fafc; border-top: 1px solid #e2e8f0; width: 100%; font-family: sans-serif;">
+    <div class="summary-item" style="padding: 18px 30px; text-align: right;">
+        <div style="font-size: 16px; color: #64748b; text-transform: uppercase;">รวมมูลค่าพัสดุที่ต้องจัดซื้อ</div>
+        <div id="grand-total-display" style="font-size: 26px; font-weight: 700; color: #0f172a;">278,363.10 บาท</div>
+    </div>
+    <div style="width: 1px; background: #cbd5e1; margin: 10px 0;"></div>
+    <div class="summary-item" style="padding: 18px 30px; text-align: right;">
+        <div id="deficitall-label" style="font-size: 16px; color: #64748b; text-transform: uppercase;">จำนวนเงินที่ขาด/เกิน</div>
+        <div id="deficitall-display" style="font-size: 26px; font-weight: 700; color: #dc2626;">0.00 บาท</div>
+    </div>
+</div>
 
-                <div style="width: 1px; background: #cbd5e1; margin: 10px 0;"></div>
 
-                <div class="summary-item" style="padding: 18px 30px; text-align: right;">
-                    <div id="deficit-label" style="font-size: 16px; color: #64748b; text-transform: uppercase;">จำนวนเงินที่ขาด/เกิน</div>
-                    <div id="deficit-display" style="font-size: 26px; font-weight: 700; color: #dc2626;">0.00 บาท</div>
-                </div>
-            </div>
         </td>
     </tr>
 </tfoot>
@@ -1358,6 +1361,7 @@ $el.html(`
              updateCounts_Orderlist();
              updateGrandTotal();
              updateDeficit();
+            //  updateDeficitPlan();
         }
 
 
@@ -2018,6 +2022,8 @@ renderNoStock_AfterUpcomingTable: function(allocatedData, materialTypeMap, budge
   
     // 🎯 เพิ่มบรรทัดนี้ไว้ที่นี่
     window.SUMMARY_DATA = {}; 
+    window.SUMMARY_DATA_ManageBudget = {};
+    window.SUMMARY_DATA_ManageDeficit = {};
     window.SUMMARY_DATA_TRANSFER = {};
     window.SUMMARY_TOTAL_ALLOCATED = {};
     window.SUMMARY_USAGE_COUNT = {};
@@ -2202,8 +2208,56 @@ if (statusfinal === "ขาดของ") {
         window.SUMMARY_DATA_HOLD[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
 
     }
-   
+ 
      if (finalsaveStatus === "จัดซื้อใหม่" || finalsaveStatus === "ขอโอน") {
+        if(budgetStatus === "เงินครบ")
+        {
+        if (!window.SUMMARY_DATA_ManageBudget[partID]) {
+        window.SUMMARY_DATA_ManageBudget[partID] = {
+            partID: partID,
+            partName: res.partName,
+            type: materialInfo.type,
+            cost: materialInfo.cost || 0,
+            totalNetRequired: 0,
+            totalPending: 0,
+            totalAssigned: 0,
+            totalNetUpcomingRequired: 0,
+            savedStatus: finalsaveStatus
+        };
+    }
+    // ใช้ค่า budgetAllocated ที่คำนวณได้จาก Logic ก่อนหน้านี้มาหารด้วย cost 
+    // หรือจะใช้ logic เดิมคือบวกด้วย finalNetRequired ก็ได้ (ถ้าคุณต้องการแสดงยอดเต็มที่ต้องการ)
+    window.SUMMARY_DATA_ManageBudget[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
+    window.SUMMARY_DATA_ManageBudget[partID].totalPending += parseFloat(remaining) || 0;
+    window.SUMMARY_DATA_ManageBudget[partID].totalAssigned += parseFloat(res.assigned) || 0;
+    window.SUMMARY_DATA_ManageBudget[partID].totalNetUpcomingRequired += parseFloat(netAfterUpcoming) || 0;
+
+
+        }
+              else if(budgetStatus === "รอแจกเงิน")
+        {
+        if (!window.SUMMARY_DATA_ManageDeficit[partID]) {
+        window.SUMMARY_DATA_ManageDeficit[partID] = {
+            partID: partID,
+            partName: res.partName,
+            type: materialInfo.type,
+            cost: materialInfo.cost || 0,
+            totalNetRequired: 0,
+            totalPending: 0,
+            totalAssigned: 0,
+            totalNetUpcomingRequired: 0,
+            savedStatus: finalsaveStatus
+        };
+    }
+    // ใช้ค่า budgetAllocated ที่คำนวณได้จาก Logic ก่อนหน้านี้มาหารด้วย cost 
+    // หรือจะใช้ logic เดิมคือบวกด้วย finalNetRequired ก็ได้ (ถ้าคุณต้องการแสดงยอดเต็มที่ต้องการ)
+    window.SUMMARY_DATA_ManageDeficit[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
+    window.SUMMARY_DATA_ManageDeficit[partID].totalPending += parseFloat(remaining) || 0;
+    window.SUMMARY_DATA_ManageDeficit[partID].totalAssigned += parseFloat(res.assigned) || 0;
+    window.SUMMARY_DATA_ManageDeficit[partID].totalNetUpcomingRequired += parseFloat(netAfterUpcoming) || 0;
+
+
+        }
         // 🎯 เก็บยอดรายการปกติ (ส่วนนี้เหมือนเดิมที่คุณใช้อยู่)
         if (!window.SUMMARY_DATA[partID]) {
             window.SUMMARY_DATA[partID] = {
@@ -2218,11 +2272,11 @@ if (statusfinal === "ขาดของ") {
                     savedStatus: finalsaveStatus
                 };
         }
-        window.SUMMARY_DATA[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
-          window.SUMMARY_DATA[partID].totalPending += parseFloat(remaining) ;
+            window.SUMMARY_DATA[partID].totalNetRequired += parseFloat(finalNetRequired) || 0;
+            window.SUMMARY_DATA[partID].totalPending += parseFloat(remaining) ;
             window.SUMMARY_DATA[partID].totalAssigned += parseFloat(res.assigned) || 0;
             window.SUMMARY_DATA[partID].totalNetUpcomingRequired += parseFloat(netAfterUpcoming) || 0;
-    }
+            }
 }
  
             if (!window.SUMMARY_DATA_NOSTOCK[partID]) { // เปลี่ยนชื่อตัวแปร
@@ -2241,7 +2295,7 @@ if (statusfinal === "ขาดของ") {
             window.SUMMARY_DATA_NOSTOCK[partID].totalAssigned += parseFloat(res.assigned) || 0;
             window.SUMMARY_DATA_NOSTOCK[partID].totalNetRequired += parseFloat(netAfterUpcoming) || 0;
         
-
+        
 
 
     window.FINAL_CALCULATED_DATA.push({
@@ -2489,7 +2543,158 @@ NoStock_AfterUpcomingTable.buttons().container().appendTo('#export-NoStock');
 // 🎯 5. รีเทิร์นตัวแปรตารางออกไปใช้งานต่อตามปกติ
 return NoStock_AfterUpcomingTable;
 }, // 👈 เช็กดูว่ามีปีกกาปิดตัวนี้ครบถ้วนไหม
+renderManageBudget(allocatedData, materialTypeMap) {
+    const summaryData = window.SUMMARY_DATA_ManageBudget || {};
+    
+    // แปลง Object เป็น Array
+    const dataSet = Object.values(summaryData).map(res => {
+        const net = res.totalNetRequired || 0;
+        const cost = res.cost || 0;
+        const totalprice = net * cost;
 
+        return [
+            res.partID, 
+            res.partName, 
+            net, 
+            totalprice 
+        ];
+    });
+
+    const $el = $('#tableManageBudget');
+
+    // 1. ทำลายตารางเดิม (ถ้ามี) เพื่อให้ $el.html() เขียนใหม่ได้โดยไม่ Error
+    if ($.fn.DataTable.isDataTable($el)) {
+        $el.DataTable().destroy();
+    }
+    $el.empty(); // เคลียร์ HTML ข้างในทิ้งให้หมดก่อน
+
+    // 2. ใส่โครงสร้าง HTML ของคุณกลับเข้าไป (ไม่ลบของเก่าคุณทิ้งครับ)
+    $el.html(`
+        <thead>
+            <tr>
+                <th>รหัสพัสดุ</th>
+                <th>ชื่อพัสดุ</th>
+                <th>ความต้องการสุทธิ</th>
+                <th>ราคารวม</th>
+            </tr>
+        </thead>
+        <tfoot>
+            <tr>
+                <td colspan="4" style="padding: 0 !important;">
+                    <!-- แถวที่ 2: แผนตามงบ (แนวตั้ง) -->
+                    <div class="budget-plan-footer" style="display: flex; justify-content: flex-end; background: #ffffff; border-top: 1px solid #e2e8f0; padding: 20px 30px; width: 100%; font-family: sans-serif;">
+                        <div style="text-align: right;">
+                          
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div class="summary-item" style="display: flex; justify-content: space-between; width: 320px;">
+                                    <span style="font-size: 14px; color: #64748b;">งบประมาณที่มี</span>
+                                    <span id="BudgetAvailable-display" style="font-size: 16px; font-weight: 600; color: #0f172a;">0.00 บาท</span>
+                                </div>
+                                <div class="summary-item" style="display: flex; justify-content: space-between; width: 320px;">
+                                    <span style="font-size: 14px; color: #64748b;">งบประมาณที่ใช้</span>
+                                    <span id="BudgetUsed-display" style="font-size: 16px; font-weight: 600; color: #0f172a;">0.00 บาท</span>
+                                </div>
+                                <div class="summary-item" style="display: flex; justify-content: space-between; width: 320px; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 5px;">
+                                    <span id="deficitPlan-label" style="font-size: 14px; font-weight: 700; color: #0f172a;">จำนวนเงินที่ขาด/เกิน</span>
+                                    <span id="BudgetDeficit-display" style="font-size: 20px; font-weight: 800; color: #059669;">0.00 บาท</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </tfoot>
+    `);
+
+    // 3. สร้าง DataTable ใหม่
+    return $el.DataTable({
+        data: dataSet,
+        columns: [
+            { title: "รหัสพัสดุ" },
+            { title: "ชื่อพัสดุ" },
+            { title: "ความต้องการสุทธิ" },
+            { title: "ราคารวม" }
+        ],
+        "pageLength": 10,
+        "responsive": true,
+        "autoWidth": false,
+        "order": [[0, "asc"]],
+        "dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',    
+
+        "columnDefs": [
+            {
+                "targets": [2, 3],
+                "className": "text-center",
+                "render": function(data) {
+                    return (typeof data === 'number') ? data.toLocaleString(undefined, {minimumFractionDigits: 2}) : data;
+                }
+            }
+        ],
+        "drawCallback": function() {
+            if (typeof updateDeficitPlan === 'function') {
+                updateDeficitPlan();
+            }
+        }
+    });
+},
+renderManageDeficit(allocatedData, materialTypeMap) {
+    const summaryData = window.SUMMARY_DATA_ManageDeficit || {};
+    
+    // แปลง Object เป็น Array
+    const dataSet = Object.values(summaryData).map(res => {
+        const net = res.totalNetRequired || 0;
+        const cost = res.cost || 0;
+        const totalprice = net * cost;
+
+        return [
+            res.partID, 
+            res.partName, 
+            net, 
+            totalprice 
+        ];
+    });
+
+    const $el = $('#tableManageDeficit');
+
+    // 1. ทำลายตารางเดิม (ถ้ามี) เพื่อให้ $el.html() เขียนใหม่ได้โดยไม่ Error
+    if ($.fn.DataTable.isDataTable($el)) {
+        $el.DataTable().destroy();
+    }
+    $el.empty(); // เคลียร์ HTML ข้างในทิ้งให้หมดก่อน
+
+    // 2. ใส่โครงสร้าง HTML ของคุณกลับเข้าไป
+   
+    // 3. สร้าง DataTable ใหม่
+    return $el.DataTable({
+        data: dataSet,
+        columns: [
+            { title: "รหัสพัสดุ" },
+            { title: "ชื่อพัสดุ" },
+            { title: "ความต้องการสุทธิ" },
+            { title: "ราคารวม" }
+        ],
+        "pageLength": 10,
+        "responsive": true,
+        "autoWidth": false,
+        "order": [[0, "asc"]],
+        "dom": '<"row mb-3"<"col-md-6"f><"col-md-6 d-flex justify-content-end"B>>rt<"row mt-3"<"col-md-6 d-flex align-items-center gap-3"li><"col-md-6 d-flex justify-content-end"p>>',    
+
+        "columnDefs": [
+            {
+                "targets": [2, 3],
+                "className": "text-center",
+                "render": function(data) {
+                    return (typeof data === 'number') ? data.toLocaleString(undefined, {minimumFractionDigits: 2}) : data;
+                }
+            }
+        ],
+        "drawCallback": function() {
+            if (typeof updateDeficitPlan === 'function') {
+                updateDeficitPlan();
+            }
+        }
+    });
+}
 };
 
 
@@ -2513,28 +2718,28 @@ function updateGrandTotal() {
 
 // ================ ฟังชั่นคำนวณส่วนต่าง (Deficit) ของตาราง InfoPO ===============//
 // function updateDeficit() {
-//     // 1. ดึงราคารวมทั้งหมดจาก DataTable (เหมือนฟังก์ชัน updateGrandTotal)
+   
+
+//     // 2. ดึงงบประมาณที่กรอก
+//     const budget = parseFloat($('#amount').val()) || 0;
+//      // 1. ดึงราคารวมทั้งหมดจาก DataTable (เหมือนฟังก์ชัน updateGrandTotal)
 //     const table = $('#tableInfoPO').DataTable();
 //     let total = 0;
 //     table.rows().data().each(function(rowData) {
 //         total += parseFloat(rowData[6]) || 0;
 //     });
-
-//     // 2. ดึงงบประมาณที่กรอก
-//     const budget = parseFloat($('#amount').val()) || 0;
-
 //     // 3. คำนวณส่วนต่าง (งบประมาณ - ราคารวม)
 //     // ถ้าติดลบ แสดงว่าขาดเงิน
 //     const deficit = budget - total;
 //     const labelText = deficit < 0 ? "งบประมาณขาดแคลน:" : "งบประมาณคงเหลือ:";
-//     const $label = $('#deficit-label');
+//     const $label = $('#deficitall-label');
     
 //     // 4. แสดงผล
-//     const $display = $('#deficit-display');
+//     const $display = $('#deficitall-display');
 //     $display.text(deficit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
 //     // ตรวจสอบก่อนว่าหาเจอไหม
 //     if ($label.length === 0) {
-//         console.error("ไม่พบ element ที่มี id='deficit-label' ในหน้าเว็บ!");
+//         console.error("ไม่พบ element ที่มี id='deficitall-label' ในหน้าเว็บ!");
 //     } else {
 //         $label.text(labelText); // เปลี่ยนข้อความ
 //         console.log("เปลี่ยน Label เป็น:", labelText); // ดูใน Console ว่ามันสั่งเปลี่ยนไหม
@@ -2542,8 +2747,41 @@ function updateGrandTotal() {
 //     // เปลี่ยนสีตามสถานะ (ถ้าติดลบให้เป็นสีแดง)
 //     $display.css('color', deficit < 0 ? '#dc2626' : '#16a34a');
 // }
-
 function updateDeficit() {
+    // 🎯 ถ้า IS_PROCESSED เป็น false (ยังไม่ได้กดปุ่ม) ห้ามทำอะไรเลย
+    if (!window.IS_PROCESSED) {
+        $('#summary-budget').hide();
+        return; 
+    }
+
+    // 🎯 ถ้ากดปุ่มแล้วค่อยให้ทำงานต่อ
+    const budget = parseFloat($('#amount').val()) || 0;
+    const table = $('#tableInfoPO').DataTable();
+    let total = 0;
+    
+    table.rows().data().each(function(rowData) {
+        total += parseFloat(String(rowData[6]).replace(/,/g, '')) || 0;
+    });
+
+    const deficit = budget - total;
+    // 🎯 ตัดสินใจแสดง/ซ่อน Container ตามค่า deficit
+    if (deficit < 0) {
+        $('#summary-budget').show(); // ติดลบ แสดงตารางแนะนำ
+    } else {
+        $('#summary-budget').hide(); // เป็นบวก ซ่อนตารางแนะนำ
+    }
+    const labelText = deficit < 0 ? "งบประมาณขาดแคลน:" : "งบประมาณคงเหลือ:";
+    const $label = $('#deficitall-label');
+    const $display = $('#deficitall-display');
+    
+    $display.text(deficit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " บาท");
+    $label.text(labelText);
+    $display.css('color', deficit < 0 ? '#dc2626' : '#16a34a');
+}
+function updateDeficitPlan() {
+      if (!window.IS_PROCESSED) {
+        return; 
+    }
     // 1. ดึงงบประมาณตั้งต้นที่กรอกไว้
     const totalBudgetInput = parseFloat($('#amount').val()) || 0;
 
@@ -2568,22 +2806,25 @@ function updateDeficit() {
     const remaining = totalBudgetInput - totalAllocated;
     // const remaining = totalBudgetInput - (totalAllocated + totaldeficit);
     // 4. เปลี่ยน Label และสี
-    const $label = $('#deficit-label');
-    const $display = $('#deficit-display');
-    
+    const $label = $('#deficitPlan-label');
+    const $displayBudgetDeficit = $('#BudgetDeficit-display');
+    const $displayBudgetUsed = $('#BudgetUsed-display');
+    const $displayBudgetAvail = $('#BudgetAvailable-display');
     // ถ้า remaining ติดลบ แปลว่าใช้งบเกิน (แต่ตาม Logic ของคุณคือเราจะไม่จ่ายเกินงบ)
     // ดังนั้นโดยปกติค่านี้ควรจะเป็น >= 0
     const labelText = "งบประมาณคงเหลือ:"; 
     
     // 5. แสดงผล
-    $display.text(remaining.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-    
+    $displayBudgetDeficit.text(remaining.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    $displayBudgetUsed.text(totalAllocated.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    $displayBudgetAvail.text((totalBudgetInput).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+
     if ($label.length > 0) {
         $label.text(labelText);
     }
     
     // เปลี่ยนสีตามงบที่เหลือ (ถ้าเหลือน้อยกว่า 0 คือผิดปกติ/ติดลบ)
-    $display.css('color', remaining < 0 ? '#dc2626' : '#16a34a');
+    $displayBudgetDeficit.css('color', remaining < 0 ? '#dc2626' : '#16a34a');
     
     console.log("Budget Input:", totalBudgetInput);
     console.log("Total Allocated:", totalAllocated);
@@ -2627,6 +2868,9 @@ function updateTransferTotal() {
  */
 // กรอกเงินแล้วกดปุ่ม Process เพื่อคำนวณและแสดงผล
 function buttonRunProcess() {
+    window.IS_PROCESSED = false;
+    $('#deficitall-display').text("0.00 บาท").css('color', '#0f172a');
+    $('#deficitPlan-display').text("0.00 บาท").css('color', '#0f172a');
     const budget = parseFloat($('#amount').val()) || 0;
     if (budget <= 0) {
         alert("กรุณากรอกจำนวนเงินให้ถูกต้อง");
@@ -2635,18 +2879,26 @@ function buttonRunProcess() {
     
     // 🎯 แก้ไขบรรทัดนี้: เรียกใช้ฟังก์ชันจาก TableRenderer แทนการเรียกชื่อลอย ๆ
     TableRenderer.renderNoStock_AfterUpcomingTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap, budget);
+    TableRenderer.renderManageBudget(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
+    TableRenderer.renderManageDeficit(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
     // 2. 🎯 เพิ่มบรรทัดนี้ เพื่อสั่งให้ตารางสรุปงานอัปเดตสถานะตามงบใหม่ทันที
     TableRenderer.renderWorkSummarytable(); 
-    // window.IS_PROCESSED = false;
-    updateDeficit();
-    // ตั้งสถานะว่าประมวลผลแล้ว
+
+
+     // ตั้งสถานะว่าประมวลผลแล้ว
     window.IS_PROCESSED = true;
+    updateDeficit();
+    updateDeficitPlan();
     $('.summary-dashboard-footer').parent().parent().show();
 }
 
 $(document).ready(function() {
+    $('#summary-budget').hide(); // ซ่อนไว้ก่อน
+    $('#deficitall-display').text("0.00 บาท").css('color', '#0f172a');
+    $('#deficitPlan-display').text("0.00 บาท").css('color', '#0f172a');
     $('#btn-process').on('click', function() {
         buttonRunProcess(); 
+       
     });
 });
 
@@ -2695,7 +2947,7 @@ window.calculateRowTotal = function(inputElement) {
     // 3. เรียกฟังก์ชันคำนวณผลรวมหน้าจอ
     updateGrandTotal();
     updateDeficit();
-
+    updateDeficitPlan();
     // 4. วาดใหม่
     table.draw(false);
 };
@@ -2805,6 +3057,9 @@ function getMaterialDetailsByWBS(wbs) {
 }
 // ช=========================================================================//
 
+
+// ช=========================================================================//
+
 // ฟังก์ชันอัปเดตจำนวนแถวที่แสดงในแต่ละแท็บ (Upcoming, StockN2, N2PO) และแสดงผลในช่องที่กำหนดไว้
 function updateCounts() {
 
@@ -2900,6 +3155,38 @@ function toggleInfoTab(tabName) {
         'InfoPO': '#tableInfoPO',
         'InfoHole': '#tableHole',
          'InfoTransfer': '#tableTransfer',
+    };
+    
+    const tableId = tableMap[tabName];
+    const $table = $(tableId);
+    
+    if ($.fn.DataTable.isDataTable($table)) {
+        const dt = $table.DataTable();
+        
+        // ใช้ setTimeout เพื่อให้แน่ใจว่า DOM เปลี่ยน Tab เรียบร้อยก่อน
+        setTimeout(() => {
+            // ปรับขนาดคอลัมน์ก่อนเสมอ
+            if (typeof dt.columns === 'function') {
+                dt.columns.adjust();
+            }
+            
+            // เช็คว่า .responsive มีอยู่จริงหรือไม่ก่อนเรียกใช้ .recalc()
+            if (dt.responsive && typeof dt.responsive.recalc === 'function') {
+                dt.responsive.recalc();
+            } else {
+                console.warn(`Responsive plugin not initialized for: ${tabName}`);
+            }
+        }, 200);
+    }
+}
+
+function toggleManageBudgetTab(tabName) {
+    console.log("Switching to tab:", tabName);
+    
+    const tableMap = {
+        'ManageBudget': '#tableManageBudget',
+        'ManageDeficit': '#tableManageDeficit',
+      
     };
     
     const tableId = tableMap[tabName];
@@ -3031,9 +3318,10 @@ function getTopRankedWbsData(fullData, limit) {
     input.addEventListener('input', (e) => updateUI(e.target.value));
 
     // เมื่อกรอกตัวเลขในช่องงบประมาณ
-    $('#amount').on('input', function() {
-        updateDeficit();
-    });
+    // $('#amount').on('input', function() {
+    //     updateDeficit();
+    //     updateDeficitPlan();
+    // });
   });
 
 
@@ -3057,6 +3345,8 @@ function refreshTables() {
          { id: '#tableTransfer', func: TableRenderer.renderInfoTransferTable },
          { id: '#tableNoStock_warehouse', func: TableRenderer.renderNoStockTable },
          { id: '#tableWorkSummary', func: TableRenderer.renderWorkSummarytable },
+           { id: '#tableManageBudget', func: TableRenderer.renderManageBudget },
+            { id: '#tableManageDeficit', func: TableRenderer.renderManageDeficit },
         
     ];
 
@@ -3711,6 +4001,9 @@ async function initDashboard() {
                 HoleTableInstance = TableRenderer.renderInfoHoleTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 InfoPOTableInstance = TableRenderer.renderInfoPOTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
                 TransferTableInstance = TableRenderer.renderInfoTransferTable(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
+                manageBudgetTable = TableRenderer.renderManageBudget(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
+             manageDeficitTable = TableRenderer.renderManageDeficit(window.DATA_STORE.allocated, window.DATA_STORE.materialMap);
+
                 TableRenderer.renderUpcomingTab(upcomingData);
                 StockN2TabInstance =TableRenderer.renderStockN2Tab(dataMap['StockN2_Data']);
                 // 1. เรียกใช้ฟิลเตอร์ประเภทวัสดุ

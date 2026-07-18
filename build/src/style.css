@@ -840,10 +840,13 @@ td.details-control {
 /* ใช้ Selector ร่วมกันสำหรับตาราง PO, Hole และ Transfer */
 /* 1. เพิ่ม tableWorkSummary เข้าไปในทุกส่วนของ Selector */
 /* 1. โครงสร้างหลัก */
+/* 1. จัดการโครงสร้างตารางหลัก */
 #tableInfoPO, 
 #tableHole, 
 #tableTransfer,
-#tableWorkSummary {
+#tableWorkSummary,
+#tableManageBudget,
+#tableManageDeficit {
     border-collapse: separate !important;
     border-spacing: 0 !important;
     width: 100% !important;
@@ -856,15 +859,19 @@ td.details-control {
 #tableInfoPO thead, 
 #tableHole thead, 
 #tableTransfer thead,
-#tableWorkSummary thead thead {
-    background-color: #f9fafb!important;
+#tableWorkSummary thead,
+#tableManageBudget thead,
+#tableManageDeficit thead {
+    background-color: #f9fafb !important;
     border-bottom: 1px solid #e5e7eb !important;
 }
 
 #tableInfoPO thead th, 
 #tableHole thead th, 
 #tableTransfer thead th,
-#tableWorkSummary thead th thead th {
+#tableWorkSummary thead th,
+#tableManageBudget thead th,
+#tableManageDeficit thead th {
     padding: 1rem !important;
     font-size: 14px !important;
     font-weight: 600 !important;
@@ -878,7 +885,9 @@ td.details-control {
 #tableInfoPO tbody td, 
 #tableHole tbody td, 
 #tableTransfer tbody td,
-#tableWorkSummary tbody td tbody td {
+#tableWorkSummary tbody td,
+#tableManageBudget tbody td,
+#tableManageDeficit tbody td {
     padding: 1rem !important;
     font-size: 0.875rem !important;
     border: none !important; 
@@ -889,14 +898,18 @@ td.details-control {
 #tableInfoPO tbody tr, 
 #tableHole tbody tr, 
 #tableTransfer tbody tr,
-#tableWorkSummary tbody tr tbody tr {
+#tableWorkSummary tbody tr,
+#tableManageBudget tbody tr,
+#tableManageDeficit tbody tr {
     transition: background-color 0.2s ease;
 }
 
 #tableInfoPO tbody tr:hover, 
 #tableHole tbody tr:hover, 
 #tableTransfer tbody tr:hover,
-#tableWorkSummary tbody tr:hover tbody tr:hover {
+#tableWorkSummary tbody tr:hover,
+#tableManageBudget tbody tr:hover,
+#tableManageDeficit tbody tr:hover {
     background-color: #f9fafb !important;
 }
 
@@ -904,14 +917,18 @@ td.details-control {
 #tableInfoPO tfoot, 
 #tableHole tfoot, 
 #tableTransfer tfoot,
-#tableWorkSummary tfoot tfoot {
+#tableWorkSummary tfoot,
+#tableManageBudget tfoot,
+#tableManageDeficit tfoot {
     border-top: 1px solid #e5e7eb;
 }
 
 #tableInfoPO tfoot th, 
 #tableHole tfoot th, 
 #tableTransfer tfoot th,
-#tableWorkSummary tfoot th tfoot th {
+#tableWorkSummary tfoot th,
+#tableManageBudget tfoot th,
+#tableManageDeficit tfoot th {
     padding: 1rem !important;
     border: none !important;
 }
