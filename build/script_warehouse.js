@@ -631,6 +631,7 @@ renderNoStockTable(allocatedData, materialTypeMap) {
             const groupName = getCellValue(row.c[2]) || "-";
             const totalStock = parseFloat(getCellValue(row.c[12]) || 0).toLocaleString();
             const unit = getCellValue(row.c[13]) || "";
+            const text = getCellValue(row.c[11]) || "";
 
             let bgColor = "bg-gray-100";
             let textColor = "text-gray-600";
@@ -654,7 +655,8 @@ renderNoStockTable(allocatedData, materialTypeMap) {
             <div>
                 <div class="font-bold text-gray-900 text-[16px]">${docName || "ไม่มีชื่อเอกสาร"}</div>
                
-                <div class="text-[14px] text-gray-500 leading-tight">${groupName}</div>
+                <div class="text-[15px] text-gray-500 leading-tight font-bold">${groupName}</div>
+                 <div class="text-[14px] text-gray-500 leading-tight">${text}</div>
             </div>
         </div>
         <div class="text-right">
@@ -1635,7 +1637,7 @@ $el.html(`
 renderInfoTransferTable(allocatedData, materialTypeMap) { 
     const summaryTransfer = window.SUMMARY_DATA_TRANSFER || {};
     const noStockCache = window.NO_STOCK_CACHE || [];
-    const usageCountMap = window.SUMMARY_USAGE_COUNT || {};
+    const usageCountMap = window.SUMMARY_USAGE_COUNT_TRANS || {};
     // แปลง Object เป็น Array
     const dataSet = Object.values(summaryTransfer)
         // .filter(res => res.originalPending > 0)
@@ -1956,7 +1958,7 @@ renderWorkSummarytable() {
         const status = item.budgetStatus || "ไม่ต้องการเงิน"; 
         if (status === "เงินครบ" || status === "ไม่ต้องการเงิน") wbsStatusMap[item.wbs].ครบ++;
         else if (status === "เงินขาด") wbsStatusMap[item.wbs].ขาด++;
-        else if (status === "รอแจกเงิน") wbsStatusMap[item.wbs].รอ++;
+        else if (status === "รอแจกเงิน" || status === "ไม่ได้รับจัดสรร") wbsStatusMap[item.wbs].รอ++;
     });
 
     const summaryList = Object.values(window.WORK_SUMMARY_MAP || {}).filter(item => item.hasMissingItems);
@@ -2027,6 +2029,7 @@ renderNoStock_AfterUpcomingTable: function(allocatedData, materialTypeMap, budge
     window.SUMMARY_DATA_TRANSFER = {};
     window.SUMMARY_TOTAL_ALLOCATED = {};
     window.SUMMARY_USAGE_COUNT = {};
+    window.SUMMARY_USAGE_COUNT_TRANS = {};
     window.WORK_SUMMARY_MAP = {};
     window.SUMMARY_DATA_NOSTOCK = {};
     window.FINAL_CALCULATED_DATA = [];
@@ -2135,7 +2138,7 @@ if (statusfinal === "ขาดของ" && finalsaveStatus !== "Hold") {
 } 
 else if (statusfinal === "ขาดของ" && finalsaveStatus === "Hold") {
     budgetDeficit = totalCost;
-    budgetStatus = "ไม่ได้รับจัดสรร (Hold)";
+    budgetStatus = "ไม่ได้รับจัดสรร";
 } else {
     // กรณี "ได้ของครบ" ไม่ต้องใช้เงิน
     budgetStatus = "ไม่ต้องการเงิน";
@@ -2149,6 +2152,12 @@ else if (statusfinal === "ขาดของ" && finalsaveStatus === "Hold") {
                 window.SUMMARY_USAGE_COUNT[partID] = 0;
             }
             window.SUMMARY_USAGE_COUNT[partID]++;
+        }    
+         if (statusfinal === "ได้ของครบ") {
+            if (!window.SUMMARY_USAGE_COUNT_TRANS[partID]) {
+                window.SUMMARY_USAGE_COUNT_TRANS[partID] = 0;
+            }
+            window.SUMMARY_USAGE_COUNT_TRANS[partID]++;
         }    
     // if (finalNetRequired > 0) {
     if (!window.WORK_SUMMARY_MAP[wbsKey]) {
@@ -2501,8 +2510,8 @@ const NoStock_AfterUpcomingTable = $el.DataTable({
                 return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ เงินขาด</span>`;
             case "รอแจกเงิน":
                 return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">⌛ รอแจกเงิน</span>`;
-            case "ไม่ได้รับจัดสรร (Hold)":
-                return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ ไม่ได้รับจัดสรร (Hold)</span>`;
+            case "ไม่ได้รับจัดสรร":
+                return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">✗ ไม่ได้รับจัดสรร</span>`;
             default: // "ไม่ต้องการเงิน"
                 return `<span class="px-2 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">─ ไม่ต้องการเงิน</span>`;
         }
