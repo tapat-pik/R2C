@@ -1033,16 +1033,42 @@ td.details-control {
     align-items: center;
 }
 
-/* ปรับ Input ให้พอดี */
-input[type="number"] {
-    border: 1px solid #e5e7eb;
-    padding: 0 10px;
-    width: 100%;
-    height: 100%;
-    /* outline: none; */
+/* 1. กำหนดค่ามาตรฐานให้ class ทั้งสองตัวนี้เหมือนกันทุกประการ */
+.cost-input, .qty-input,.budget-input {
+    box-sizing: border-box; /* สำคัญที่สุด: ให้ padding/border รวมอยู่ในความสูง */
+    height: 35px;           /* บังคับความสูงให้เท่ากัน */
+    padding: 5px 15px;       /* ระยะห่างภายในเท่ากัน */
+    width: 100%;            /* กว้างเต็ม Cell */
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    margin: 0;              /* กัน margin ที่อาจติดมาจากตาราง */
+    display: block;
 }
 
+/* 2. ยกเลิกการใช้ Global Style กับพวกนี้ถ้าจำเป็น */
+/* เพื่อป้องกันไม่ให้ Style จาก input[type="number"] { ... } ไปทับซ้อน */
+input[type="number"].cost-input, 
+
+input[type="number"].qty-input {
+    border: 1px solid #d1d5db !important; /* บังคับให้ใช้สีนี้เท่านั้น */
+}
 /* ลบลูกศรขึ้นลงในช่อง input (Chrome, Safari, Edge, Opera) */
+/* ปรับ Input ให้พอดี */
+
+input[type="number"].budget-input {
+
+    border: 1px solid #e5e7eb;
+
+    padding: 0 12px;
+
+    width: 100%;
+
+    height: 100%;
+
+    /* outline: none; */
+
+} 
+
 
 /* ปุ่มประมวลผล */
 .btn-process {

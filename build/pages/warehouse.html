@@ -393,22 +393,22 @@
       <div class="border-r border-gray-200 pr-4">
         <label class="block font-bold text-sm mb-2">Project Filter</label>
         <div class="border rounded-3 p-2 bg-white d-flex flex-column justify-content-center position-relative" style="min-height: 58px;">
-    <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">หมายเลขงาน</label>
+    <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">การกำหนดโครงการ</label>
     
-    <button id="dropdownWBSButton" data-dropdown-toggle="dropdownSearchWBS" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
-        <span class="text-slate-500 text-sm truncate">ทั้งหมด (หมายเลขงาน)</span>
+    <button id="dropdownProjGroupButton" data-dropdown-toggle="dropdownSearchProjGroup" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-3 py-1.5 focus:outline-none" type="button">
+        <span class="text-slate-500 text-sm truncate">ทั้งหมด (การกำหนดโครงการ)</span>
         <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
     </button>
 
-    <div id="dropdownSearchWBS" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
+    <div id="dropdownSearchProjGroup" class="z-50 hidden bg-white border border-gray-200 rounded-lg shadow-lg w-64">
         <div class="bg-gray-50 border-b border-gray-200 p-2 rounded-t-lg">
-            <label for="searchWBS" class="sr-only">Search</label>
-            <input type="text" id="searchWBS" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหาหมายเลขงาน..." required />
+            <label for="searchProjGroup" class="sr-only">Search</label>
+            <input type="text" id="searchProjGroup" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-2 placeholder:text-gray-400" placeholder="พิมพ์ค้นหาหมายเลขงาน..." required />
         </div>
         <ul class="h-48 p-2 text-sm text-gray-700 font-medium overflow-y-auto m-0 list-none" aria-labelledby="dropdownWBSButton">
             </ul>
         <div class="bg-gray-50 border-t border-gray-200 p-2 rounded-b-lg">
-            <button type="button" id="clearWBSFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
+            <button type="button" id="clearProjGroupFilter" class="w-full inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 focus:outline-none">
                 <svg class="w-3.5 h-3.5 me-1.5 -ms-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/></svg>
                 ล้างค่าที่เลือกทั้งหมด
             </button>
@@ -595,7 +595,7 @@
                         <label for="amount">กรอกค่าจำนวนเงิน</label>
                         <div class="input-wrapper">
                             <span class="currency-icon">฿</span>
-                            <input type="number" id="amount" placeholder="เช่น 5,000,000">
+                            <input class="budget-input" type="number" id="amount" placeholder="เช่น 5,000,000">
                         </div>
                     </div>
                     <button id="btn-process" class="btn-process">
@@ -691,27 +691,136 @@
               <path d="m3.3 7 8.7 5 8.7-5"></path>
               <path d="M12 22V12"></path>
             </svg>
-            รายการรอจัดซื้อ- รับโอน
+            สถานะการจัดสรรพัสดุ
           </span>
 
-          <div class="flex items-center gap-2 ml-4">
+          <!-- <div class="flex items-center gap-2 ml-4">
             <button id="resetUpcoming" class="px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white/60 rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85 whitespace-nowrap">
               <i class="fas fa-sync mr-1"></i> Reset Filters
             </button>
             <div id="export-Require" class="flex items-center"></div>
-          </div>
+          </div> -->
         </h6>
         
         <p class="mb-0 text-sm leading-normal mt-1">
           <i class="fa fa-check text-cyan-500"></i>
           <span class="ml-1 font-semibold">30 done</span> this month
         </p>
+<div class="px-3">
+         <!-- ส่วนหัว -->
+  <div class="flex items-center justify-between mb-6">
+    <!-- <h2 class="text-lg font-bold text-gray-800">Overview</h2> -->
+ 
+  </div>
+
+  <!-- ส่วนเนื้อหาที่มีกรอบล้อมรอบ -->
+  <div class="border border-gray-200 rounded-xl flex bg-gray-50  mb-6">
+    <!-- กล่องข้อมูล 4 กล่อง (ใช้ flex-1 เพื่อให้แบ่งความกว้างเท่ากัน) -->
+    <div class="flex-1 p-6 border-r border-gray-200">
+      <p class="text-base text-gray-500 mb-1">จำนวนงานรวม</p>
+      <div class="flex items-center gap-2">
+        <h3 id="count-totalWork" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">+2.5%</span>
+      </div>
+    </div>
+    
+  <!--=========  สถานะปิดงานได้============-->
+ <div class="flex-1 p-6 border-r border-gray-200 relative group cursor-pointer hover:bg-gray-50 filter-card"
+    data-status="ปิดงานได้"
+    onclick="toggleFilter(this)">
+    
+    <!-- ปรับ div แม่ให้เป็น w-full และ justify-between -->
+    <div class="flex items-baseline gap-1 w-full justify-between">
+        
+        <!-- รวมข้อความไว้ใน div เดียวกันเพื่อให้ชิดซ้าย -->
+        <div class="flex items-baseline gap-1">
+            <p class="text-base bg-green-100 text-green-700 px-3 py-1 rounded-full mb-1">สถานะปิดงานได้</p>
+            <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(จำนวนงานรวม)</p>
+        </div>
+
+        <!-- ไอคอนวางไว้ขวาสุดใน div เดียวกัน -->
+        <div class="text-gray-300 group-hover:text-gray-600 transition-colors">
+            <i class="fas fa-filter text-sm"></i>
+        </div>
+    </div>
+
+  
+    <div class="flex items-center gap-2 ml-4">
+        <h3 id="count-totalClose" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">+9.5%</span>
+    </div>
+</div>
+<!--========= End สถานะได้ของบางส่วน============-->
+
+
+      <!--=========  สถานะได้ของบางส่วน============-->
+  
+ <div class="flex-1 p-6 border-r border-gray-200 relative group cursor-pointer hover:bg-gray-50 filter-card"
+    data-status="ได้ของบางส่วน"
+    onclick="toggleFilter(this)">
+    
+    <!-- ปรับ div แม่ให้เป็น w-full และ justify-between -->
+    <div class="flex items-baseline gap-1 w-full justify-between">
+        
+        <!-- รวมข้อความไว้ใน div เดียวกันเพื่อให้ชิดซ้าย -->
+        <div class="flex items-baseline gap-1">
+            <p class="text-base bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full mb-1">สถานะได้ของบางส่วน</p>
+            <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(จำนวนงานรวม)</p>
+        </div>
+
+        <!-- ไอคอนวางไว้ขวาสุดใน div เดียวกัน -->
+        <div class="text-gray-300 group-hover:text-gray-600 transition-colors">
+            <i class="fas fa-filter text-sm"></i>
+        </div>
+    </div>
+
+
+      <div class="flex items-center gap-2 ml-4">
+       <h3 id="count-totalGetSome" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400">-1.6%</span>
+      </div>
+    </div>
+    
+ <!--========= End สถานะได้ของบางส่วน============-->
+
+
+
+  <!--=========  สถานะรอจัดสรร============-->
+     
+
+       <div class="flex-1 p-6 border-r border-gray-200 relative group cursor-pointer hover:bg-gray-50 filter-card"
+    data-status="รอจัดสรรงบ"
+    onclick="toggleFilter(this)">
+    
+    <!-- ปรับ div แม่ให้เป็น w-full และ justify-between -->
+    <div class="flex items-baseline gap-1 w-full justify-between">
+        
+        <!-- รวมข้อความไว้ใน div เดียวกันเพื่อให้ชิดซ้าย -->
+        <div class="flex items-baseline gap-1">
+            <p class="text-base bg-red-100 text-red-700 px-3 py-1 rounded-full mb-1">สถานะรอจัดสรรงบ</p>
+            <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(จำนวนงานรวม)</p>
+        </div>
+
+        <!-- ไอคอนวางไว้ขวาสุดใน div เดียวกัน -->
+        <div class="text-gray-300 group-hover:text-gray-600 transition-colors">
+            <i class="fas fa-filter text-sm"></i>
+        </div>
+    </div>
+      <div class="flex items-center gap-2 ml-4">
+       <h3 id="count-totalWait" class="text-2xl font-bold text-gray-900">0</h3>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400">-1.6%</span>
+      </div>
+    </div>
+
+
+     <!--========= End สถานะได้ของบางส่วน============-->
+  </div>
+</div>
+     
       </div>
 
       <div class="row mb-3 g-3">
-         
-
-       <div class="px-4 pb-4 w-full pt-0">
+        <div class="px-4 pb-4 w-full pt-0">
         <table id="tableWorkSummary" class="table table-hover align-middle w-100 mb-0 text-sm leading-normal"></table>
       </div>
 

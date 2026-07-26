@@ -791,7 +791,7 @@ function ShowTotalJobs(tableInstance) {
        // 1. ดึงจำนวนจากตารางที่สอง (Completed) มาด้วย
     const completedTable = $('#tableCompletedOrder').DataTable(); // เปลี่ยน ID ให้ตรงกับตารางของคุณ
     const completedCount = completedTable.rows({ search: 'applied' }).count();
-
+    const completedTotal = completedTable.rows({ search: 'applied' }).count();
 
     let totalCIPCount = 0;
     let total022Count = 0;
@@ -865,6 +865,7 @@ function ShowTotalJobs(tableInstance) {
         // แยกนับจำนวนและมูลค่าตามเงื่อนไขการกำหนดโครงการ
         if (!cellProject.includes('งาน 02.2')) {
             totalCIPCount++;
+        
             totalValueCIPSum += numericValue;
         } else {
             total022Count++;
@@ -905,7 +906,7 @@ function ShowTotalJobs(tableInstance) {
     $('#total-valueAll-count').text(formattedAll);
 
     // อัปเดตมูลค่ารวม CIP
-    $('#total-valueCIP-count').text(totalValueCIPSum.toLocaleString(undefined, {
+    $('#total-valueCIP-count').text(totalValueAllSum.toLocaleString(undefined, {
         minimumFractionDigits: 2, maximumFractionDigits: 2
     }));
 
@@ -2152,6 +2153,7 @@ renderFulfilledTable(rawDatabase, materialTypeMap) {
 
 // }
 
+// ==== Show จำนวนพัสดุ แยกตาราง =====//
 function getTableCounts() {
     // ฟังก์ชันย่อยสำหรับนับข้อมูลจาก DataTable Instance
     const getCount = (instance) => {
@@ -3089,6 +3091,7 @@ function setupGlobalEvents() {
         // คุณต้องสั่ง filter คอลัมน์ที่เก็บค่า pending ด้วย (สมมติ pending อยู่คอลัมน์ 4 หรือตามที่คุณ map ไว้)
         // ถ้าคอลัมน์ที่เช็คค้างเบิกไม่ได้อยู่ในตาราง ให้ข้ามข้อนี้ไปครับ
     }
+     if (completedTableInstance) completedTableInstance.search('').columns().search('').draw();
         if (mb52Table) mb52Table.search('').draw();
         // if (mb52Table) mb52Table.search('').draw();
         console.log("สถานะ rawDatabase ตอนกด Reset:", rawDatabase.rows.length);
