@@ -1055,7 +1055,8 @@ input[type="number"].qty-input {
 /* ลบลูกศรขึ้นลงในช่อง input (Chrome, Safari, Edge, Opera) */
 /* ปรับ Input ให้พอดี */
 
-input[type="number"].budget-input {
+input[type="number"].budget-input,
+input[type="number"].rankInput {
 
     border: 1px solid #e5e7eb;
 
