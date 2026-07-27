@@ -1951,7 +1951,7 @@ if (statusfinal === "ขาดของ") {
             window.SUMMARY_DATA_NOSTOCK[partID].totalAssigned += parseFloat(res.assigned) || 0;
             window.SUMMARY_DATA_NOSTOCK[partID].totalNetRequired += parseFloat(netAfterUpcoming) || 0;
         
-        
+        // return window.SUMMARY_DATA_NOSTOCK;
 
 
     window.FINAL_CALCULATED_DATA.push({
@@ -2193,6 +2193,7 @@ const NoStock_AfterUpcomingTable = $el.DataTable({
             #${$wrapper.attr('id')} { scrollbar-width: none !important; }
         `).appendTo('head');
     }
+    
 });
  
  
@@ -2202,7 +2203,13 @@ NoStock_AfterUpcomingTable.buttons().container().appendTo('#export-NoStock');
  NoStock_AfterUpcomingTableInstance = NoStock_AfterUpcomingTable;
 // 🎯 5. รีเทิร์นตัวแปรตารางออกไปใช้งานต่อตามปกติ
 return NoStock_AfterUpcomingTable;
+
+return window.SUMMARY_DATA_NOSTOCK;
 }, // 👈 เช็กดูว่ามีปีกกาปิดตัวนี้ครบถ้วนไหม
+
+
+
+
 renderManageBudget(allocatedData, materialTypeMap) {
     const summaryData = window.SUMMARY_DATA_ManageBudget || {};
     
@@ -3834,22 +3841,54 @@ setupRankPickerFilter: function(fullData, materialTypeMap) {
     //     console.log("Filter Applied: ", this.currentRank, "งานแรก");
     // },
  // ใน FilterModule ของคุณ
+// applyFilter: function(fullData, materialTypeMap) {
+//     const rankMap = window.GLOBAL_RANK_MAP || {};
+//     console.log("DEBUG CHECK: Rank ปัจจุบันก่อนกรองโครงการคือ:", FilterModule.currentRank);
+//     // 1. ดึงโครงการที่ถูกเลือกจากหน้าจอเสมอ (เพื่อให้มันทำงานต่อเนื่องกับฟิลเตอร์โครงการ)
+//     let selectedProjects = [];
+//     $('.projgroup-checkbox:checked').each(function() {
+//         selectedProjects.push($(this).val());
+//     });
+// console.log("DEBUG CHECK: โครงการที่เลือกมีกี่อัน:", selectedProjects.length);
+//     // 2. กรองข้อมูล ชั้นที่ 1 (Rank)
+//     let filteredData = fullData.filter(res => {
+//         const rank = rankMap[res.wbs] || 999;
+//         return rank <= this.currentRank;
+//     });
+
+//     // 3. กรองข้อมูล ชั้นที่ 2 (Project) ต่อจากผลลัพธ์ของ Rank
+//     if (selectedProjects.length > 0) {
+//         filteredData = filteredData.filter(res => {
+//             const wbsInfo = window.WORK_INFO_MAP[res.wbs.toString().trim()];
+//             const proj = wbsInfo ? wbsInfo.projectDef : '';
+//             return selectedProjects.includes(proj);
+//         });
+//     }
+
+//     // 4. วาดตาราง
+//     renderNoStock_AfterUpcomingTable(filteredData, materialTypeMap);
+    
+//     // 5. คำนวณสรุปยอด (ส่งข้อมูลที่กรองทั้ง 2 ชั้นแล้วเข้าไป)
+//     const summaryData = getRecalculatedSummaryFromFilteredData(filteredData);
+//     TableRenderer.renderNoStockTable(window.DATA_STORE.allocated, materialTypeMap, summaryData);
+// },
 applyFilter: function(fullData, materialTypeMap) {
     const rankMap = window.GLOBAL_RANK_MAP || {};
-    console.log("DEBUG CHECK: Rank ปัจจุบันก่อนกรองโครงการคือ:", FilterModule.currentRank);
-    // 1. ดึงโครงการที่ถูกเลือกจากหน้าจอเสมอ (เพื่อให้มันทำงานต่อเนื่องกับฟิลเตอร์โครงการ)
+    
+    // 1. ดึงสถานะฟิลเตอร์ล่าสุด
+    const currentRank = window.APP_RANK || 999;
     let selectedProjects = [];
     $('.projgroup-checkbox:checked').each(function() {
         selectedProjects.push($(this).val());
     });
-console.log("DEBUG CHECK: โครงการที่เลือกมีกี่อัน:", selectedProjects.length);
-    // 2. กรองข้อมูล ชั้นที่ 1 (Rank)
+
+    // 2. กรองข้อมูล (Rank)
     let filteredData = fullData.filter(res => {
         const rank = rankMap[res.wbs] || 999;
-        return rank <= this.currentRank;
+        return rank <= currentRank;
     });
 
-    // 3. กรองข้อมูล ชั้นที่ 2 (Project) ต่อจากผลลัพธ์ของ Rank
+    // 3. กรองข้อมูล (Project)
     if (selectedProjects.length > 0) {
         filteredData = filteredData.filter(res => {
             const wbsInfo = window.WORK_INFO_MAP[res.wbs.toString().trim()];
@@ -3858,14 +3897,16 @@ console.log("DEBUG CHECK: โครงการที่เลือกมีก
         });
     }
 
-    // 4. วาดตาราง
-    renderNoStock_AfterUpcomingTable(filteredData, materialTypeMap);
-    
-    // 5. คำนวณสรุปยอด (ส่งข้อมูลที่กรองทั้ง 2 ชั้นแล้วเข้าไป)
-    const summaryData = getRecalculatedSummaryFromFilteredData(filteredData);
-    TableRenderer.renderNoStockTable(window.DATA_STORE.allocated, materialTypeMap, summaryData);
-},
+    // 4. สั่ง Render ตารางแรก และ "รับค่า" ที่มันคำนวณเสร็จแล้วมาเก็บไว้
+    // (ตอนนี้เราส่งค่าผ่านตัวแปร summaryResult)
+    const summaryResult = renderNoStock_AfterUpcomingTable(filteredData, materialTypeMap);
 
+    // 5. สั่ง Render ตารางที่สอง โดยส่ง summaryResult เข้าไปตรงๆ
+    // วิธีนี้ทำให้ตารางที่สองไม่ต้องลุ้นว่าค่า Global จะมาหรือยัง
+    TableRenderer.renderNoStockTable(filteredData, materialTypeMap, summaryResult);
+    
+    console.log("DEBUG: ฟิลเตอร์เสร็จสิ้น ข้อมูลที่ส่งให้ตารางสรุปมี:", summaryResult);
+},
     resetRankFilter: function(fullData, materialTypeMap) {
         this.currentRank = 999; 
         $('#rankSlider').val(999);
