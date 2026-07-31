@@ -339,12 +339,18 @@ const AllocationService = {
         const uniqueWBS = Array.from(uniqueWBSSet);
 
         const rowsByWBS = new Map();
+        const pendingCountByWBS = new Map();
         rawDatabase.rows.forEach(row => {
             const wbs = getCellValue(row.c[0]).toString().trim();
+            const pending = parseFloat(CommonService.getCellValue(row.c[14])) || 0;
             if (!rowsByWBS.has(wbs)) {
                 rowsByWBS.set(wbs, []);
             }
             rowsByWBS.get(wbs).push(row);
+            // 🎯 นับเฉพาะรายการที่ค้างเบิก > 0 เหมือนหน้าบ้าน
+                if (pending > 0) {
+                    pendingCountByWBS.set(wbs, (pendingCountByWBS.get(wbs) || 0) + 1);
+                }
         });
 
         // ================================================================================================
@@ -353,13 +359,17 @@ const AllocationService = {
         const queue = rawDatabase.rows.map(row => {
             const wbs = getCellValue(row.c[0]).toString().trim();
             const rowsOfWbs = rowsByWBS.get(wbs) || [];
-
+            const rowCount = pendingCountByWBS.get(wbs) || 0;
             const openDateValue = getCellValue(row.c[26]);
             const wbsBudget = budgetMapping[wbs] || 0;
 
+            // const info = ScoringService.calculateScoreDetails(
+            //     wbs, getCellValue(row.c[24]), getCellValue(row.c[23]),
+            //     rowsOfWbs.length, vvipData, false, openDateValue, false
+            // );
             const info = ScoringService.calculateScoreDetails(
-                wbs, getCellValue(row.c[24]), getCellValue(row.c[23]),
-                rowsOfWbs.length, vvipData, false, openDateValue, false
+                wbs, CommonService.getCellValue(row.c[24]), CommonService.getCellValue(row.c[23]),
+                rowCount, vvipData, false, openDateValue, false
             );
 
             return {
@@ -368,7 +378,8 @@ const AllocationService = {
                 partName: getCellValue(row.c[4]),
                 pending: parseFloat(getCellValue(row.c[14])) || 0,
                 score: info.totalScore,
-                rowCount: rowsOfWbs.length,
+                // rowCount: rowsOfWbs.length,
+                rowCount: rowCount,
                 budget: wbsBudget,
                 raw: { 
                     valA: getCellValue(row.c[0]), 
@@ -422,6 +433,7 @@ const AllocationService = {
 // ... (โค้ดก่อนหน้านี้ใน STEP 3 จนถึงส่วนที่เริ่มลูป uniqueWBS)
 uniqueWBS.forEach(wbs => {
     const items = allocatedByWBS.get(wbs) || [];
+    const activeRowCount = pendingCountByWBS.get(wbs) || 0; // 👈 ใช้ rowCount เฉพาะที่ค้างเบิก > 0
     const allItems = items.map(i => {
         const type = materialTypeMap[i.partID?.toString().trim()]?.type || "";
         return { ...i, type,
@@ -496,13 +508,17 @@ uniqueWBS.forEach(wbs => {
     // ... (ส่วนที่เหลือของการอัปเดต finalWbsScores และ finalRankPrepList เหมือนเดิม)
 
             const firstItem = items[0];
-            if (firstItem) {
-                // คำนวณคะแนนสุทธิสุดท้ายหลังแจกของ (ใส่ค่า isGreen เพื่อลุ้นโบนัส +2000)
+            // if (firstItem) {
+            //     // คำนวณคะแนนสุทธิสุดท้ายหลังแจกของ (ใส่ค่า isGreen เพื่อลุ้นโบนัส +2000)
+            //     const final = ScoringService.calculateScoreDetails(
+            //         firstItem.raw.valA, firstItem.raw.valY, firstItem.raw.valX,
+            //         firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false
+            //     );
+        if (firstItem) {
                 const final = ScoringService.calculateScoreDetails(
                     firstItem.raw.valA, firstItem.raw.valY, firstItem.raw.valX,
-                    firstItem.rowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false
+                    activeRowCount, vvipData, isGreen, firstItem.raw.valOpenDate, false // 👈 ส่ง activeRowCount
                 );
-
                 finalWbsScores.set(wbs, final.totalScore);
                 wbsStatusMap.set(wbs, status);
                 
@@ -555,9 +571,8 @@ uniqueWBS.forEach(wbs => {
 // --- สิ้นสุดการแทนที่ ---
       
 
-
 // =========================================================================
-        // 📊 [Console Log] แสดงอันดับ สัญญาณไฟ ชื่องาน และการคำนวณคะแนนอย่างละเอียด
+        // 📊 [Console Log] แสดงอันดับ สัญญาณไฟ rowCount (pending>0) และการคำนวณคะแนน
         // =========================================================================
         console.group("%c🏆 [รายงานสรุปอันดับ สัญญาณไฟ และการคำนวณคะแนน WBS]", "color: #FFD700; background: #222; font-size: 14px; padding: 4px 8px; font-weight: bold;");
 
@@ -582,6 +597,9 @@ uniqueWBS.forEach(wbs => {
             const rowsOfWbs = rowsByWBS.get(wbs) || [];
             const firstRow = rowsOfWbs[0];
             
+            // 🎯 ดึง rowCount ที่นับเฉพาะรายการค้างเบิก (pending > 0)
+            const activeRowCount = pendingCountByWBS.get(wbs) || 0; 
+            
             if (firstRow) {
                 const valY = CommonService.getCellValue(firstRow.c[24]) ? CommonService.getCellValue(firstRow.c[24]).toString().trim() : "";
                 const valX = CommonService.getCellValue(firstRow.c[23]) ? CommonService.getCellValue(firstRow.c[23]).toString().trim() : "";
@@ -595,7 +613,9 @@ uniqueWBS.forEach(wbs => {
                 const timingPts = ScoringService._calculateTimingPoints(valY, diffDays, valX);
                 const agingDays = ScoringService._calculateAgingDays(openDate);
                 const agingPts = agingDays > 0 ? (agingDays / 10000) : 0;
-                const readinessPts = isGreen ? 2000 : ScoringService._calculateReadinessPoints(rowsOfWbs.length);
+                
+                // 🎯 ใช้ activeRowCount คำนวณแต้มความพร้อม
+                const readinessPts = isGreen ? 2000 : ScoringService._calculateReadinessPoints(activeRowCount);
                 const totalScore = finalWbsScores.get(wbs) || 0;
 
                 // จัดฟอร์แมตข้อมูลแสดงใน Console
@@ -603,11 +623,12 @@ uniqueWBS.forEach(wbs => {
                     "อันดับ": rankMapLog[wbs] || "-",
                     "สัญญาณไฟ": getSignalLight(status),
                     "ชื่องาน (WBS)": wbs,
+                    "ค้างเบิก (rowCount)": `${activeRowCount} รายการ`,
                     "ผลรวมคะแนน": totalScore,
                     "1. แต้มยุทธศาสตร์ (Strategic)": `${strategicPts} แต้ม ${strategicPts >= 5000 ? "(งาน VVIP)" : "(งานทั่วไป)"}`,
                     "2. แต้มเวลา/กำหนดส่ง (Timing)": `${timingPts} แต้ม (สถานะ: "${valY || 'ปกติ'}" / คงเหลือ: ${diffDays !== null ? diffDays + ' วัน' : 'ไม่ระบุ'})`,
-                    "3. แต้มอายุงาน (Aging)": `${agingPts.toFixed(4)} แต้ม (เปิด ${agingDays} วัน)`,
-                    "4. แต้มความพร้อม (Readiness)": `${readinessPts} แต้ม (${isGreen ? 'จัดสรร' : 'รายการ <= 5 รายการ'})`,
+                    "3. แต้มอายุงาน (Aging)": `${agingPts.toFixed(4)} แต้ม (เปิดงานมาแล้ว ${agingDays} วัน)`,
+                    "4. แต้มความพร้อม (Readiness)": `${readinessPts} แต้ม (${isGreen ? 'จัดสรรสต็อกครบ' : `ค้างเบิก = ${activeRowCount} ${activeRowCount <= 5 ? '(<=5 ได้ 1800)' : '(>5 ได้ 500)'}`})`,
                     "สูตรคิดคะแนนรวม": `${strategicPts} + ${timingPts} + ${agingPts.toFixed(4)} + ${readinessPts} = ${totalScore}`
                 });
             }
