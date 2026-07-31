@@ -3290,7 +3290,27 @@ async function initDashboard() {
                 if (partID) totalStockSummary[partID] = (totalStockSummary[partID] || 0) + quantity;
             });
         }
+// totalStockSummary = {};
+// if (dataMap['Stock_Data']?.rows) {
+//     dataMap['Stock_Data'].rows.forEach(row => {
+//         const partID = CommonService.getCellValue(row.c[0])?.toString().trim();
+        
+//         let rawQty = CommonService.getCellValue(row.c[8]);
+//         let quantity = 0;
+        
+//         if (rawQty !== null && rawQty !== undefined && rawQty !== "") {
+//             // แปลงค่าเป็น Number โดยตัดเศษขยะตัวอักษรออก
+//             quantity = Number(rawQty.toString().replace(/[^0-9.-]/g, ''));
+//             if (isNaN(quantity)) quantity = 0;
+//         }
 
+//         if (partID && partID !== "") {
+//             const currentVal = totalStockSummary[partID] || 0;
+//             // ป้องกันปัญหาเศษทศนิยมเกินของ JS
+//             totalStockSummary[partID] = Math.round((currentVal + quantity) * 100) / 100;
+//         }
+//     });
+// }
         // คำนวณระบบจัดสรรพัสดุ
         rawRequirementDatabase = dataMap['Requirement_Data'];
         const alloc = AllocationService.calculateAllocation(

@@ -19,7 +19,7 @@ const CommonService = {
     // --- 1. ฟังก์ชันดึงข้อมูลดิบ (เดิมที่คุณส่งมา) ---
    _cache: {}, // เพิ่มตัวแปรเก็บ Cache ใน Memory
 //    async fetchSheetData(sheetName) {
-//         const url = `api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
+//         const url = `/R2C/build/api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
 
 //         // 🔗 log บอกเมื่อระบบฝั่ง JavaScript เริ่มทำการเชื่อมต่อไปยัง API เพื่อดึงข้อมูลจาก MySQL
 
@@ -75,6 +75,69 @@ const CommonService = {
         }
     },
 
+    // async fetchSheetData(sheetName) {
+    //     // 🚀 ถ้าเคยดึงข้อมูลตารางนี้มาแล้ว ให้ดึงจาก RAM Cache กลับไปใช้ทันที (ตอบสนองใน 0ms)
+    //     if (this._cache[sheetName]) {
+    //         return this._cache[sheetName];
+    //     }
+
+    //     const url = `/R2C/build/api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
+
+    //     try {
+    //         const response = await fetch(url);
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP Error: ${response.status}`);
+    //         }
+
+    //         const jsonData = await response.json();
+    //         const rawTable = jsonData.table;
+
+    //         if (!rawTable) {
+    //             return { cols: [], rows: [] };
+    //         }
+
+    //         // ⚡ 2. Clean และ Normalize โครงสร้างข้อมูลให้เสถียร 100%
+    //         const formattedCols = (rawTable.cols || []).map(col => ({ 
+    //             label: col.label || "" 
+    //         }));
+            
+    //         const colLength = formattedCols.length;
+
+    //         const formattedRows = (rawTable.rows || []).map(row => {
+    //             if (!row || !row.c) return { c: [] };
+
+    //             // ดึงค่า v จากเซลล์ หากเป็น null หรือ undefined ให้ใส่สตริงว่าง
+    //             const formattedCells = row.c.map(cell => ({
+    //                 v: (cell?.v !== null && cell?.v !== undefined) ? cell.v : ""
+    //             }));
+
+    //             // เติมเซลล์ว่างให้ครบตามจำนวนคอลัมน์ ป้องกัน JS ประมวลผลหลุด Index
+    //             while (formattedCells.length < colLength) {
+    //                 formattedCells.push({ v: "" });
+    //             }
+
+    //             return { c: formattedCells };
+    //         });
+
+    //         const result = { cols: formattedCols, rows: formattedRows };
+
+    //         // 💾 บันทึกลง Memory Cache สำหรับใช้ครั้งถัดไป
+    //         this._cache[sheetName] = result;
+
+    //         return result;
+
+    //     } catch (err) {
+    //         console.error(`❌ [CommonService Error] Failed to fetch sheet: ${sheetName}`, err);
+    //         return { cols: [], rows: [] };
+    //     }
+    // },
+
+    /**
+     * ล้างข้อมูล Cache ในกรณีที่มีการสั่ง Refresh หรือบันทึกข้อมูลใหม่ลง MySQL
+     */
+    clearCache() {
+        this._cache = {};
+    },
     // --- 2. ฟังก์ชันเสริม (Data Services) ---
     getCellValue: function(cell) {
         return cell?.v !== undefined ? cell.v : cell;
@@ -491,6 +554,72 @@ uniqueWBS.forEach(wbs => {
 
 // --- สิ้นสุดการแทนที่ ---
       
+
+
+// =========================================================================
+        // 📊 [Console Log] แสดงอันดับ สัญญาณไฟ ชื่องาน และการคำนวณคะแนนอย่างละเอียด
+        // =========================================================================
+        console.group("%c🏆 [รายงานสรุปอันดับ สัญญาณไฟ และการคำนวณคะแนน WBS]", "color: #FFD700; background: #222; font-size: 14px; padding: 4px 8px; font-weight: bold;");
+
+        // 1. คำนวณอันดับ WBS ทั้งหมด
+        const rankMapLog = RankingService.calculateAllWbsRanks(rawDatabase.rows, budgetMapping, finalWbsScores);
+        const logDataList = [];
+
+        // ฟังก์ชันแปลง Status เป็น Emoji สัญญาณไฟ
+        const getSignalLight = (status) => {
+            switch (status) {
+                case 'green': return '🟢 จัดสรรครบ';
+                case 'blue': return '🔵 จัดสรรได้เฉพาะพัสดุหลัก';
+                case 'yellow': return '🟡 จัดสรรได้บางส่วน';
+                case 'red': return '🔴 สต็อกไม่พอ/จัดสรรไม่ได้';
+                case 'lock': return '🔒 ล็อก (พัสดุล้าสมัย/เปลี่ยนรหัส)';
+                default: return '⚪ ไม่ระบุ';
+            }
+        };
+
+        // 2. ดึงข้อมูลแจกแจงรายละเอียดการคำนวณของแต่ละ WBS
+        uniqueWBS.forEach(wbs => {
+            const rowsOfWbs = rowsByWBS.get(wbs) || [];
+            const firstRow = rowsOfWbs[0];
+            
+            if (firstRow) {
+                const valY = CommonService.getCellValue(firstRow.c[24]) ? CommonService.getCellValue(firstRow.c[24]).toString().trim() : "";
+                const valX = CommonService.getCellValue(firstRow.c[23]) ? CommonService.getCellValue(firstRow.c[23]).toString().trim() : "";
+                const openDate = CommonService.getCellValue(firstRow.c[26]) ? CommonService.getCellValue(firstRow.c[26]).toString().trim() : "";
+                const status = wbsStatusMap.get(wbs);
+                const isGreen = (status === "green");
+
+                // คำนวณค่าแต้มย่อยแต่ละตัว
+                const diffDays = ScoringService._calculateDaysRemaining(valX);
+                const strategicPts = ScoringService._calculateStrategicPoints(wbs, vvipData);
+                const timingPts = ScoringService._calculateTimingPoints(valY, diffDays, valX);
+                const agingDays = ScoringService._calculateAgingDays(openDate);
+                const agingPts = agingDays > 0 ? (agingDays / 10000) : 0;
+                const readinessPts = isGreen ? 2000 : ScoringService._calculateReadinessPoints(rowsOfWbs.length);
+                const totalScore = finalWbsScores.get(wbs) || 0;
+
+                // จัดฟอร์แมตข้อมูลแสดงใน Console
+                logDataList.push({
+                    "อันดับ": rankMapLog[wbs] || "-",
+                    "สัญญาณไฟ": getSignalLight(status),
+                    "ชื่องาน (WBS)": wbs,
+                    "ผลรวมคะแนน": totalScore,
+                    "1. แต้มยุทธศาสตร์ (Strategic)": `${strategicPts} แต้ม ${strategicPts >= 5000 ? "(งาน VVIP)" : "(งานทั่วไป)"}`,
+                    "2. แต้มเวลา/กำหนดส่ง (Timing)": `${timingPts} แต้ม (สถานะ: "${valY || 'ปกติ'}" / คงเหลือ: ${diffDays !== null ? diffDays + ' วัน' : 'ไม่ระบุ'})`,
+                    "3. แต้มอายุงาน (Aging)": `${agingPts.toFixed(4)} แต้ม (เปิด ${agingDays} วัน)`,
+                    "4. แต้มความพร้อม (Readiness)": `${readinessPts} แต้ม (${isGreen ? 'จัดสรร' : 'รายการ <= 5 รายการ'})`,
+                    "สูตรคิดคะแนนรวม": `${strategicPts} + ${timingPts} + ${agingPts.toFixed(4)} + ${readinessPts} = ${totalScore}`
+                });
+            }
+        });
+
+        // 3. จัดเรียงตามอันดับ 1 ไปท้ายสุด
+        logDataList.sort((a, b) => a["อันดับ"] - b["อันดับ"]);
+
+        // 4. พิมพ์ตารางออกทาง Console
+        console.table(logDataList);
+        console.groupEnd();
+        // =========================================================================
 
         return { allocatedResults, finalWbsScores, wbsStatusMap };
     },
