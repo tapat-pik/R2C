@@ -40,40 +40,40 @@ const CommonService = {
 //         }
 //     },
 
-    fetchSheetData: async function(sheetName) {
-        // ถ้าเคยดึงมาแล้ว ให้คืนค่าเดิมทันที (ไม่ยิง API ซ้ำ)
-        if (this._cache[sheetName]) return this._cache[sheetName];
+    // fetchSheetData: async function(sheetName) {
+    //     // ถ้าเคยดึงมาแล้ว ให้คืนค่าเดิมทันที (ไม่ยิง API ซ้ำ)
+    //     if (this._cache[sheetName]) return this._cache[sheetName];
 
-        const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
-        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
-         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Status: ${response.status}`);
-            const textData = await response.text();
-            const jsonStart = textData.indexOf('{');
-            const jsonEnd = textData.lastIndexOf('}');
-            const parsedData = JSON.parse(textData.substring(jsonStart, jsonEnd + 1));
-            const rawTable = parsedData.table;
-            if (!rawTable) return { cols: [], rows: [] };
+    //     const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
+    //     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
+    //      try {
+    //         const response = await fetch(url);
+    //         if (!response.ok) throw new Error(`Status: ${response.status}`);
+    //         const textData = await response.text();
+    //         const jsonStart = textData.indexOf('{');
+    //         const jsonEnd = textData.lastIndexOf('}');
+    //         const parsedData = JSON.parse(textData.substring(jsonStart, jsonEnd + 1));
+    //         const rawTable = parsedData.table;
+    //         if (!rawTable) return { cols: [], rows: [] };
 
-            const formattedCols = (rawTable.cols || []).map(col => ({ label: col.label || "" }));
-            const formattedRows = (rawTable.rows || []).map(row => {
-                if (!row || !row.c) return { c: [] };
-                const formattedCells = row.c.map(cell => ({ v: cell?.v ?? "" }));
-                while (formattedCells.length < formattedCols.length) formattedCells.push({ v: "" });
-                return { c: formattedCells };
-            });
-            // return { cols: formattedCols, rows: formattedRows };
+    //         const formattedCols = (rawTable.cols || []).map(col => ({ label: col.label || "" }));
+    //         const formattedRows = (rawTable.rows || []).map(row => {
+    //             if (!row || !row.c) return { c: [] };
+    //             const formattedCells = row.c.map(cell => ({ v: cell?.v ?? "" }));
+    //             while (formattedCells.length < formattedCols.length) formattedCells.push({ v: "" });
+    //             return { c: formattedCells };
+    //         });
+    //         // return { cols: formattedCols, rows: formattedRows };
 
-            const result = { cols: formattedCols, rows: formattedRows };
+    //         const result = { cols: formattedCols, rows: formattedRows };
             
-            // เก็บลง Cache ไว้ใช้ครั้งต่อไป
-            this._cache[sheetName] = result;
-            return result;
-        } catch (err) {
-            return { cols: [], rows: [] };
-        }
-    },
+    //         // เก็บลง Cache ไว้ใช้ครั้งต่อไป
+    //         this._cache[sheetName] = result;
+    //         return result;
+    //     } catch (err) {
+    //         return { cols: [], rows: [] };
+    //     }
+    // },
 
     // async fetchSheetData(sheetName) {
     //     // 🚀 ถ้าเคยดึงข้อมูลตารางนี้มาแล้ว ให้ดึงจาก RAM Cache กลับไปใช้ทันที (ตอบสนองใน 0ms)
@@ -132,70 +132,166 @@ const CommonService = {
     //     }
     // },
 
-    /**
-     * ล้างข้อมูล Cache ในกรณีที่มีการสั่ง Refresh หรือบันทึกข้อมูลใหม่ลง MySQL
-     */
-    clearCache() {
-        this._cache = {};
+    // /**
+    //  * ล้างข้อมูล Cache ในกรณีที่มีการสั่ง Refresh หรือบันทึกข้อมูลใหม่ลง MySQL
+    //  */
+    // clearCache() {
+    //     this._cache = {};
+    // },
+    // // --- 2. ฟังก์ชันเสริม (Data Services) ---
+    // getCellValue: function(cell) {
+    //     return cell?.v !== undefined ? cell.v : cell;
+    // },
+
+    // fetchVVIPData: async function() {
+    //     const data = await this.fetchSheetData('VVIP_Data');
+    //     return data.rows || [];
+    // },
+
+    // fetchPEANameData: async function() {
+    //     const data = await this.fetchSheetData('PEAName_data');
+    //     const mapping = {};
+    //     if (data?.rows) {
+    //         data.rows.forEach(row => {
+    //             const peaCode = this.getCellValue(row.c[0])?.toString().trim();
+    //             const peaName = this.getCellValue(row.c[1])?.toString().trim();
+    //             if (peaCode && peaName) mapping[peaCode] = peaName;
+    //         });
+    //     }
+    //     return mapping;
+    // },
+
+    // fetchBudgetData: async function() {
+    //     const data = await this.fetchSheetData('Budget_Data');
+    //     const mapping = {};
+    //     if (data?.rows) {
+    //         data.rows.forEach(row => {
+    //             const wbs = this.getCellValue(row.c[2])?.toString().trim();
+    //             const rawValue = this.getCellValue(row.c[19])?.toString() || "0";
+    //             const cleanValue = rawValue.replace(/[^0-9.]/g, ''); 
+    //             if (wbs) mapping[wbs] = parseFloat(cleanValue) || 0;
+    //         });
+    //     }
+    //     return mapping;
+    // },
+
+    // fetchUpcomingItemData: async function() {
+    //     return await this.fetchSheetData('Upcoming_Item');
+    // },
+
+    // buildMaterialTypeMap: function(masterData) {
+    //     const map = {};
+    //     if (!masterData?.rows) return map;
+    //     masterData.rows.forEach(row => {
+    //         const partID = this.getCellValue(row.c[0])?.toString().trim();
+    //         const type = this.getCellValue(row.c[2])?.toString().trim();
+    //         const cost = this.getCellValue(row.c[3])?.toString().trim();
+    //         if (partID) {
+    //         map[partID] = {
+    //             type: type || "ทั่วไป",
+    //             cost: parseFloat(cost) || 0 // เก็บเป็นตัวเลข
+    //         };
+    //     }
+    //     });
+    //     return map;
+    // }
+
+
+    async fetchSheetData(sheetName) {
+        // Return Cache ทันทีหากเคยดึงแล้ว (0 ms)
+        if (this._cache[sheetName]) return this._cache[sheetName];
+
+        const url = `/R2C/build/api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+            const jsonData = await response.json();
+            const rawTable = jsonData?.table || { cols: [], rows: [] };
+            
+            // บันทึกลง Memory Cache
+            this._cache[sheetName] = rawTable;
+            return rawTable;
+
+        } catch (err) {
+            console.error(`[MySQL Fetch Error] ${sheetName}:`, err);
+            return { cols: [], rows: [] };
+        }
     },
-    // --- 2. ฟังก์ชันเสริม (Data Services) ---
+
+    /**
+     * 🚀 [NEW] ยิงดึงข้อมูลหลาย Table พร้อมกันแบบ Parallel (Promise.all)
+     * ช่วยให้การดึง 7-8 ตาราง ใช้เวลารวมเท่ากับการดึงตารางเดียว (< 300ms)
+     */
+    async fetchMultipleSheets(sheetNames = []) {
+        const promises = sheetNames.map(name => this.fetchSheetData(name));
+        const results = await Promise.all(promises);
+        
+        return sheetNames.reduce((acc, name, index) => {
+            acc[name] = results[index];
+            return acc;
+        }, {});
+    },
+
     getCellValue: function(cell) {
         return cell?.v !== undefined ? cell.v : cell;
     },
 
-    fetchVVIPData: async function() {
+    async fetchVVIPData() {
         const data = await this.fetchSheetData('VVIP_Data');
         return data.rows || [];
     },
 
-    fetchPEANameData: async function() {
+    async fetchPEANameData() {
         const data = await this.fetchSheetData('PEAName_data');
         const mapping = {};
         if (data?.rows) {
-            data.rows.forEach(row => {
-                const peaCode = this.getCellValue(row.c[0])?.toString().trim();
-                const peaName = this.getCellValue(row.c[1])?.toString().trim();
+            const rows = data.rows;
+            for (let i = 0; i < rows.length; i++) {
+                const peaCode = this.getCellValue(rows[i].c[0])?.toString().trim();
+                const peaName = this.getCellValue(rows[i].c[1])?.toString().trim();
                 if (peaCode && peaName) mapping[peaCode] = peaName;
-            });
+            }
         }
         return mapping;
     },
 
-    fetchBudgetData: async function() {
+    async fetchBudgetData() {
         const data = await this.fetchSheetData('Budget_Data');
         const mapping = {};
         if (data?.rows) {
-            data.rows.forEach(row => {
-                const wbs = this.getCellValue(row.c[2])?.toString().trim();
-                const rawValue = this.getCellValue(row.c[19])?.toString() || "0";
+            const rows = data.rows;
+            for (let i = 0; i < rows.length; i++) {
+                const wbs = this.getCellValue(rows[i].c[2])?.toString().trim();
+                const rawValue = this.getCellValue(rows[i].c[19])?.toString() || "0";
                 const cleanValue = rawValue.replace(/[^0-9.]/g, ''); 
                 if (wbs) mapping[wbs] = parseFloat(cleanValue) || 0;
-            });
+            }
         }
         return mapping;
     },
 
-    fetchUpcomingItemData: async function() {
+    async fetchUpcomingItemData() {
         return await this.fetchSheetData('Upcoming_Item');
     },
 
     buildMaterialTypeMap: function(masterData) {
         const map = {};
         if (!masterData?.rows) return map;
-        masterData.rows.forEach(row => {
-            const partID = this.getCellValue(row.c[0])?.toString().trim();
-            const type = this.getCellValue(row.c[2])?.toString().trim();
-            const cost = this.getCellValue(row.c[3])?.toString().trim();
-            if (partID) {
-            map[partID] = {
-                type: type || "ทั่วไป",
-                cost: parseFloat(cost) || 0 // เก็บเป็นตัวเลข
-            };
+        const rows = masterData.rows;
+        for (let i = 0; i < rows.length; i++) {
+            const partID = this.getCellValue(rows[i].c[0])?.toString().trim();
+            const type = this.getCellValue(rows[i].c[2])?.toString().trim();
+            const cost = this.getCellValue(rows[i].c[3])?.toString().trim();
+            if (partID) map[partID] = { type: type || "ทั่วไป", cost: parseFloat(cost) || 0 };
         }
-        });
         return map;
     }
-
 
 };
 // ==================== Scoring Service ====================//
@@ -225,10 +321,10 @@ const ScoringService = {
         const strategicPoints = this._calculateStrategicPoints(currentWBS, vvipData);
         const timingPoints = this._calculateTimingPoints(strY, diffDays, strX);
         const agingDays = this._calculateAgingDays(strOpenDate);
-        const agingPoints = agingDays > 0 ? (agingDays / 10000) : 0;
+        const agingPoints = agingDays > 0 ? Math.min(200, agingDays / 10) : 0;
 
         // 🎯 เช็กเงื่อนไข +2000 แต้มตรงนี้: ถ้าได้ของครบ (isFullyAllocated = true) ปรับเป็น 2000 แต้มเต็มทันที
-        const readinessPoints = isFullyAllocated ? 2000 : this._calculateReadinessPoints(rowCount);
+        const readinessPoints = isFullyAllocated ? 2500 : this._calculateReadinessPoints(rowCount);
 
         // รวมคะแนนสุทธิ
         score = strategicPoints + timingPoints + agingPoints + readinessPoints;
@@ -293,7 +389,7 @@ const ScoringService = {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         return diffDays > 0 ? diffDays : 0;
     },
-
+    // คำนวณคะแนนเชิงกลยุทธ์ (Strategic Points) โดยตรวจสอบว่ามี WBS ตรงกับ VVIP หรือไม่
     _calculateStrategicPoints(strA, vvipData) {
         if (strA === "") return 0;
         let points = 1000;
@@ -302,7 +398,7 @@ const ScoringService = {
                 const vvipVal = (row.c && row.c[1] && row.c[1].v) ? row.c[1].v.toString().trim() : "";
                 return vvipVal === strA;
             });
-            if (isVVIP) points += 4000;
+            if (isVVIP) points += 5000;
         }
         return points;
     },
@@ -310,17 +406,36 @@ const ScoringService = {
     _calculateTimingPoints(strY, diffDays, strX) {
         const accumulationDays = Math.abs(diffDays || 0);
         if (strY === "งาน 02.2") return 3000;
-        if (strY === "เกินกำหนด") return 2000 + (accumulationDays * 2);
-        if (diffDays !== null && diffDays >= 0 && diffDays <= 30) return 1000 + (accumulationDays * 20);
+        if (strY === "เกินกำหนด" || diffDays < 0) return Math.min(3000, 2000 + (accumulationDays * 2));
+        if (diffDays !== null && diffDays >= 0 && diffDays <= 30) return 1200 + ((30-accumulationDays) * 50);
         if (diffDays !== null && diffDays > 30) return 500;
-        if (strY === "ไม่เกินกำหนด" && strX === "") return 500;
+        if (strY === "ไม่เกินกำหนด" && strX === "ยังไม่เกิด AUC" || strX === "") return 500;
         return 0;
     },
 
-    _calculateReadinessPoints(rowCount) {
-        if (rowCount === undefined || rowCount === null) return 0;
-        return rowCount <= 5 ? 1800 : 500;
+   _calculateReadinessPoints(rowCount) {
+    if (rowCount === undefined || rowCount === null || rowCount <= 0) {
+        return 0;
     }
+    if (rowCount === 1) {
+        return 2200;
+    }
+    if (rowCount === 2) {
+        return 1900;
+    }
+    if (rowCount === 3) {
+        return 1600;
+    }
+    if (rowCount === 4) {
+        return 1300;
+    }
+    if (rowCount === 5) {
+        return 1000;
+    }
+    if (rowCount > 5) {
+        return 400;
+    }
+}
 };
 
 const AllocationService = {
@@ -612,10 +727,10 @@ uniqueWBS.forEach(wbs => {
                 const strategicPts = ScoringService._calculateStrategicPoints(wbs, vvipData);
                 const timingPts = ScoringService._calculateTimingPoints(valY, diffDays, valX);
                 const agingDays = ScoringService._calculateAgingDays(openDate);
-                const agingPts = agingDays > 0 ? (agingDays / 10000) : 0;
+                const agingPts = agingDays > 0 ? Math.min(200, agingDays / 10) : 0;
                 
                 // 🎯 ใช้ activeRowCount คำนวณแต้มความพร้อม
-                const readinessPts = isGreen ? 2000 : ScoringService._calculateReadinessPoints(activeRowCount);
+                const readinessPts = isGreen ? 2500 : ScoringService._calculateReadinessPoints(activeRowCount);
                 const totalScore = finalWbsScores.get(wbs) || 0;
 
                 // จัดฟอร์แมตข้อมูลแสดงใน Console
@@ -626,7 +741,7 @@ uniqueWBS.forEach(wbs => {
                     "ค้างเบิก (rowCount)": `${activeRowCount} รายการ`,
                     "ผลรวมคะแนน": totalScore,
                     "1. แต้มยุทธศาสตร์ (Strategic)": `${strategicPts} แต้ม ${strategicPts >= 5000 ? "(งาน VVIP)" : "(งานทั่วไป)"}`,
-                    "2. แต้มเวลา/กำหนดส่ง (Timing)": `${timingPts} แต้ม (สถานะ: "${valY || 'ปกติ'}" / คงเหลือ: ${diffDays !== null ? diffDays + ' วัน' : 'ไม่ระบุ'})`,
+                    "2. แต้มเวลา/กำหนดส่ง (Timing)": `${timingPts} แต้ม (สถานะ: "${valY }/ ${valX}"  / คงเหลือ: ${diffDays !== null ? diffDays + ' วัน' : 'ไม่ระบุ'})`,
                     "3. แต้มอายุงาน (Aging)": `${agingPts.toFixed(4)} แต้ม (เปิดงานมาแล้ว ${agingDays} วัน)`,
                     "4. แต้มความพร้อม (Readiness)": `${readinessPts} แต้ม (${isGreen ? 'จัดสรรสต็อกครบ' : `ค้างเบิก = ${activeRowCount} ${activeRowCount <= 5 ? '(<=5 ได้ 1800)' : '(>5 ได้ 500)'}`})`,
                     "สูตรคิดคะแนนรวม": `${strategicPts} + ${timingPts} + ${agingPts.toFixed(4)} + ${readinessPts} = ${totalScore}`

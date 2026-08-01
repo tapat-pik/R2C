@@ -1,121 +1,88 @@
 <?php
 // api/get_data.php
-// header('Content-Type: application/json');
-// header('Access-Control-Allow-Origin: *');
 
-// // --- 1. ดึงไฟล์เชื่อมต่อ DB มาใช้ ---
-// include 'db_connect.php'; 
+// 1. เพิ่ม memory limit และ execution time สำหรับงานใหญ่
+ini_set('memory_limit', '1024M');
+set_time_limit(120);
 
-// $sheetName = isset($_GET['sheet']) ? $_GET['sheet'] : '';
-// $allowedTables = ['Material_Master', 'Stock_Data', 'Requirement_Data', 'Upcoming_Item', 'Budget_Data', 'VVIP_Data', 'PEAName_data', 'n2po_data','stockn2_data'];
+// ปิด Error/Warning ไม่ให้พ่น HTML แทรก JSON
+error_reporting(0);
+ini_set('display_errors', 0);
 
-// $rows = []; 
-// $cols = []; // เตรียมตัวแปรสำหรับหัวตาราง
-
-// if (in_array($sheetName, $allowedTables)) {
-//     $sql = "SELECT * FROM $sheetName";
-//     $result = $conn->query($sql);
-    
-//     if ($result) {
-//         // --- ส่วนที่เพิ่ม: สร้างหัวคอลัมน์ (cols) ---
-//         // ดึงรายชื่อ Field จาก MySQL มาทำเป็น label
-//         while ($finfo = $result->fetch_field()) {
-//             $cols[] = ["label" => $finfo->name];
-//         }
-
-//         // --- ส่วนข้อมูล (rows) เหมือนเดิม ---
-//         while($row = $result->fetch_row()) {
-//             $formattedCells = [];
-//             foreach($row as $val) {
-//                 $formattedCells[] = ["v" => $val];
-//             }
-//             $rows[] = ["c" => $formattedCells];
-//         }
-//     }
-// }
-
-// // ส่งออก JSON ที่มีทั้ง cols และ rows
-// echo json_encode([
-//     "table" => [
-//         "cols" => $cols, // ตอนนี้มี cols แล้ว JavaScript จะไม่พัง
-//         "rows" => $rows
-//     ]
-// ], JSON_UNESCAPED_UNICODE);
-
-// $conn->close();
-
-
-// api/get_data.php
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET');
 
-require_once 'db_connect.php'; 
+include 'db_connect.php'; 
 
-$sheetName = $_GET['sheet'] ?? '';
-
-// Whitelist ตารางที่อนุญาต (ป้องกัน SQL Injection)
-$allowedTables = [
-    'Material_Master', 'Stock_Data', 'Requirement_Data', 
-    'Upcoming_Item', 'Budget_Data', 'VVIP_Data', 
-    'PEAName_data', 'N2PO_Data', 'StockN2_Data'
-];
-
-$rows = []; 
-$cols = []; 
-
-if (in_array($sheetName, $allowedTables, true)) {
-    try {
-        // ใช้ชื่อตารางแบบปลอดภัย
-        $sql = "SELECT * FROM `$sheetName`";
-        $result = $conn->query($sql);
-        
-        if ($result) {
-            // 1. ดึงข้อมูล Metadata ของคอลัมน์ และเก็บชนิดข้อมูล (Type)
-            $fields = $result->fetch_fields();
-            foreach ($fields as $field) {
-                $cols[] = ["label" => $field->name];
-            }
-
-            // 2. ดึงข้อมูลแบบรวดเร็ว และแปลง Type Casting ตัวเลขให้อัตโนมัติ
-            while ($row = $result->fetch_row()) {
-                $formattedCells = [];
-                
-                foreach ($row as $idx => $val) {
-                    if ($val === null) {
-                        $typedVal = "";
-                    } elseif (is_numeric($val)) {
-                        // แปลง String ตัวเลขจาก DB ให้เป็น Int/Float ตามจริง
-                        $typedVal = $val + 0; 
-                    } else {
-                        $typedVal = $val;
-                    }
-
-                    $formattedCells[] = ["v" => $typedVal];
-                }
-
-                $rows[] = ["c" => $formattedCells];
-            }
-            $result->free();
-        }
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(["error" => "Query execution failed", "details" => $e->getMessage()], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-} else {
-    http_response_code(400);
-    echo json_encode(["error" => "Invalid or unallowed sheet name"], JSON_UNESCAPED_UNICODE);
-    exit;
+if ($conn->connect_error) {
+    echo json_encode(["table" => ["cols" => [], "rows" => []]]);
+    exit();
 }
 
-// 3. ปิดการเชื่อมต่อ DB ทันทีที่ไม่ใช้แล้ว
-$conn->close();
+$sheetName = isset($_GET['sheet']) ? $_GET['sheet'] : '';
 
-// 4. ส่งออก JSON แบบใช้ Flag เพิ่มประสิทธิภาพ
-echo json_encode([
-    "table" => [
-        "cols" => $cols,
-        "rows" => $rows
-    ]
-], JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+$allowedTables = [
+    'Material_Master', 
+    'Stock_Data', 
+    'Requirement_Data', 
+    'Upcoming_Item', 
+    'Budget_Data', 
+    'VVIP_Data', 
+    'PEAName_data',
+    'StockN2_Data', 
+    'N2PO_Data'
+];
+
+if (!in_array($sheetName, $allowedTables)) {
+    echo json_encode(["table" => ["cols" => [], "rows" => []]]);
+    $conn->close();
+    exit();
+}
+
+$sql = "SELECT * FROM `$sheetName`";
+$result = $conn->query($sql);
+
+if (!$result) {
+    echo json_encode(["table" => ["cols" => [], "rows" => []]]);
+    $conn->close();
+    exit();
+}
+
+// 🚀 เทคนิคประหยัด RAM: พ่น Output สตรีมออกไปตรงๆ ไม่สร้าง Array มหาศาลไว้ใน RAM
+echo '{"table":{"cols":[';
+
+// 1. พ่น Cols
+$cols = [];
+while ($finfo = $result->fetch_field()) {
+    $cols[] = json_encode(["label" => $finfo->name], JSON_UNESCAPED_UNICODE);
+}
+echo implode(',', $cols);
+echo '],"rows":[';
+
+// 2. พ่น Rows ทีละแถว (Loop เสร็จแล้วเคลียร์ทันที)
+$firstRow = true;
+while ($row = $result->fetch_row()) {
+    if (!$firstRow) {
+        echo ',';
+    }
+    $firstRow = false;
+
+    $formattedCells = [];
+    foreach ($row as $val) {
+        $formattedCells[] = ["v" => ($val !== null) ? $val : ""];
+    }
+    
+    // พ่น JSON ของแถวนี้ออกไปทันที
+    echo json_encode(["c" => $formattedCells], JSON_UNESCAPED_UNICODE);
+    
+    // ล้าง Output Buffer เพื่อส่งข้อมูลออกไปเรื่อยๆ RAM จะไม่สะสม
+    if (ob_get_level() > 0) ob_flush();
+    flush();
+}
+
+echo ']}}';
+
+// เคลียร์ Memory DB
+$result->free();
+$conn->close();
+?>

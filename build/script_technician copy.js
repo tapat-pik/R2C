@@ -1,42 +1,10 @@
 /**
- * ============================================================================
- *  Dashboard พัสดุ/คลังสินค้า - script_technician.js
- * ============================================================================
- * ไฟล์นี้รวมโค้ด Frontend ทั้งหมดของหน้า Dashboard: ดึงข้อมูลจาก Google Sheet,
- * คำนวณการจัดสรรพัสดุ, วาดตาราง (DataTables), กราฟ (Chart.js), และตัวกรองต่างๆ
- *
- * สารบัญ (เรียงตามลำดับในไฟล์):
- *   1. Configuration        - หมายเหตุ dependency จากไฟล์ภายนอก (config, *Service ต่างๆ)
- *   2. Global State          - ตัวแปรสถานะรวมของแอป (instance ตาราง, ข้อมูล cache)
- *   3. Constants              - ค่าคงที่ที่ใช้ร่วมกัน (สไตล์ตาราง, สีสถานะ, รายการฟิลเตอร์)
- *   4. Utility Functions      - ฟังก์ชันช่วยเหลือทั่วไป (debounce, getCellValue, createStatusCircle)
- *   5. renderUpcomingTable()  - วาดตารางพัสดุที่กำลังจะเข้า (Upcoming_Item)
- *   6. updateGraph            - อัปเดตข้อมูลกราฟ Pie/Bar จากตารางที่ถูกกรอง
- *   7. GraphRender            - สร้าง instance กราฟ Pie/Bar ครั้งแรก (Chart.js)
- *   8. Dashboard Cards        - อัปเดตตัวเลขสรุปบนการ์ด (ShowTotalJobs, updateDashboardCards)
- *   9. Progress / WBS Utils   - คำนวณ % ความพร้อมของงานและ WBS
- *  10. Event Handlers         - renderInitialStockMatch และจุดเริ่ม cross-filter sync
- *  11. TableRenderer          - วาดตาราง DataTables ทุกตารางในหน้า (ตัวใหญ่ที่สุดในไฟล์)
- *  12. getTableCounts / updateDashboardCounts - นับจำนวนแถวในตารางย่อยแต่ละสถานะ
- *  13. syncAllTables()        - ซิงค์ตัวกรอง (search) จากตารางหลักไปยังตารางย่อยทั้งหมด
- *  14. Filter Helpers         - ฟังก์ชันช่วยสร้าง/ผูก dropdown checkbox filter (ใช้ร่วมกันหลายจุด)
- *  15. FilterModule           - ตัวกรองเฉพาะของแต่ละคอลัมน์/ตาราง (WBS, ประเภท, PEA, สถานะไฟ ฯลฯ)
- *  16. UI Helpers             - toggleInfoTab, setupRowClickEvent, SweetAlert card info popups
- *  17. setupGlobalEvents()    - ผูก event ระดับหน้าเว็บที่ไม่ผูกกับตารางใดตารางหนึ่งโดยเฉพาะ
- *  18. Main Initialization    - initDashboard() จุดเริ่มต้นการทำงานทั้งหมด + $(document).ready
- * ============================================================================
+ * Dashboard Single File - Optimized & Clean
+ * All functionality in one file with optimizations
  */
 
 
 // ==================== Configuration ====================
-// หมายเหตุ: ตัวแปร/อ็อบเจกต์ต่อไปนี้ "ไม่ได้" ประกาศอยู่ในไฟล์นี้ แต่มาจากไฟล์ภายนอกที่ต้องโหลดมาก่อนไฟล์นี้เสมอ:
-//   - config              : รายการชีตที่ต้องดึงข้อมูล พร้อม selector ตารางปลายทาง (ตัวอย่างโครงสร้างด้านล่าง)
-//   - CommonService       : ดึงข้อมูล/แปลงข้อมูลดิบจาก Google Sheet (fetchMultipleSheets, getCellValue, buildMaterialTypeMap)
-//   - AllocationService   : คำนวณการจัดสรรพัสดุ (calculateAllocation)
-//   - RankingService      : คำนวณอันดับ WBS (calculateAllWbsRanks)
-//   - WarehouseService    : เรนเดอร์ตารางคลังสินค้า (renderNoStock_warehouse) — ใช้แบบ optional (มีการเช็ก typeof ก่อนเรียก)
-//
-// ตัวอย่างโครงสร้างของ config:
 // const config = [
 //     { name: 'Material_Master', target: '#tableParcel' },
 //     { name: 'Stock_Data', target: '#tableMB52' },
@@ -100,14 +68,6 @@ const STATUS_COLORS = {
     }
 };
 
-const LIGHT_STATUS_FILTER_ITEMS = [
-    { value: 'status-green', text: '🟢 ของครบ' },
-    { value: 'status-blue', text: '🔵 พัสดุหลักครบ' },
-    { value: 'status-yellow', text: '🟡 ได้ของบางส่วน' },
-    { value: 'status-red', text: '🔴 ไม่ได้ของเลย' },
-    { value: 'status-lock', text: '🔒 ล็อค (พัสดุล้าสมัย/เปลี่ยนรหัส)' }
-];
-
 // ==================== Utility Functions ====================
 const debounceTimers = new Map();
 
@@ -161,6 +121,152 @@ function createStatusCircle(status) {
         " title="${color.title}"></span>
     `;
 }
+// ==================== Data Service ====================
+// const DataService = {
+    
+    //============== ดึงจาก mysql ======================//
+//    async fetchSheetData(sheetName) {
+//         const url = `api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
+
+//         // 🔗 log บอกเมื่อระบบฝั่ง JavaScript เริ่มทำการเชื่อมต่อไปยัง API เพื่อดึงข้อมูลจาก MySQL
+
+//         try {
+//             const response = await fetch(url);
+//             if (!response.ok) throw new Error(`Network response was not ok (Status: ${response.status})`);
+
+//             const jsonData = await response.json();
+            
+//             // ✅ log บอกเมื่อดึงข้อมูลสำเร็จจาก MySQL พร้อมบอกจำนวนแถวข้อมูลที่ได้กลับมา
+//             const rowCount = (jsonData.table && jsonData.table.rows) ? jsonData.table.rows.length : 0;
+            
+//             return jsonData.table;
+
+//         } catch (err) {
+//             // ❌ log แจ้งเตือนกรณีที่ระบบเกิด Error หรือติดต่อ API ของ MySQL ไม่สำเร็จ
+//             return { cols: [], rows: [] };
+//         }
+//     },
+
+    //============== ดึงจาก google sheet ======================//
+//         async fetchSheetData(sheetName) {
+//         const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
+        
+//         // ดึงข้อมูลผ่าน Google Endpoint ที่ให้โครงสร้างข้อมูลแบบตารางมาประมวลผลต่อได้ง่าย
+//         const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
+
+//         // 🔗 log บอกเมื่อระบบเริ่มทำการยิงไปเชื่อมต่อกับ Google Sheet
+
+//         try {
+//             const response = await fetch(url);
+//             if (!response.ok) throw new Error(`Network response was not ok (Status: ${response.status})`);
+
+//             const textData = await response.text();
+            
+//             // ตัดเอาเฉพาะก้อนเนื้อหาข้อมูล JSON ที่อยู่ระหว่างวงเล็บ { ... }
+//             const jsonStart = textData.indexOf('{');
+//             const jsonEnd = textData.lastIndexOf('}');
+//             if (jsonStart === -1 || jsonEnd === -1) {
+//                 throw new Error('Invalid JSONP response format from Google Sheets');
+//             }
+            
+//             const rawJsonStr = textData.substring(jsonStart, jsonEnd + 1);
+//             const parsedData = JSON.parse(rawJsonStr);
+            
+//             const rawTable = parsedData.table;
+//             if (!rawTable) return { cols: [], rows: [] };
+
+//             // 🎯 จัดฟอร์แมตหัวคอลัมน์ (cols) ให้เหมือนกับของเดิมที่มาจาก MySQL
+//             const formattedCols = (rawTable.cols || []).map(col => ({
+//                 label: col.label || ""
+//             }));
+
+//             // 🎯 จัดฟอร์แมตข้อมูลในตาราง (rows) ให้คงโครงสร้าง "c" -> "v" เอาไว้เหมือนเดิมเป๊ะ
+//             const formattedRows = (rawTable.rows || []).map(row => {
+//                 if (!row || !row.c) return { c: [] };
+                
+//                 const formattedCells = row.c.map(cell => {
+//                     if (!cell) return { v: "" };
+//                     // ดึงค่า v จากเซลล์ออกมา หากค่าเป็น null หรือ undefined ให้เซ็ตเป็นสตริงว่าง
+//                     return { v: cell.v !== null && cell.v !== undefined ? cell.v : "" };
+//                 });
+
+//                 // ตรวจเช็กและเติมเซลล์ว่างให้ครบตามจำนวนคอลัมน์ ป้องกันระบบ JavaScript ประมวลผลพลาด
+//                 while (formattedCells.length < formattedCols.length) {
+//                     formattedCells.push({ v: "" });
+//                 }
+
+//                 return { c: formattedCells };
+//             });
+
+//             // ✅ log บอกเมื่อเชื่อมต่อสำเร็จและแปลงข้อมูลเสร็จเรียบร้อย พร้อมบอกจำนวนแถวที่ได้มา
+
+//             // ส่งข้อมูลกลับไปในโครงสร้างแบบเดิมที่โค้ดเก่าต้องการ
+//             return {
+//                 cols: formattedCols,
+//                 rows: formattedRows
+//             };
+
+//         } catch (err) {
+//             // ❌ log แจ้งเตือนกรณีที่การเชื่อมต่อเกิดการพังหรือดึงข้อมูลไม่ได้
+//             return { cols: [], rows: [] };
+//         }
+//     },
+
+//     async fetchVVIPData() {
+//         const data = await this.fetchSheetData('VVIP_Data');
+//         return data.rows || [];
+//     },
+
+//     async fetchPEANameData() {
+//         const data = await this.fetchSheetData('PEAName_data');
+//         const mapping = {};
+
+//         if (data && data.rows) {
+//             data.rows.forEach(row => {
+//                 if (!row || !row.c) return;
+//                 const peaCode = getCellValue(row.c[0])?.toString().trim();
+//                 const peaName = getCellValue(row.c[1])?.toString().trim();
+//                 if (peaCode && peaName) {
+//                     mapping[peaCode] = peaName;
+//                 }
+//             });
+//         }
+//         return mapping;
+//     },
+//     // 🎯 อันนี้คือฟังก์ชันใหม่ที่คุณบิ๊กสั่งเพิ่มเข้าไปครับ!
+//     async fetchUpcomingItemData() {
+//         // ดึงข้อมูลทั้งก้อน (มีทั้ง cols และ rows) เพื่อเอาไปจัดคอลัมน์ต่อ
+//         const data = await this.fetchSheetData('Upcoming_Item');
+//         return data; 
+//     },
+//   async  fetchBudgetData() {
+//     const data = await this.fetchSheetData('Budget_Data');
+//     const mapping = {};
+//     if (data && data.rows) {
+//         data.rows.forEach(row => {
+//             if (!row || !row.c) return;
+            
+//             const wbs = getCellValue(row.c[2])?.toString().trim();
+            
+//             // 🎯 1. ดึงค่าจาก JSON ออกมาเป็น String ดิบก่อน
+//             const rawValue = getCellValue(row.c[19])?.toString() || "0";
+            
+//             // 🎯 2. ใช้ Regex ตัวนี้เคลียร์ทุกอย่างที่ไม่ใช่ ตัวเลข และ จุดทศนิยม ทิ้งให้เกลี้ยง (ลบคอมมา, ลบช่องว่าง)
+//             const cleanValue = rawValue.replace(/[^0-9.]/g, ''); 
+            
+//             // 🎯 3. แปลงร่างเป็นตัวเลขทศนิยม (Float) ของ JavaScript เพื่อใช้คำนวณและแสดงผล
+//             const budgetVal = parseFloat(cleanValue) || 0;
+            
+//             if (wbs) {
+//                 // เก็บค่าเข้าไปในรูปแบบตัวเลขจำนวนเงินสุทธิ
+//                 mapping[wbs] = budgetVal;
+//             }
+//         });
+//     }
+//     return mapping;
+// }
+    
+// };
 
 
 
@@ -307,13 +413,10 @@ function renderUpcomingTable(data) {
 });
 return upcomingTableInstance;
 }
-// ==================== Chart / Graph Update Service ====================
-// อัปเดตข้อมูลกราฟวงกลม (Pie) และกราฟแท่ง (Bar) จากข้อมูลที่กรองอยู่ในตารางหลัก ณ ขณะนั้น
-/**
- * @namespace updateGraph
- * ดึงข้อมูลจากแถวที่ถูกกรอง (search: 'applied') ในตาราง DataTables แล้วนับ/รวมยอดแยกตามสถานะ (สี)
- * เพื่อส่งต่อให้ GraphRender อัปเดตกราฟ Pie และ Bar
- */
+// ==================== Scoring Service ====================
+
+// ==================== Allocation Service ====================
+// ==================== Allocation Service (เวอร์ชันพ่น Log สรุปอันดับคิว) ====================
 const  updateGraph = {
    
 
@@ -477,12 +580,6 @@ updateDashboardCharts: function(tableSelector) {
         }
     }
 };
-
-/**
- * @namespace GraphRender
- * สร้าง (render) Instance ของกราฟวงกลม (Chart.js Doughnut) และกราฟแท่ง (Chart.js Bar) ครั้งแรกตอนเปิดหน้า
- * ส่วนการอัปเดตข้อมูลกราฟหลังจากนั้นเป็นหน้าที่ของ `updateGraph` ด้านบน
- */
 const GraphRender = {
   // สแตนบายตัวแปรสำหรับเก็บสถานะอินสแตนซ์กราฟ ป้องกันขยะหน่วยความจำ (Memory Leak)
   myPieChart: null,
@@ -647,9 +744,19 @@ const GraphRender = {
 };
 
 // ====== คำนวณและอัปเดตข้อมูลใน Dashboard Cards (เช่น จำนวนงานทั้งหมด, มูลค่างานรวม) ทุกครั้งที่มีการกรองข้อมูลในตาราง ======
-function updateDashboardCards(tableSelector, compTableSelector) {
+function updateDashboardCards(tableSelector,compTableSelector) {
+    // ส่งตาราง Instance เข้าไปตรงๆ เพื่อให้ฟังก์ชันย่อยเอาไปจัดการฟิลเตอร์ต่อได้
     const table = $(tableSelector).DataTable();
     ShowTotalJobs(table);
+
+    // 2. จัดการตารางที่เสร็จแล้ว (Completed)
+    // if ($(compTableSelector).length) {
+    //     const compTable = $(compTableSelector).DataTable();
+    //     ShowCompletedStats(compTable); // ฟังก์ชันใหม่สำหรับตารางที่เสร็จแล้ว
+    // }
+
+    // // 3. (Optional) สั่งอัปเดตผลรวมใหญ่ในกรณีที่ต้องการคำนวณจากยอดที่คำนวณเสร็จแล้ว
+    // UpdateGrandTotal();
 }
 
 function updateDashboardCardsDebounced(tableSelector) {
@@ -673,153 +780,155 @@ function updateDashboardCardsDebounced(tableSelector) {
 //     UpdateGrandTotal();
 // }
 
-function normalizeNumericValue(value) {
-    const normalized = String(value ?? '')
-        .replace(/,/g, '')
-        .trim();
-
-    if (!normalized || normalized === '-') {
-        return 0;
-    }
-
-    const parsed = parseFloat(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-}
-
-// ⚡ Cache selector การ์ดสรุปยอด: element พวกนี้เป็น static DOM ที่ไม่ถูกสร้างใหม่ระหว่างการใช้งาน
-// จึงไม่จำเป็นต้อง $(...) ค้นหาใหม่ทุกครั้งที่ ShowTotalJobs() ถูกเรียก (ซึ่งอาจถี่มากตอนกรอง/ค้นหาตาราง)
-let _dashboardCardMapCache = null;
-function getDashboardCardMap() {
-    if (!_dashboardCardMapCache) {
-        _dashboardCardMapCache = {
-            totalJobs: $('#total-jobs-count'),
-            totalCIP: $('#total-CIP-count'),
-            total022: $('#total-022-count'),
-            totalGreen: $('#total-green-count'),
-            totalBlue: $('#total-blue-count'),
-            total022Green: $('#total-022Green-count'),
-            totalCGreen: $('#total-Cgreen-count'),
-            totalIGreen: $('#total-Igreen-count'),
-            totalPGreen: $('#total-Pgreen-count'),
-            total022Blue: $('#total-022Blue-count'),
-            totalCBlue: $('#total-CBlue-count'),
-            totalIBlue: $('#total-IBlue-count'),
-            totalPBlue: $('#total-PBlue-count'),
-            totalValueAll: $('#total-valueAll-count'),
-            totalValueCIP: $('#total-valueCIP-count'),
-            totalValueGreen: $('#total-valueGreen-count'),
-            totalValueBlue: $('#total-valueBlue-count'),
-            totalCompleted: $('#total-completed-count'),
-            grandTotal: $('#grand-total-count')
-        };
-    }
-    return _dashboardCardMapCache;
-}
-
 function ShowTotalJobs(tableInstance) {
-    const filteredMainRows = tableInstance.rows({ search: 'applied' }).data().toArray();
-    const totalCount = filteredMainRows.length;
+    // ✨ แก้จุดที่ 1: นับจำนวนเฉพาะงานที่ผ่านการฟิลเตอร์แล้วเท่านั้น ({ search: 'applied' })
+    const totalCount = tableInstance.rows({ search: 'applied' }).count();
+    $('#total-jobs-count').text(totalCount.toLocaleString());
 
-    const completedTable = completedTableInstance || ($('#tableCompletedOrder').length ? $('#tableCompletedOrder').DataTable() : null);
-    const completedRows = completedTable ? completedTable.rows({ search: 'applied' }).data().toArray() : [];
-    const completedCount = completedRows.length;
+    // --- ส่วนที่เพิ่มเข้ามาใหม่ต่อท้ายฟังก์ชัน ShowTotalJobs เดิมของคุณ ---
 
-    const cardMap = getDashboardCardMap();
+   
+       // 1. ดึงจำนวนจากตารางที่สอง (Completed) มาด้วย
+    const completedTable = $('#tableCompletedOrder').DataTable(); // เปลี่ยน ID ให้ตรงกับตารางของคุณ
+    const completedCount = completedTable.rows({ search: 'applied' }).count();
+    const completedTotal = completedTable.rows({ search: 'applied' }).count();
 
     let totalCIPCount = 0;
     let total022Count = 0;
-    let totalValueAllSum = 0;
-    let totalValueCIPSum = 0;
+    let totalValueAllSum = 0; 
+    let totalValueCIPSum = 0; 
     let totalGreenCount = 0;
-    let totalValueGreenSum = 0;
+    let totalValueGreenSum = 0; 
     let totalBlueCount = 0;
-    let totalValueBlueSum = 0;
-    let total022greenCount = 0;
-    let totalCgreenCount = 0;
-    let totalIgreenCount = 0;
-    let totaPgreenCount = 0;
-    let total022BlueCount = 0;
-    let totalCBlueCount = 0;
-    let totalIBlueCount = 0;
-    let totaPBlueCount = 0;
+    let totalValueBlueSum = 0; 
+    let total022green_count = 0; 
+    let totalCgreen_count = 0; 
+    let totalIgreen_count = 0; 
+    let totaPgreen_count = 0; 
+    let total022Blue_count = 0; 
+    let totalCBlue_count = 0; 
+    let totalIBlue_count = 0; 
+    let totaPBlue_count = 0; 
 
-    for (let i = 0; i < filteredMainRows.length; i++) {
-        const row = filteredMainRows[i];
-        const cellProject = String(row[10] || '').trim();
-        const rawValue = String(row[6] || '').trim();
-        const statusHTML = String(row[1] || '');
-        const numericValue = normalizeNumericValue(rawValue);
-        const projectUpper = cellProject.toUpperCase();
-        const isGreen = statusHTML.includes('status-green');
-        const isBlue = statusHTML.includes('status-blue');
-
+    // ✨ แก้จุดที่ 2: เปลี่ยนมาลูปเฉพาะแถวที่โชว์อยู่หลังฟิลเตอร์สำเร็จด้วย { search: 'applied' }
+    tableInstance.rows({ search: 'applied' }).nodes().each(function(rowNode) {
+        const $tds = $(rowNode).find('td');
+        
+        const cellProject = $tds.eq(10).text().trim(); // การกำหนดโครงการ
+        const rawValue = $tds.eq(6).text().trim();     // มูลค่างาน (Index 6)
+        const statusHTML = $tds.eq(1).html() || "";    // สัญญาณไฟ (Index 1)
+        
+        // แปลงค่าเงินเป็นตัวเลข
+        const numericValue = parseFloat(rawValue.replace(/,/g, '')) || 0;
         totalValueAllSum += numericValue;
-
+         
+        // เช็คสัญญาณไฟสีเขียว
+        const isGreen = statusHTML.includes('status-green');
+        const projectUpper = cellProject.toUpperCase();
         if (isGreen) {
             totalGreenCount++;
-            totalValueGreenSum += numericValue;
-
-            if (projectUpper.includes('C-')) totalCgreenCount++;
-            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) totalIgreenCount++;
-            if (projectUpper.includes('P-')) totaPgreenCount++;
-            if (projectUpper.includes('งาน 02.2')) total022greenCount++;
+            totalValueGreenSum += numericValue; 
+            
+            if (projectUpper.includes('C-')) {
+               totalCgreen_count++;
+            }
+            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) {
+                totalIgreen_count++;
+            }
+            if (projectUpper.includes('P-')) {
+                totaPgreen_count++;
+            }
+            if (projectUpper.includes('งาน 02.2')) {
+                total022green_count++;
+            }
         }
-
+      
+        // เช็คสัญญาณไฟสีน้ำเงิน
+        const isBlue = statusHTML.includes('status-blue');
         if (isBlue) {
             totalBlueCount++;
-            totalValueBlueSum += numericValue;
-
-            if (projectUpper.includes('C-')) totalCBlueCount++;
-            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) totalIBlueCount++;
-            if (projectUpper.includes('P-')) totaPBlueCount++;
-            if (projectUpper.includes('งาน 02.2')) total022BlueCount++;
+            totalValueBlueSum += numericValue; 
+            if (projectUpper.includes('C-')) {
+               totalCBlue_count++;
+            }
+            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) {
+                totalIBlue_count++;
+            }
+            if (projectUpper.includes('P-')) {
+                totaPBlue_count++;
+            }
+            if (projectUpper.includes('งาน 02.2')) {
+                total022Blue_count++;
+            }
         }
 
+        // แยกนับจำนวนและมูลค่าตามเงื่อนไขการกำหนดโครงการ
         if (!cellProject.includes('งาน 02.2')) {
             totalCIPCount++;
+        
             totalValueCIPSum += numericValue;
         } else {
             total022Count++;
         }
-    }
-
-    for (let i = 0; i < completedRows.length; i++) {
-        totalValueAllSum += normalizeNumericValue(completedRows[i][6]);
-    }
-
-    const formattedAll = (totalValueAllSum / 1000000).toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
     });
+   // --- ⚡ ส่วนที่เพิ่ม: ลูปตารางที่สอง (Completed) เพื่อรวมเงิน ---
+    completedTable.rows({ search: 'applied' }).nodes().each(function(rowNode) {
+        const $tds = $(rowNode).find('td');
+        const rawValue = $tds.eq(6).text().trim(); // ดึงคอลัมน์ Index 6 เหมือนกัน
+        totalValueAllSum += parseFloat(rawValue.replace(/,/g, '')) || 0;
+        
+    });
+    const valueInMillions = totalValueAllSum / 1000000;
+    
+    // ฟอร์แมตทศนิยม 0 ตำแหน่ง
+    const formattedAll = valueInMillions.toLocaleString(undefined, {
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 0
+    });  
+  
+    // อัปเดตตัวเลขลง HTML
+    $('#total-CIP-count').text(totalCIPCount.toLocaleString());
+    $('#total-022-count').text(total022Count.toLocaleString());
+    $('#total-green-count').text(totalGreenCount.toLocaleString());
+    $('#total-blue-count').text(totalBlueCount.toLocaleString());
+    
+    $('#total-022Green-count').text(total022green_count.toLocaleString());
+    $('#total-Cgreen-count').text(totalCgreen_count.toLocaleString());
+    $('#total-Igreen-count').text(totalIgreen_count.toLocaleString());
+    $('#total-Pgreen-count').text(totaPgreen_count.toLocaleString());
 
-    cardMap.totalJobs.text(totalCount.toLocaleString());
-    cardMap.totalCIP.text(totalCIPCount.toLocaleString());
-    cardMap.total022.text(total022Count.toLocaleString());
-    cardMap.totalGreen.text(totalGreenCount.toLocaleString());
-    cardMap.totalBlue.text(totalBlueCount.toLocaleString());
-    cardMap.total022Green.text(total022greenCount.toLocaleString());
-    cardMap.totalCGreen.text(totalCgreenCount.toLocaleString());
-    cardMap.totalIGreen.text(totalIgreenCount.toLocaleString());
-    cardMap.totalPGreen.text(totaPgreenCount.toLocaleString());
-    cardMap.total022Blue.text(total022BlueCount.toLocaleString());
-    cardMap.totalCBlue.text(totalCBlueCount.toLocaleString());
-    cardMap.totalIBlue.text(totalIBlueCount.toLocaleString());
-    cardMap.totalPBlue.text(totaPBlueCount.toLocaleString());
-    cardMap.totalValueAll.text(formattedAll);
-    cardMap.totalValueCIP.text(totalValueCIPSum.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+    $('#total-022Blue-count').text(total022Blue_count.toLocaleString());
+    $('#total-CBlue-count').text(totalCBlue_count.toLocaleString());
+    $('#total-IBlue-count').text(totalIBlue_count.toLocaleString());
+    $('#total-PBlue-count').text(totaPBlue_count.toLocaleString());
+
+    // อัปเดตมูลค่ารวมทั้งหมด (ล้านบาท)
+    $('#total-valueAll-count').text(formattedAll);
+
+    // อัปเดตมูลค่ารวม CIP
+    $('#total-valueCIP-count').text(totalValueAllSum.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
     }));
-    cardMap.totalValueGreen.text(totalValueGreenSum.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+
+    // อัปเดตมูลค่ารวมงานสีเขียว
+    $('#total-valueGreen-count').text(totalValueGreenSum.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
     }));
-    cardMap.totalValueBlue.text(totalValueBlueSum.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+
+    // อัปเดตมูลค่ารวมงานสีน้ำเงิน
+    $('#total-valueBlue-count').text(totalValueBlueSum.toLocaleString(undefined, {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
     }));
-    cardMap.totalCompleted.text(completedCount.toLocaleString());
-    cardMap.grandTotal.text((totalCount + completedCount).toLocaleString());
+
+  
+
+    // 2. อัปเดตช่องจำนวนของตารางที่ 2 ที่หน้าจอ (ถ้ามี)
+    $('#total-completed-count').text(completedCount.toLocaleString());
+
+    // 3. รวมยอด (จำนวนงานค้าง + จำนวนงานเสร็จ)
+    const grandTotal = totalCount + completedCount;
+    // 4. แสดงผลรวมในจุดที่คุณต้องการ (สร้าง Span หรือ Div มารับค่านี้)
+    $('#grand-total-count').text(grandTotal.toLocaleString());
 }
 // ============== คำนวณความพร้อมพัสดุและงาน ==============//
 
@@ -970,17 +1079,6 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
     }
 }
 // ==================== Table Renderer ====================
-/**
- * @namespace TableRenderer
- * รวมฟังก์ชันสร้าง/วาดตาราง DataTables ทุกตารางในหน้า Dashboard:
- *   - renderStockTable          : ตาราง Stock (MB52) และตาราง Stock Match
- *   - renderRequirementTable    : ตารางงานค้างเบิกหลัก (Requirement_Data)
- *   - renderCompletedOrderTable : ตารางงานที่เบิกครบแล้ว
- *   - renderNoStockTable / renderObsoleteTable / renderFulfilledTable : ตารางสรุปย่อยตามสถานะพัสดุ
- *   - renderGenericTable        : ตารางทั่วไปที่ไม่ต้องมี logic พิเศษ
- *   - _buildTableHTML           : ฟังก์ชันภายใน สร้าง HTML <table> ดิบก่อนส่งให้ DataTables ครอบ
- * ทุกฟังก์ชัน render จะ destroy() ตารางเก่าก่อนเสมอ เพื่อป้องกัน DataTables ซ้อนกันตอน re-render
- */
 const TableRenderer = {
 
     //===== ตาราง match stock=============//
@@ -1167,6 +1265,7 @@ const RequirementTable = $el.DataTable({
     "pageLength": 10,
     "responsive": true,
     "scrollX": true,
+    "scrollX": true,
     "order": [[0, "asc"]],
     "buttons": [
         {
@@ -1326,21 +1425,38 @@ return RequirementTable;
             });
         });
 
-        // 🎯 เรียงลำดับ WBS ตามอันดับที่ RankingService คำนวณไว้ล่วงหน้าแล้ว (เก็บไว้ที่ window.GLOBAL_RANK_MAP)
-        // หมายเหตุ: ถ้า WBS ใดไม่มีอันดับ ให้ไปต่อท้ายสุด (fallback = 9999)
+        // 🎯 จัดเรียงลำดับ 3 ชั้น: 1. คะแนนรวมสูงสุด -> 2. พัสดุน้อยสุด -> 3. มูลค่างานสูงสุด
+        // sortedWBSList.sort((a, b) => {
+        //     if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        //     if (a.rowCount !== b.rowCount) return a.rowCount - b.rowCount;
+        //     return b.budget - a.budget;
+        // });
+
         const rankMap = window.GLOBAL_RANK_MAP || {};
 
         sortedWBSList.sort((a, b) => {
-            const rankA = rankMap[a.valA] || 9999;
-            const rankB = rankMap[b.valA] || 9999;
+            // ดึงอันดับที่ RankingService คำนวณไว้แล้วมาเรียง
+            let rankA = rankMap[a.valA] || 9999;
+            let rankB = rankMap[b.valA] || 9999;
             return rankA - rankB;
         });
-
-        // เก็บสถิติของแถวที่ยังแสดงผลอยู่ ไว้ส่งต่อให้กราฟสรุปผล
+        // 🎯 ส่วนที่เพิ่ม 1: ตัวแปรเก็บสถิติส่งหากราฟ
         const activeRowsDataForChart = [];
 
-        // วนลูปตามลำดับ WBS ที่จัดอันดับแล้ว เพื่อสร้างแถวของตาราง
+        // ================================================================================================
+        // 🎯 เปลี่ยนมาวิ่งลูปผ่านข้อมูลที่ผ่านการจัดอันดับถูกต้องแล้ว (โค้ดดึงค่าและโครงสร้างตารางด้านในคงเดิม)
+        // ================================================================================================
+        // 1. สร้างสมุดจด (Object) ไว้ข้างนอกลูป
+        // const rankMap = {}; 
+        // const rankMap = window.GLOBAL_RANK_MAP || {};
         sortedWBSList.forEach((item, index) => {
+            // const rank = index + 1; // 🔢 คำนวณอันดับที่ถูกต้อง (เริ่มจาก 1)
+            // // 2. บันทึกอันดับลงสมุด โดยใช้ WBS (item.valA) เป็นกุญแจ (Key)
+            // rankMap[item.valA] = rank;
+            // if (!incompleteWBS.has(item.valA)) return;
+            // if (mode === 'incomplete' && !incompleteWBS.has(item.valA)) return;
+            // if (mode === 'completed' && incompleteWBS.has(item.valA)) return;
+
             const valA = item.valA;
             const row = item.row;
             const rowCount = item.rowCount;
@@ -1440,6 +1556,74 @@ return RequirementTable;
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
+ // ให้เอาฟังก์ชันนี้ไปวางไว้ใน Object TableRenderer ของคุณครับ
+// renderCompletedOrderTable: function(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
+//     const $el = $(selector);
+    
+//     // 1. สร้าง Set ของงานที่ยังไม่เสร็จ (ค้างเบิก > 0)
+//     const incompleteWBS = new Set();
+//     data.rows.forEach(row => {
+//         let pending = parseFloat(getCellValue(row.c[14])) || 0;
+//         if (pending > 0) {
+//             let valA = getCellValue(row.c[0]).toString().trim();
+//             incompleteWBS.add(valA);
+//         }
+//     });
+
+//     // 2. กรองข้อมูล: เก็บเฉพาะงานที่ "ไม่อยู่ใน" Set งานที่ค้างเบิก
+//     // สำคัญ: วิธีนี้จะได้เฉพาะงานที่ทุกรายการ pending = 0
+//     const completedRows = data.rows.filter(row => {
+//         let valA = getCellValue(row.c[0]).toString().trim();
+//         return !incompleteWBS.has(valA) && valA !== ""; 
+//     });
+
+//     // 3. ตรวจสอบว่ามีข้อมูลเหลือไหม?
+//     if (completedRows.length === 0) {
+//         console.warn("⚠️ CompletedOrderTable: ไม่พบงานที่เสร็จสมบูรณ์");
+//     }
+//     const completedData = {
+//         ...data,
+//         rows: completedRows
+//     };
+
+//     // 3. ทำลายตารางเก่า
+//     if ($.fn.DataTable.isDataTable(selector)) {
+//         $el.DataTable().destroy();
+//         $el.empty();
+//     }
+
+//     // 4. วาดตารางด้วยข้อมูลที่กรองมาแล้ว
+//     let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
+//     $el.html(html);
+// renderCompletedOrderTable: function(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
+//     const $el = $(selector);
+
+//     // 1. หา WBS ที่ยังมีรายการค้าง (Pending > 0)
+//     const incompleteWBS = new Set();
+//     data.rows.forEach(row => {
+//         let valA = getCellValue(row.c[0]).toString().trim();
+//         let pending = parseFloat(getCellValue(row.c[14])) || 0;
+//         if (pending > 0) incompleteWBS.add(valA);
+//     });
+
+//     // 2. กรอง: เอาเฉพาะแถวที่ WBS นั้น "ไม่อยู่ในกลุ่มค้างเบิก"
+//     const completedRows = data.rows.filter(row => {
+//         let valA = getCellValue(row.c[0]).toString().trim();
+//         return valA !== "" && !incompleteWBS.has(valA);
+//     });
+
+//     // 3. เตรียมข้อมูล (ระวัง: ถ้า completedRows ว่างเปล่า ให้ส่ง Array ว่าง)
+//     const completedData = { ...data, rows: completedRows };
+
+//     // 4. วาดตาราง (ใช้ _buildTableHTML ชุดเดิม)
+//     if ($.fn.DataTable.isDataTable(selector)) {
+//         $el.DataTable().destroy();
+//         $el.empty();
+//     }
+
+//     let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
+//     $el.html(html);
+
 renderCompletedOrderTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
     const $el = $(selector);
     
@@ -1562,7 +1746,16 @@ const NoStockTable = $el.DataTable({
         // col 2: ชื่อพัสดุ
         { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
  
-        // col 3: ประเภท (badge สีตามประเภทพัสดุ เหมือนตาราง StockMatch)
+        // col 3: ประเภท (เพิ่มใหม่) - badge สีเทาเหมือนตาราง StockMatch
+        // {
+        //     "targets": 3,
+        //     "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
+        //     "render": function(data) {
+        //         if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+        //         const color = data === "พัสดุหลัก" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600";
+        //         return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${color}">${data}</span>`;
+        //     }
+        // },
         { 
             "targets": 3, 
             "render": function(data, type, row) {
@@ -1594,6 +1787,14 @@ const NoStockTable = $el.DataTable({
                     <span class="font-bold text-red-600 ">${assignedFormated}</span> 
                             <span class="text-slate-700">/</span> 
                             <span class="font-bold text-slate-700">${pendingFormated}</span>`;
+
+
+                        //     `<div class="text-center whitespace-nowrap">
+                        // <span lass="font-bold" style="color: rgb(199, 68, 68); font-weight: bold; margin-right: 5px; font-size: 16px;">✗</span>
+                        //     <span class="text-red-600 font-bold">${assignedFormated}</span>
+                        //     <span class="text-slate-700">/</span>
+                        //     <span class="text-slate-700 font-bold">${pendingFormated}</span>
+                        // </div>`;
                 }
             },
             { "targets": [5, 6], "visible": false },
@@ -1896,28 +2097,84 @@ renderFulfilledTable(rawDatabase, materialTypeMap) {
 // =================================================================
 // 🌟 ฟังก์ชันสำหรับนับจำนวนแถวในตาราง NoStock, Obsolete, Fulfilled และ Stock (Match) แสดง
 // =================================================================
+// function getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
+//     // 1. นับ NoStock
+//     const EXCLUDED_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+//     const noStockCount = (allocatedData || []).filter(res => {
+//         const partID = res.partID?.toString().trim();
+//         const materialInfo = materialTypeMap[partID] || { type: "-" };
+//         return (res.assigned || 0) < (res.pending || 0) && !EXCLUDED_TYPES.includes(materialInfo.type);
+//     }).length;
+
+//     // 2. นับ Obsolete
+//     const OBSOLETE_TYPES = ["พัสดุล้าสมัย", "เปลี่ยนรหัสพัสดุ", "พัสดุไม่เบิกจากคลัง"];
+//     const obsoleteCount = (allocatedData || []).filter(res => {
+//         if (res.assigned !== 0 || res.pending <= 0) return false;
+//         const partID = res.partID?.toString().trim();
+//         const materialInfo = materialTypeMap[partID] || { type: "-" };
+//         return OBSOLETE_TYPES.includes(materialInfo.type);
+//     }).length;
+
+//     // 3. นับ Fulfilled (จาก rawDatabase)
+//     let fulfilledCount = 0;
+//     if (rawDatabase && rawDatabase.rows) {
+//         fulfilledCount = rawDatabase.rows.filter(row => {
+//             const pending = parseFloat(getCellValue(row.c[14])) || 0;
+//             return pending === 0;
+//         }).length;
+//     }
+
+//  // 4. นับ Match Stock (ต้องนับจาก allocatedData ตัวเดียวกันกับที่ส่งไป renderInitialStockMatch)
+//     // ตรงนี้คือจุดที่ทำให้ค่าไม่ขึ้น เพราะคุณไปนับจากที่อื่น
+//     const matchStockCount = (allocatedData || []).filter(res => {
+//         const assignedValue = parseFloat(res.assigned) || 0;
+//         return assignedValue > 0;
+//     }).length;
+
+//     return {
+//         noStock: noStockCount,
+//         obsolete: obsoleteCount,
+//         fulfilled: fulfilledCount,
+//         matchStock: matchStockCount,
+//         totalStockcount: noStockCount + obsoleteCount + fulfilledCount + matchStockCount
+//     };
+// }
+
+// function updateDashboardCounts(allocatedData, rawDatabase, stockData, materialTypeMap) {
+//     // 1. คำนวณข้อมูลจากฟังก์ชันที่ทำไว้ก่อนหน้า
+//     const counts = getTableCounts(allocatedData, rawDatabase, stockData, materialTypeMap);
+
+//     // 2. อัปเดตค่าลงใน element ตาม ID ที่กำหนดไว้
+//     document.getElementById('count-fulfilled').innerText = counts.fulfilled.toLocaleString();
+//     document.getElementById('count-matchStock').innerText = counts.matchStock.toLocaleString();
+//     document.getElementById('count-noStock').innerText = counts.noStock.toLocaleString();
+//     document.getElementById('count-obsolete').innerText = counts.obsolete.toLocaleString();
+//     document.getElementById('count-totalStockcount').innerText = counts.totalStockcount.toLocaleString();
+
+// }
+
 // ==== Show จำนวนพัสดุ แยกตาราง =====//
 function getTableCounts() {
-    const tableCountSources = [
-        { key: 'noStock', instance: noStockTableInstance },
-        { key: 'obsolete', instance: obsoleteTableInstance },
-        { key: 'fulfilled', instance: fulfilledTableInstance },
-        { key: 'matchStock', instance: stockMatchTableInstance }
-    ];
-
-    const counts = {};
-    tableCountSources.forEach(({ key, instance }) => {
-        if (!instance) {
-            counts[key] = 0;
-            return;
-        }
-
+    // ฟังก์ชันย่อยสำหรับนับข้อมูลจาก DataTable Instance
+    const getCount = (instance) => {
+        if (!instance) return 0;
+        // ถ้ามีการค้นหาใน column 0 (WBS) ให้เลือกนับเฉพาะข้อมูลที่กรองแล้ว
         const searchVal = instance.column(0).search();
-        counts[key] = searchVal ? instance.rows({ filter: 'applied' }).count() : instance.rows().count();
-    });
+        return searchVal ? instance.rows({ filter: 'applied' }).count() : instance.rows().count();
+    };
 
-    counts.totalStockcount = counts.noStock + counts.obsolete + counts.fulfilled + counts.matchStock;
-    return counts;
+    const noStock = getCount(noStockTableInstance);
+    const obsolete = getCount(obsoleteTableInstance);
+    const fulfilled = getCount(fulfilledTableInstance);
+    const matchStock = getCount(stockMatchTableInstance);
+
+    return {
+        noStock,
+        obsolete,
+        fulfilled,
+        matchStock,
+        totalStockcount: noStock + obsolete + fulfilled + matchStock
+    };
 }
 
 function updateDashboardCounts() {
@@ -1931,258 +2188,87 @@ function updateDashboardCounts() {
 }
 
 
-// วิธีเรียกใช้: เรียก updateDashboardCounts() เฉยๆ (ไม่ต้องส่ง parameter) หลังจากตารางย่อยทั้ง 4 ถูกสร้างแล้ว
-// updateDashboardCounts();
+// วิธีเรียกใช้: ให้เรียกฟังก์ชันนี้หลังจากข้อมูลโหลดเสร็จแล้ว
+// updateDashboardCounts(allocatedData, rawDatabase, stockData, materialTypeMap);
  // =================================================================
 // 🌟 ฟังก์ชันตัวกลางสำหรับแชร์การซิงค์ Cross-Filter ไปยังทุกตารางย่อย
 // =================================================================
-// ⚡ Cache ผลลัพธ์ตัวกรอง WBS ที่เคย sync ไปแล้ว เพื่อข้ามการ .search().draw() ซ้ำเมื่อผู้ใช้กรองด้วยเงื่อนไขเดิม
-// (Key = regex ตัวกรอง + id ของตารางต้นทาง) — cache นี้จะโตขึ้นเรื่อยๆ ตามจำนวนชุดตัวกรองที่ผู้ใช้เคยเลือกในเซสชันนั้น
-// แต่ในทางปฏิบัติมีขนาดเล็กมาก (จำกัดด้วยจำนวนค่า WBS ที่เป็นไปได้) จึงไม่กระทบหน่วยความจำอย่างมีนัยสำคัญ
-const SYNC_TABLE_CACHE = new Map();
-
 function syncAllTables(mainTable) {
     if (!mainTable) return;
+    
+    // ดึง WBS (คอลัมน์ 2) ที่รอดอยู่บนตารางหลักในปัจจุบัน
+    const activeWBS = mainTable.rows({ search: 'applied' }).data().toArray().map(row => row[2].replace(/<[^>]*>/g, '').trim());
+    const uniqueWBS = [...new Set(activeWBS)].filter(Boolean);
+    const stockRegex = uniqueWBS.length > 0 ? uniqueWBS.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') : '^$|🚫';
 
-    const activeWBS = new Set();
-    const sourceRows = mainTable.rows({ search: 'applied' }).data().toArray();
-
-    for (let i = 0; i < sourceRows.length; i++) {
-        const rowValue = sourceRows[i] && sourceRows[i][2];
-        const wbsValue = String(rowValue || '').replace(/<[^>]*>/g, '').trim();
-        if (wbsValue) {
-            activeWBS.add(wbsValue);
-        }
+    // 1. ซิงค์ตาราง Stock Match (คอลัมน์ 0)
+    if (typeof stockMatchTableInstance !== 'undefined' && stockMatchTableInstance) {
+        stockMatchTableInstance.column(0).search(stockRegex, true, false).draw();
+    }
+    // 2. ซิงค์ตาราง No Stock (คอลัมน์ 0)
+    if (typeof noStockTableInstance !== 'undefined' && noStockTableInstance) {
+        noStockTableInstance.column(0).search(stockRegex, true, false).draw();
+    }
+    // 3. ซิงค์ตาราง Obsolete (คอลัมน์ 0)
+    if (typeof obsoleteTableInstance !== 'undefined' && obsoleteTableInstance) {
+        obsoleteTableInstance.column(0).search(stockRegex, true, false).draw();
     }
 
-    const stockRegex = activeWBS.size > 0
-        ? Array.from(activeWBS).map(v => $.fn.dataTable.util.escapeRegex(v)).join('|')
-        : '^$|🚫';
-
-    const cacheKey = `${stockRegex}|${mainTable.table().node().id}`;
-    if (SYNC_TABLE_CACHE.get(cacheKey)) {
-        updateDashboardCardsDebounced('#tableRequirement_Data');
-        return;
+     // 3. ซิงค์ตาราง Obsolete (คอลัมน์ 0)
+    if (typeof fulfilledTableInstance !== 'undefined' && fulfilledTableInstance) {
+        fulfilledTableInstance.column(0).search(stockRegex, true, false).draw();
     }
 
-    SYNC_TABLE_CACHE.set(cacheKey, true);
-
-    const syncedTableInstances = [
-        stockMatchTableInstance,
-        noStockTableInstance,
-        obsoleteTableInstance,
-        fulfilledTableInstance
-    ];
-
-    for (let i = 0; i < syncedTableInstances.length; i++) {
-        const tableInstance = syncedTableInstances[i];
-        if (!tableInstance) continue;
-        tableInstance.column(0).search(stockRegex, true, false).draw();
-    }
-
+        
+       // 3. ซิงค์ตาราง Obsolete (คอลัมน์ 0)
+   
     updateDashboardCardsDebounced('#tableRequirement_Data');
+    // updateDashboardCountsBasedOnFiltered(filteredRows);
 }
-function getCheckedValues($container, selector) {
-    const selected = [];
-    $container.find(selector).each(function () {
-        const value = $(this).val();
-        if (value !== undefined && value !== '') {
-            selected.push(value);
-        }
-    });
-    return selected;
-}
-
-function buildSelectionRegex(selected) {
-    return selected.length > 0
-        ? selected.map(value => $.fn.dataTable.util.escapeRegex(String(value))).join('|')
-        : '';
-}
-
-function bindSearchInput($searchInput, $searchContainer, itemSelector) {
-    $searchInput.off('input').on('input', function () {
-        const text = $(this).val().toLowerCase();
-        $searchContainer.find(itemSelector).each(function () {
-            $(this).toggle($(this).text().toLowerCase().includes(text));
-        });
-    });
-}
-
-function applyCheckboxFilter(table, columnIndex, selected, completedColumnIndex) {
-    const regex = buildSelectionRegex(selected);
-
-    table.column(columnIndex).search(regex, true, false).draw();
-
-    if (typeof completedTableInstance !== 'undefined' && completedTableInstance && Number.isInteger(completedColumnIndex)) {
-        completedTableInstance.column(completedColumnIndex).search(regex, true, false).draw();
-    }
-
-    syncAllTables(table);
-}
-
-function applyExactColumnSearch(table, columnIndex, selectedValues) {
-    const regex = selectedValues.length > 0
-        ? `^(${buildSelectionRegex(selectedValues)})$`
-        : '';
-
-    table.column(columnIndex).search(regex, true, false).draw();
-}
-
-function resetTableColumnSearch(table, columnIndex) {
-    table.column(columnIndex).search('').draw();
-}
-
-function buildUniqueOptionList(rows, cellIndex) {
-    const list = [];
-
-    rows.forEach((row) => {
-        if (!row || !row.c) return;
-
-        const value = row.c[cellIndex] && row.c[cellIndex].v !== undefined
-            ? String(row.c[cellIndex].v).trim()
-            : '';
-
-        if (value && value !== '-' && !list.includes(value)) {
-            list.push(value);
-        }
-    });
-
-    return list.sort();
-}
-
-function setupUpcomingDropdownFilter(config) {
-    const {
-        table,
-        data,
-        dropdownSelector,
-        searchInputSelector,
-        clearButtonSelector,
-        itemClass,
-        checkboxClass,
-        itemLabelPrefix,
-        cellIndex,
-        columnIndex,
-        exactMatch = false
-    } = config;
-
-    const $dropdownMenu = $(dropdownSelector);
-    const $searchContainer = $dropdownMenu.find('ul');
-    const $searchInput = $(searchInputSelector);
-    const $clearButton = $(clearButtonSelector);
-
-    if (!$dropdownMenu.length || !$searchContainer.length || !$searchInput.length || !$clearButton.length) {
-        return;
-    }
-
-    const valueList = buildUniqueOptionList(data.rows || [], cellIndex);
-    $searchContainer.empty();
-
-    valueList.forEach((item, index) => {
-        const uniqueId = `${itemLabelPrefix}-${index}`;
-        $searchContainer.append(`
-            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded ${itemClass}">
-                <label for="${uniqueId}" class="w-full flex items-center justify-between cursor-pointer m-0">
-                    <div class="inline-flex items-center font-medium text-heading text-sm">${item}</div>
-                    <input id="${uniqueId}" type="checkbox" value="${item}" class="${checkboxClass} w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong focus:ring-2 focus:ring-brand-soft">
-                </label>
-            </li>
-        `);
-    });
-
-    bindSearchInput($searchInput, $searchContainer, `.${itemClass}`);
-
-    const applyFilter = () => {
-        const selectedValues = getCheckedValues($searchContainer, `.${checkboxClass}:checked`);
-        if (exactMatch) {
-            applyExactColumnSearch(table, columnIndex, selectedValues);
-        } else {
-            applyCheckboxFilter(table, columnIndex, selectedValues, columnIndex);
-        }
-    };
-
-    $searchContainer.off('change', `.${checkboxClass}`).on('change', `.${checkboxClass}`, applyFilter);
-    $clearButton.off('click').on('click', function () {
-        $searchContainer.find(`.${checkboxClass}`).prop('checked', false);
-        $searchInput.val('').trigger('input');
-        $searchContainer.find(`.${itemClass}`).attr('style', 'display: flex !important');
-        resetTableColumnSearch(table, columnIndex);
-        syncAllTables(table);
-    });
-}
-
-function setupGenericCheckboxFilter(config) {
-    const {
-        table,
-        data,
-        dropdownSelector,
-        searchInputSelector,
-        clearButtonSelector,
-        itemClass,
-        checkboxClass,
-        itemLabelPrefix,
-        columnIndex,
-        valueExtractor,
-        completedColumnIndex = columnIndex,
-        exactMatch = false
-    } = config;
-
-    const $dropdownMenu = $(dropdownSelector);
-    const $searchContainer = $dropdownMenu.find('ul');
-    const $searchInput = $(searchInputSelector);
-    const $clearButton = $(clearButtonSelector);
-
-    if (!$dropdownMenu.length || !$searchContainer.length || !$searchInput.length || !$clearButton.length) {
-        return;
-    }
-
-    const valueList = [...new Set((data.rows || [])
-        .map(valueExtractor)
-        .filter(value => value && value !== '-'))].sort();
-
-    $searchContainer.empty();
-    valueList.forEach((item, index) => {
-        const uniqueId = `${itemLabelPrefix}-${index}`;
-        $searchContainer.append(`
-            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded ${itemClass}">
-                <label for="${uniqueId}" class="w-full flex items-center justify-between cursor-pointer m-0">
-                    <div class="inline-flex items-center font-medium text-heading text-sm">${item}</div>
-                    <input id="${uniqueId}" type="checkbox" value="${item}" class="${checkboxClass} w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong">
-                </label>
-            </li>
-        `);
-    });
-
-    bindSearchInput($searchInput, $searchContainer, `.${itemClass}`);
-
-    const applyFilter = () => {
-        const selectedValues = getCheckedValues($searchContainer, `.${checkboxClass}:checked`);
-        if (exactMatch) {
-            applyExactColumnSearch(table, columnIndex, selectedValues);
-        } else {
-            applyCheckboxFilter(table, columnIndex, selectedValues, completedColumnIndex);
-        }
-    };
-
-    $searchContainer.off('change', `.${checkboxClass}`).on('change', `.${checkboxClass}`, applyFilter);
-    $clearButton.off('click').on('click', function () {
-        $searchContainer.find(`.${checkboxClass}`).prop('checked', false);
-        $searchInput.val('').trigger('input');
-        $searchContainer.find(`.${itemClass}`).attr('style', 'display: flex !important');
-        resetTableColumnSearch(table, columnIndex);
-    });
-}
-
 // ==================== Filter Module ====================
-/**
- * @namespace FilterModule
- * รวมฟังก์ชันตั้งค่าตัวกรอง (dropdown checkbox filter) ทุกตัวของตาราง Requirement_Data และ Upcoming_Item
- * เช่น กรองตาม WBS, ประเภทงาน, การไฟฟ้า (PEA), สถานะไฟสัญญาณ, กลุ่มโครงการ, งบประมาณ ฯลฯ
- * ทุกฟังก์ชันจะ bind event 'change' ให้ checkbox แล้วเรียก syncAllTables() เพื่อซิงค์ตารางย่อยทั้งหมดให้ตรงกับตัวกรอง
- */
 const FilterModule = {
 // =================================================================
 // [0/5 แถม] ฟังก์ชันกรองสัญญาณไฟ (คอลัมน์ที่ 1 ในตารางหลัก)
 // =================================================================
+// setupFilterLight(tableInstance, rawData) {
+//     const $dropdownMenu = $('#dropdownSearchLight'), $searchContainer = $dropdownMenu.find('ul'), $clearButton = $('#clearLightFilter'); 
+//     $searchContainer.empty(); 
+
+//     const statusItems = [
+//         { value: 'status-green', text: '🟢 ของครบ' },
+//         { value: 'status-blue', text: '🔵 พัสดุหลักครบ' },
+//         { value: 'status-yellow', text: '🟡 ได้ของบางส่วน' },
+//         { value: 'status-red', text: '🔴 ไม่ได้ของเลย' },
+//         { value: 'status-lock', text: '🔒 ล็อค (พัสดุล้าสมัย/เปลี่ยนรหัส)' }
+//     ];
+
+//     statusItems.forEach((item, index) => {
+//         $searchContainer.append(`
+//             <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded light-filter-item">
+//                 <label for="dropdown-light-${index}" class="w-full flex items-center justify-between cursor-pointer m-0 w-full">
+//                     <div class="inline-flex items-center font-medium text-heading text-sm">${item.text}</div>
+//                     <input id="dropdown-light-${index}" type="checkbox" value="${item.value}" class="light-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong">
+//                 </label>
+//             </li>
+//         `);
+//     });
+
+//     $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(fn => fn.name !== 'lightFilter');
+
+//     const applyFilter = () => {
+//         let selected = [];
+//         $searchContainer.find('.light-checkbox:checked').each(function () { selected.push($(this).val()); });
+//         const regex = selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+//         tableInstance.column(1).search(regex, true, false).draw();
+//         syncAllTables(tableInstance); // ⚡ ซิงค์ตารางย่อยทั้งหมด
+//     };
+
+//     $searchContainer.off('change', '.light-checkbox').on('change', '.light-checkbox', applyFilter);
+//     $clearButton.off('click').on('click', function() {
+//         $searchContainer.find('.light-checkbox').prop('checked', false); 
+//         applyFilter();
+//     });
+// },
 setupFilterLight(tableInstance, rawData, wbsStatusMap) {
     const $dropdownMenu = $('#dropdownSearchLight');
     const $searchContainer = $dropdownMenu.find('ul');
@@ -2190,7 +2276,15 @@ setupFilterLight(tableInstance, rawData, wbsStatusMap) {
     
     $searchContainer.empty();
 
-    LIGHT_STATUS_FILTER_ITEMS.forEach((item, index) => {
+    const statusItems = [
+        { value: 'status-green', text: '🟢 ของครบ' },
+        { value: 'status-blue', text: '🔵 พัสดุหลักครบ' },
+        { value: 'status-yellow', text: '🟡 ได้ของบางส่วน' },
+        { value: 'status-red', text: '🔴 ไม่ได้ของเลย' },
+        { value: 'status-lock', text: '🔒 ล็อค (พัสดุล้าสมัย/เปลี่ยนรหัส)' }
+    ];
+
+    statusItems.forEach((item, index) => {
         $searchContainer.append(`
             <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded light-filter-item">
                 <label for="dropdown-light-${index}" class="w-full flex items-center justify-between cursor-pointer m-0">
@@ -2205,8 +2299,25 @@ setupFilterLight(tableInstance, rawData, wbsStatusMap) {
     $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(fn => fn.name !== 'lightFilter');
 
     const applyFilter = () => {
-        const selected = getCheckedValues($searchContainer, '.light-checkbox:checked');
-        applyCheckboxFilter(tableInstance, 1, selected, 1);
+        let selected = [];
+        $searchContainer.find('.light-checkbox:checked').each(function () { 
+            selected.push($(this).val()); 
+        });
+        
+        const regex = selected.length > 0 
+            ? selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') 
+            : '';
+
+        // 1. กรองตารางหลัก (parcelTable)
+        tableInstance.column(1).search(regex, true, false).draw();
+
+        // 2. กรองตาราง Completed Order (ถ้าตัวแปรนี้ถูกประกาศไว้ใน scope)
+        if (typeof completedTableInstance !== 'undefined' && completedTableInstance) {
+            completedTableInstance.column(1).search(regex, true, false).draw();
+        }
+
+        // ซิงค์ตารางย่อยทั้งหมด
+        syncAllTables(tableInstance); 
     };
 
     // Event Listeners
@@ -2221,36 +2332,126 @@ setupFilterLight(tableInstance, rawData, wbsStatusMap) {
 // =================================================================
 
 setupFilterID_WBS(table, data) {
-    setupGenericCheckboxFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearchWBS',
-        searchInputSelector: '#searchWBS',
-        clearButtonSelector: '#clearWBSFilter',
-        itemClass: 'wbs-filter-item',
-        checkboxClass: 'wbs-checkbox',
-        itemLabelPrefix: 'dropdown-wbs',
-        columnIndex: 2,
-        valueExtractor: (row) => row?.c?.[0] ? getCellValue(row.c[0]).toString().trim() : '',
-        completedColumnIndex: 2
+    const $dropdownMenu = $('#dropdownSearchWBS'), 
+          $searchContainer = $dropdownMenu.find('ul'), 
+          $searchInput = $('#searchWBS'), 
+          $clearButton = $('#clearWBSFilter'); 
+    
+    $searchContainer.empty(); 
+
+    let list = [];
+    data.rows.forEach(row => {
+        let val = row?.c?.[0] ? getCellValue(row.c[0]).toString().trim() : '';
+        if (val && val !== "-" && !list.includes(val)) list.push(val);
+    });
+
+    list.sort().forEach((item, index) => {
+        $searchContainer.append(`
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded wbs-filter-item">
+                <label for="dropdown-wbs-${index}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">${item}</div>
+                    <input id="dropdown-wbs-${index}" type="checkbox" value="${item}" class="wbs-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong">
+                </label>
+            </li>
+        `);
+    });
+
+    $searchInput.off('input').on('input', function () {
+        const text = $(this).val().toLowerCase();
+        $searchContainer.find('.wbs-filter-item').each(function () { 
+            $(this).toggle($(this).text().toLowerCase().includes(text)); 
+        });
+    });
+
+    const applyFilter = () => {
+        let selected = [];
+        $searchContainer.find('.wbs-checkbox:checked').each(function () { 
+            selected.push($(this).val()); 
+        });
+        
+        const regex = selected.length > 0 
+            ? selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') 
+            : '';
+
+        // 1. กรองตารางหลัก
+        table.column(2).search(regex, true, false).draw();
+
+        // 2. กรองตาราง renderCompletedOrderTable (ใช้ตัวแปรเดียวกันกับตอนทำ filter light)
+        if (typeof completedTableInstance !== 'undefined' && completedTableInstance) {
+            completedTableInstance.column(2).search(regex, true, false).draw();
+        }
+
+        syncAllTables(table);
+    };
+
+    $searchContainer.off('change', '.wbs-checkbox').on('change', '.wbs-checkbox', applyFilter);
+    $clearButton.off('click').on('click', function() {
+        $searchContainer.find('.wbs-checkbox').prop('checked', false); 
+        $searchInput.val('').trigger('input');
+        applyFilter();
     });
 },
 // =================================================================
 // [2/5] ฟังก์ชันกรอง ประเภทงาน Type WBS (คอลัมน์ที่ 5 ในตารางหลัก)
 // =================================================================
 setupFilterType_WBS(table, data) {
-    setupGenericCheckboxFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearchTypeWBS',
-        searchInputSelector: '#searchTypeWBS',
-        clearButtonSelector: '#clearTypeWBSFilter',
-        itemClass: 'typewbs-filter-item',
-        checkboxClass: 'typewbs-checkbox',
-        itemLabelPrefix: 'dropdown-typewbs',
-        columnIndex: 5,
-        valueExtractor: (row) => row?.c?.[24] ? getCellValue(row.c[24]).toString().trim() : '',
-        completedColumnIndex: 5
+    const $dropdownMenu = $('#dropdownSearchTypeWBS'), 
+          $searchContainer = $dropdownMenu.find('ul'), 
+          $searchInput = $('#searchTypeWBS'), 
+          $clearButton = $('#clearTypeWBSFilter'); 
+    
+    $searchContainer.empty(); 
+
+    let list = [];
+    data.rows.forEach(row => {
+        let val = row?.c?.[24] ? getCellValue(row.c[24]).toString().trim() : '';
+        if (val && val !== "-" && !list.includes(val)) list.push(val);
+    });
+
+    list.sort().forEach((item, index) => {
+        $searchContainer.append(`
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded typewbs-filter-item">
+                <label for="dropdown-typewbs-${index}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">${item}</div>
+                    <input id="dropdown-typewbs-${index}" type="checkbox" value="${item}" class="typewbs-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong">
+                </label>
+            </li>
+        `);
+    });
+
+    $searchInput.off('input').on('input', function () {
+        const text = $(this).val().toLowerCase();
+        $searchContainer.find('.typewbs-filter-item').each(function () { 
+            $(this).toggle($(this).text().toLowerCase().includes(text)); 
+        });
+    });
+
+    const applyFilter = () => {
+        let selected = [];
+        $searchContainer.find('.typewbs-checkbox:checked').each(function () { 
+            selected.push($(this).val()); 
+        });
+        
+        const regex = selected.length > 0 
+            ? selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') 
+            : '';
+
+        // 1. กรองตารางหลัก (คอลัมน์ 5)
+        table.column(5).search(regex, true, false).draw();
+
+        // 2. กรองตาราง Completed Order (คอลัมน์ 5)
+        if (typeof completedTableInstance !== 'undefined' && completedTableInstance) {
+            completedTableInstance.column(5).search(regex, true, false).draw();
+        }
+
+        syncAllTables(table); // ⚡ ซิงค์ตารางย่อยทั้งหมด
+    };
+
+    $searchContainer.off('change', '.typewbs-checkbox').on('change', '.typewbs-checkbox', applyFilter);
+    $clearButton.off('click').on('click', function() {
+        $searchContainer.find('.typewbs-checkbox').prop('checked', false); 
+        $searchInput.val('').trigger('input');
+        applyFilter();
     });
 },
 
@@ -2259,56 +2460,145 @@ setupFilterType_WBS(table, data) {
 // =================================================================
 // [3/5] กรอง PEA Name
 setupFilterPEA_WBS(table, peaNameMapping) {
-    const data = {
-        rows: Object.values(peaNameMapping || {}).map(name => ({ c: [{ v: name }] }))
+    const $dropdownMenu = $('#dropdownSearchPEAWBS'), $searchContainer = $dropdownMenu.find('ul'), $searchInput = $('#searchPEAWBS'), $clearButton = $('#clearPEAWBSFilter'); 
+    if ($dropdownMenu.length === 0) return;
+    $searchContainer.empty(); 
+
+    let list = [];
+    Object.values(peaNameMapping).forEach(name => {
+        if (name) {
+            name = name.toString().trim();
+            if (name !== "ชื่อ" && name !== "-" && !list.includes(name)) list.push(name);
+        }
+    });
+
+    list.sort().forEach((item, index) => {
+        $searchContainer.append(`
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded peawbs-filter-item">
+                <label for="dropdown-peawbs-${index}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">${item}</div>
+                    <input id="dropdown-peawbs-${index}" type="checkbox" value="${item}" class="peawbs-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong">
+                </label>
+            </li>
+        `);
+    });
+
+    $searchInput.off('input').on('input', function () {
+        const text = $(this).val().toLowerCase();
+        $searchContainer.find('.peawbs-filter-item').each(function () { $(this).toggle($(this).text().toLowerCase().includes(text)); });
+    });
+
+    const applyFilter = () => {
+        let selected = [];
+        $searchContainer.find('.peawbs-checkbox:checked').each(function () { selected.push($(this).val()); });
+        const regex = selected.length > 0 ? selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') : '';
+        
+        table.column(4).search(regex, true, false).draw();
+        if (typeof completedTableInstance !== 'undefined' && completedTableInstance) {
+            completedTableInstance.column(4).search(regex, true, false).draw();
+        }
+        syncAllTables(table);
     };
 
-    setupGenericCheckboxFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearchPEAWBS',
-        searchInputSelector: '#searchPEAWBS',
-        clearButtonSelector: '#clearPEAWBSFilter',
-        itemClass: 'peawbs-filter-item',
-        checkboxClass: 'peawbs-checkbox',
-        itemLabelPrefix: 'dropdown-peawbs',
-        columnIndex: 4,
-        valueExtractor: (row) => row?.c?.[0] ? getCellValue(row.c[0]).toString().trim() : '',
-        completedColumnIndex: 4
+    $searchContainer.off('change', '.peawbs-checkbox').on('change', '.peawbs-checkbox', applyFilter);
+    $clearButton.off('click').on('click', function() {
+        $searchContainer.find('.peawbs-checkbox').prop('checked', false); 
+        $searchInput.val('').trigger('input');
+        applyFilter();
     });
 },
 
 // [4/5] กรอง Project Group
 setupFilterProjectGroup(table, data) {
-    setupGenericCheckboxFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearchProjGroup',
-        searchInputSelector: '#searchProjGroup',
-        clearButtonSelector: '#clearProjGroupFilter',
-        itemClass: 'projgroup-filter-item',
-        checkboxClass: 'projgroup-checkbox',
-        itemLabelPrefix: 'dropdown-projgroup',
-        columnIndex: 10,
-        valueExtractor: (row) => row?.c?.[12] ? getCellValue(row.c[12]).toString().trim() : '',
-        completedColumnIndex: 10
+    const $dropdownMenu = $('#dropdownSearchProjGroup'), $searchContainer = $dropdownMenu.find('ul'), $searchInput = $('#searchProjGroup'), $clearButton = $('#clearProjGroupFilter'); 
+    $searchContainer.empty(); 
+
+    let list = [];
+    data.rows.forEach(row => {
+        let val = row?.c?.[12] ? getCellValue(row.c[12]).toString().trim() : '';
+        if (val && val !== "-" && !list.includes(val)) list.push(val);
+    });
+
+    list.sort().forEach((item, index) => {
+        $searchContainer.append(`
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded projgroup-filter-item">
+                <label for="dropdown-projgroup-${index}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">${item}</div>
+                    <input id="dropdown-projgroup-${index}" type="checkbox" value="${item}" class="projgroup-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong">
+                </label>
+            </li>
+        `);
+    });
+
+    $searchInput.off('input').on('input', function () {
+        const text = $(this).val().toLowerCase();
+        $searchContainer.find('.projgroup-filter-item').each(function () { $(this).toggle($(this).text().toLowerCase().includes(text)); });
+    });
+
+    const applyFilter = () => {
+        let selected = [];
+        $searchContainer.find('.projgroup-checkbox:checked').each(function () { selected.push($(this).val()); });
+        const regex = selected.length > 0 ? selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') : '';
+        
+        table.column(10).search(regex, true, false).draw();
+        if (typeof completedTableInstance !== 'undefined' && completedTableInstance) {
+            completedTableInstance.column(10).search(regex, true, false).draw();
+        }
+        syncAllTables(table);
+    };
+
+    $searchContainer.off('change', '.projgroup-checkbox').on('change', '.projgroup-checkbox', applyFilter);
+    $clearButton.off('click').on('click', function() {
+        $searchContainer.find('.projgroup-checkbox').prop('checked', false); 
+        $searchInput.val('').trigger('input');
+        applyFilter();
     });
 },
 
 // [5/5] กรอง Budget CIP
 setupFilterBudgetCIP(table, data) {
-    setupGenericCheckboxFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearchBudget',
-        searchInputSelector: '#searchBudget',
-        clearButtonSelector: '#clearBudgetFilter',
-        itemClass: 'budget-filter-item',
-        checkboxClass: 'budget-checkbox',
-        itemLabelPrefix: 'dropdown-budget',
-        columnIndex: 12,
-        valueExtractor: (row) => row?.c?.[18] ? getCellValue(row.c[18]).toString().trim() : '',
-        completedColumnIndex: 12
+    const $dropdownMenu = $('#dropdownSearchBudget'), $searchContainer = $dropdownMenu.find('ul'), $searchInput = $('#searchBudget'), $clearButton = $('#clearBudgetFilter'); 
+    $searchContainer.empty(); 
+
+    let list = [];
+    data.rows.forEach(row => {
+        let val = row?.c?.[18] ? getCellValue(row.c[18]).toString().trim() : '';
+        if (val && val !== "-" && !list.includes(val)) list.push(val);
+    });
+
+    list.sort().forEach((item, index) => {
+        $searchContainer.append(`
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded budget-filter-item">
+                <label for="dropdown-budget-${index}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">${item}</div>
+                    <input id="dropdown-budget-${index}" type="checkbox" value="${item}" class="budget-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong">
+                </label>
+            </li>
+        `);
+    });
+
+    $searchInput.off('input').on('input', function () {
+        const text = $(this).val().toLowerCase();
+        $searchContainer.find('.budget-filter-item').each(function () { $(this).toggle($(this).text().toLowerCase().includes(text)); });
+    });
+
+    const applyFilter = () => {
+        let selected = [];
+        $searchContainer.find('.budget-checkbox:checked').each(function () { selected.push($(this).val()); });
+        const regex = selected.length > 0 ? selected.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') : '';
+        
+        table.column(12).search(regex, true, false).draw();
+        if (typeof completedTableInstance !== 'undefined' && completedTableInstance) {
+            completedTableInstance.column(12).search(regex, true, false).draw();
+        }
+        syncAllTables(table);
+    };
+
+    $searchContainer.off('change', '.budget-checkbox').on('change', '.budget-checkbox', applyFilter);
+    $clearButton.off('click').on('click', function() {
+        $searchContainer.find('.budget-checkbox').prop('checked', false); 
+        $searchInput.val('').trigger('input');
+        applyFilter();
     });
 },
 
@@ -2391,50 +2681,307 @@ setupFilterBudgetProject(table) {
 
 
 setupFilterUpcoming_MaterialID(table, data) {
-    setupUpcomingDropdownFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearch',
-        searchInputSelector: '#search',
-        clearButtonSelector: '#clearMaterialFilter',
-        itemClass: 'material-filter-item',
-        checkboxClass: 'material-checkbox',
-        itemLabelPrefix: 'dropdown-material',
-        cellIndex: 0,
-        columnIndex: 0,
-        exactMatch: true
+    // ==========================================
+    // 1. กำหนดตัวแปรและดึง Element จาก HTML ใหม่
+    // ==========================================
+    const $dropdownMenu = $('#dropdownSearch');
+    const $searchContainer = $dropdownMenu.find('ul'); // พื้นที่สอดแทรกรายการ <li>
+    const $searchInput = $('#search');
+    const $clearButton = $('#clearMaterialFilter');
+    
+    // เคลียร์รายการเก่าในดรอปดาวน์ออกก่อน เพื่อรองรับการอัปเดตข้อมูลใหม่
+    $searchContainer.empty(); 
+
+    // ==========================================
+    // 2. ดึงข้อมูลและจัดการรหัสพัสดุไม่ให้ซ้ำ (ตรรกะเดิมของคุณ)
+    // ==========================================
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        
+        let cell = row.c[0];
+        let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
+        
+        if (val && val !== "-" && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    // ==========================================
+    // 3. เรียงลำดับข้อมูลและสร้าง List Item (HTML) ยัดกลับเข้าไปในดรอปดาวน์
+    // ==========================================
+    list.sort().forEach((item, index) => {
+        // สร้าง ID เฉพาะตัว (Unique ID) เพื่อให้ Tag Label ผูกกับ Checkbox ได้ถูกต้องเวลาคลิก
+        const uniqueId = `dropdown-material-${index}`; 
+        
+        const listItemHtml = `
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded material-filter-item">
+                <label for="${uniqueId}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">
+                        ${item}
+                    </div>
+                    <input id="${uniqueId}" type="checkbox" value="${item}" class="material-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong focus:ring-2 focus:ring-brand-soft">
+                </label>
+            </li>
+        `;
+        $searchContainer.append(listItemHtml);
+    });
+
+    // ==========================================
+    // 4. ระบบพิมพ์ค้นหาในดรอปดาวน์ (Search Filter inside Dropdown)
+    // ==========================================
+    // เคลียร์ Event เก่าออกก่อน (.off) แล้วผูกใหม่ (.on) ป้องกันปัญหาสคริปต์ซ้อนกันเวลารันฟังก์ชันซ้ำ
+    $searchInput.off('input').on('input', function () {
+        const searchText = $(this).val().toLowerCase();
+        
+        $searchContainer.find('.material-filter-item').each(function () {
+            const itemText = $(this).text().toLowerCase();
+            
+            // ถ้าคำค้นหาตรงกับชื่อพัสดุ ให้แสดงผล ถ้าไม่ตรงให้ซ่อน
+            if (itemText.includes(searchText)) {
+                $(this).attr('style', 'display: flex !important'); 
+            } else {
+                $(this).attr('style', 'display: none !important');  
+            }
+        });
+    });
+
+    // ==========================================
+    // 5. ระบบดักจับการเลือก Checkbox และส่งค่าไปฟิลเตอร์ใน DataTable
+    // ==========================================
+    $searchContainer.off('change', '.material-checkbox').on('change', '.material-checkbox', function () {
+        let selectedVals = [];
+        
+        // วนลูปหา Checkbox ทุกตัวในกล่องที่ถูกติ๊กเลือก (Checked) แล้วเก็บค่าเข้า Array
+        $searchContainer.find('.material-checkbox:checked').each(function () {
+            selectedVals.push($(this).val());
+        });
+
+        // ตรวจสอบเงื่อนไขแล้วส่งค่าไปกรองที่ตาราง DataTable
+        if (selectedVals.length > 0) {
+            // ทำการ Escape เครื่องหมายพิเศษ และเชื่อมข้อมูลด้วย | (แปลว่า "หรือ")
+            const searchRegex = selectedVals.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+            // ทำการฟิลเตอร์ที่คอลัมน์ Index 0 แบบตรงตัวเป๊ะๆ (Exact Match) ด้วย Regex เช่น ^(M001|M002)$
+            table.column(0).search(`^(${searchRegex})$`, true, false).draw();
+        } else {
+            // ถ้าไม่มีการติ๊กเลือกพัสดุเลยสักตัว ให้เคลียร์ฟิลเตอร์เพื่อให้แสดงข้อมูลตารางทั้งหมด
+            table.column(0).search('').draw();
+        }
+    });
+
+    // ==========================================
+    // 6. ระบบปุ่มล้างค่าที่เลือกทั้งหมด (Clear Filters Button)
+    // ==========================================
+    $clearButton.off('click').on('click', function() {
+        // 1. เอาเครื่องหมายติ๊กถูกออกจาก Checkbox ทุกตัวในรายการ
+        $searchContainer.find('.material-checkbox').prop('checked', false); 
+        // 2. ล้างช่องพิมพ์ค้นหาให้กลับมาเป็นค่าว่าง
+        $searchInput.val('');
+        // 3. แสดงรายการพัสดุทุกตัวใน List เผื่อมีบางตัวโดนซ่อนอยู่จากการค้นหาค้างไว้
+        $searchContainer.find('.material-filter-item').attr('style', 'display: flex !important');
+        // 4. สั่งสั่งตาราง DataTable รีเซ็ตกลับมาโชว์ข้อมูลพัสดุทั้งหมดเหมือนเดิม
+        table.column(0).search('').draw(); 
     });
 },
 
 setupFilterUpcoming_MaterialName(table, data) {
-    setupUpcomingDropdownFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearchName',
-        searchInputSelector: '#searchMaterialName',
-        clearButtonSelector: '#clearMaterialNameFilter',
-        itemClass: 'matname-filter-item',
-        checkboxClass: 'matname-checkbox',
-        itemLabelPrefix: 'dropdown-matname',
-        cellIndex: 1,
-        columnIndex: 1,
-        exactMatch: true
+    // ==========================================
+    // 1. กำหนดตัวแปรและดึง Element จาก HTML 
+    // ==========================================
+    // แนะนำให้เช็ก ID ช่องค้นหาและปุ่มล้างค่าใน HTML ให้ตรงกันด้วยนะครับ
+    const $dropdownMenu = $('#dropdownSearchName'); // ปรับแนะให้แยก ID เพื่อไม่ให้ชนกับรหัสพัสดุ
+    const $searchContainer = $dropdownMenu.find('ul'); 
+    const $searchInput = $('#searchMaterialName'); // ปรับแนะให้แยก ID
+    const $clearButton = $('#clearMaterialNameFilter'); // ปรับแนะให้แยก ID
+    
+    // เคลียร์รายการเก่าในดรอปดาวน์ออกก่อน เพื่อรองรับการอัปเดตข้อมูลใหม่
+    $searchContainer.empty(); 
+
+    // ==========================================
+    // 2. ดึงข้อมูลจาก Index 1 (ชื่อพัสดุ) และจัดการไม่ให้ซ้ำ
+    // ==========================================
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        
+        // ✨ เปลี่ยนมาดึงข้อมูลจากช่อง Index 1 (ชื่อพัสดุ)
+        let cell = row.c[1]; 
+        let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
+        
+        if (val && val !== "-" && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    // ==========================================
+    // 3. เรียงลำดับข้อมูลและสร้าง List Item (HTML) ยัดกลับเข้าไปในดรอปดาวน์
+    // ==========================================
+    list.sort().forEach((item, index) => {
+        // เปลี่ยน prefix ID ป้องกันการซ้ำซ้อนกับของรหัสพัสดุ
+        const uniqueId = `dropdown-matname-${index}`; 
+        
+        const listItemHtml = `
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded matname-filter-item">
+                <label for="${uniqueId}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">
+                        ${item}
+                    </div>
+                    <input id="${uniqueId}" type="checkbox" value="${item}" class="matname-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong focus:ring-2 focus:ring-brand-soft">
+                </label>
+            </li>
+        `;
+        $searchContainer.append(listItemHtml);
+    });
+
+    // ==========================================
+    // 4. ระบบพิมพ์ค้นหาในดรอปดาวน์ (Search Filter)
+    // ==========================================
+    $searchInput.off('input').on('input', function () {
+        const searchText = $(this).val().toLowerCase();
+        
+        $searchContainer.find('.matname-filter-item').each(function () {
+            const itemText = $(this).text().toLowerCase();
+            
+            if (itemText.includes(searchText)) {
+                $(this).attr('style', 'display: flex !important'); 
+            } else {
+                $(this).attr('style', 'display: none !important');  
+            }
+        });
+    });
+
+    // ==========================================
+    // 5. ระบบดักจับ Checkbox และส่งค่าไปฟิลเตอร์ใน DataTable คอลัมน์ที่ 1
+    // ==========================================
+    $searchContainer.off('change', '.matname-checkbox').on('change', '.matname-checkbox', function () {
+        let selectedVals = [];
+        
+        $searchContainer.find('.matname-checkbox:checked').each(function () {
+            selectedVals.push($(this).val());
+        });
+
+        // ส่งค่าไปค้นหาใน DataTable
+        if (selectedVals.length > 0) {
+            const searchRegex = selectedVals.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+            // ✨ เปลี่ยนไปค้นหาและฟิลเตอร์ที่คอลัมน์ Index 1 (ชื่อพัสดุ) แบบตรงตัวเป๊ะๆ ^(ชื่อA|ชื่อB)$
+            table.column(1).search(`^(${searchRegex})$`, true, false).draw();
+        } else {
+            // ✨ เคลียร์ฟิลเตอร์ที่คอลัมน์ Index 1
+            table.column(1).search('').draw();
+        }
+    });
+
+    // ==========================================
+    // 6. ระบบปุ่มล้างค่าที่เลือกทั้งหมด (Clear Filters)
+    // ==========================================
+    $clearButton.off('click').on('click', function() {
+        // 1. เอาเครื่องหมายติ๊กถูกออกทั้งหมด
+        $searchContainer.find('.matname-checkbox').prop('checked', false); 
+        // 2. ล้างช่องพิมพ์ค้นหา
+        $searchInput.val('');
+        // 3. แสดงรายการทั้งหมดกลับมา
+        $searchContainer.find('.matname-filter-item').attr('style', 'display: flex !important');
+        // 4. ✨ รีเซ็ตตารางในคอลัมน์ Index 1 ให้กลับมาโชว์ข้อมูลทั้งหมด
+        table.column(1).search('').draw(); 
     });
 },
 
 setupFilterUpcoming_PurchaseGroup(table, data) {
-    setupUpcomingDropdownFilter({
-        table,
-        data,
-        dropdownSelector: '#dropdownSearchGroup',
-        searchInputSelector: '#searchPurchaseGroup',
-        clearButtonSelector: '#clearPurchaseGroupFilter',
-        itemClass: 'purgroup-filter-item',
-        checkboxClass: 'purgroup-checkbox',
-        itemLabelPrefix: 'dropdown-purgroup',
-        cellIndex: 2,
-        columnIndex: 2,
-        exactMatch: false
+    // ==========================================
+    // 1. กำหนดตัวแปรและดึง Element จาก HTML 
+    // ==========================================
+    const $dropdownMenu = $('#dropdownSearchGroup'); 
+    const $searchContainer = $dropdownMenu.find('ul'); 
+    const $searchInput = $('#searchPurchaseGroup'); 
+    const $clearButton = $('#clearPurchaseGroupFilter'); 
+    
+    // เคลียร์รายการเก่าในดรอปดาวน์ออกก่อน
+    $searchContainer.empty(); 
+
+    // ==========================================
+    // 2. ดึงข้อมูลจาก Index 2 (กลุ่มการจัดซื้อ) และจัดการไม่ให้ซ้ำ
+    // ==========================================
+    let list = [];
+    data.rows.forEach(row => {
+        if (!row || !row.c) return;
+        
+        let cell = row.c[2]; 
+        let val = (cell && cell.v !== undefined) ? cell.v.toString().trim() : "";
+        
+        if (val && val !== "-" && !list.includes(val)) {
+            list.push(val);
+        }
+    });
+
+    // ==========================================
+    // 3. เรียงลำดับข้อมูลและสร้าง List Item (HTML) ยัดกลับเข้าไปในดรอปดาวน์
+    // ==========================================
+    list.sort().forEach((item, index) => {
+        const uniqueId = `dropdown-purgroup-${index}`; 
+        
+        const listItemHtml = `
+            <li class="w-full flex items-center p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded purgroup-filter-item">
+                <label for="${uniqueId}" class="w-full flex items-center justify-between cursor-pointer m-0">
+                    <div class="inline-flex items-center font-medium text-heading text-sm">
+                        ${item}
+                    </div>
+                    <input id="${uniqueId}" type="checkbox" value="${item}" class="purgroup-checkbox w-4 h-4 border border-default-strong rounded-xs bg-neutral-secondary-strong focus:ring-2 focus:ring-brand-soft">
+                </label>
+            </li>
+        `;
+        $searchContainer.append(listItemHtml);
+    });
+
+    // ==========================================
+    // 4. ระบบพิมพ์ค้นหาในดรอปดาวน์ (Search Filter)
+    // ==========================================
+    $searchInput.off('input').on('input', function () {
+        const searchText = $(this).val().toLowerCase();
+        
+        $searchContainer.find('.purgroup-filter-item').each(function () {
+            const itemText = $(this).text().toLowerCase();
+            
+            if (itemText.includes(searchText)) {
+                $(this).attr('style', 'display: flex !important'); 
+            } else {
+                $(this).attr('style', 'display: none !important');  
+            }
+        });
+    });
+
+    // ==========================================
+    // 5. ระบบดักจับ Checkbox และส่งค่าไปฟิลเตอร์ใน DataTable คอลัมน์ที่ 2
+    // ==========================================
+    $searchContainer.off('change', '.purgroup-checkbox').on('change', '.purgroup-checkbox', function () {
+        let selectedVals = [];
+        
+        // วนลูปเก็บค่ากลุ่มการจัดซื้อจาก Checkbox ที่ถูกติ๊กเลือก
+        $searchContainer.find('.purgroup-checkbox:checked').each(function () {
+            selectedVals.push($(this).val());
+        });
+
+        if (selectedVals.length > 0) {
+            // Escape เครื่องหมายพิเศษ และเชื่อมข้อมูลด้วย | (แปลว่า "หรือ")
+            const searchRegex = selectedVals.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|');
+            
+            // ✨ แก้ไขจุดนี้: ถอดตัวบังคับหัวท้าย ^ และ $ ออก
+            // เพื่อให้ DataTable ค้นหาคำแบบส่องเข้าไปเจอในก้อนแท็ก <span> สไตล์ของคุณได้ทันที
+            table.column(2).search(searchRegex, true, false).draw();
+        } else {
+            // ถ้าไม่ได้ติ๊กอะไรเลย ให้แสดงข้อมูลทั้งหมดในคอลัมน์ที่ 2
+            table.column(2).search('').draw();
+        }
+    });
+
+    // ==========================================
+    // 6. ระบบปุ่มล้างค่าที่เลือกทั้งหมด (Clear Filters)
+    // ==========================================
+    $clearButton.off('click').on('click', function() {
+        $searchContainer.find('.purgroup-checkbox').prop('checked', false); 
+        $searchInput.val('');
+        $searchContainer.find('.purgroup-filter-item').attr('style', 'display: flex !important');
+        // รีเซ็ตคอลัมน์ที่ 2 กลับมาโชว์ข้อมูลทั้งหมดเหมือนเดิม
+        table.column(2).search('').draw(); 
     });
 }
 };
@@ -2674,17 +3221,232 @@ function showR2WCardInfo() {
 }
 // ==================== Main Initialization ====================
 
-/**
- * initDashboard
- * จุดเริ่มต้นการทำงานทั้งหมดของ Dashboard เมื่อโหลดหน้าเสร็จ ($(document).ready ด้านล่างสุดของไฟล์)
- * ลำดับการทำงาน:
- *   1. Render โครงร่างกราฟเปล่าล่วงหน้า (ให้ผู้ใช้เห็น canvas ทันทีระหว่างรอข้อมูล)
- *   2. ดึงข้อมูลทุกชีตที่ต้องใช้แบบขนาน (Promise.all ผ่าน CommonService.fetchMultipleSheets) ในคำขอเดียว
- *   3. แปลง/สรุปข้อมูลดิบเป็น Map ที่ใช้งานง่าย (PEA mapping, Budget mapping, Material type/note map, Stock summary)
- *   4. คำนวณการจัดสรรพัสดุ (AllocationService) และอันดับ WBS (RankingService)
- *   5. วาดตารางทั้งหมด ผูก event ตัวกรอง (FilterModule) และอัปเดตกราฟ/การ์ดสรุปยอด
- * มีการวัดเวลา performance.now() แยกระหว่างขั้นตอนดึงข้อมูล กับขั้นตอนประมวลผล/วาดผล เพื่อ log ไว้ debug ประสิทธิภาพ
- */
+
+
+// async function initDashboard() {
+//     const startTime = performance.now();
+    
+//     // เริ่มต้น Render โครงร่างกราฟล่วงหน้า
+//     if (typeof GraphRender !== 'undefined') {
+//         GraphRender.Piegraph();
+//         GraphRender.BarGraph();
+//     }
+    
+//     try {
+//         const fetchStart = performance.now();
+
+//         // 🎯 1. ดึงข้อมูลผ่าน CommonService ทั้งหมด (แทนที่ DataService เดิม)
+//         const [vvipData, peaMapping, budgetMapping, upcomingData] = await Promise.all([
+//             CommonService.fetchVVIPData(),
+//             CommonService.fetchPEANameData(),
+//             CommonService.fetchBudgetData(),
+//             CommonService.fetchUpcomingItemData()
+//         ]);
+
+//         // ดึงข้อมูล Sheet ตาม config ที่คุณมี
+//         const sheetPromises = config.map(async (sheet) => {
+//             const data = await CommonService.fetchSheetData(sheet.name);
+//             return { sheet, data };
+//         });
+
+//         const results = await Promise.all(sheetPromises);
+
+//         const fetchEnd = performance.now();
+//         console.group("📊 Dashboard Performance Tracker");
+//         console.log(`⏱️ 1. Fetching Data Time: ${((fetchEnd - fetchStart) / 1000).toFixed(2)} seconds`);
+
+//         // แยกข้อมูล
+//         const dataMap = results.reduce((acc, curr) => {
+//             acc[curr.sheet.name] = curr.data;
+//             return acc;
+//         }, {});
+
+//         // 🎯 2. สร้าง Material Map ผ่าน CommonService (จบปัญหา Not Defined)
+//         const masterKey = Object.keys(dataMap).find(key => key.toLowerCase().includes('material_master'));
+//         const materialTypeMap = CommonService.buildMaterialTypeMap(dataMap[masterKey]);
+        
+//         // สำหรับ NoteMap (ยังคงใช้ Logic เดิมของคุณ)
+//         const materialNoteMap = {};
+//         if (dataMap[masterKey]?.rows) {
+//             const cols = dataMap[masterKey].cols;
+//             const finalNoteIdx = Math.max(cols.findIndex(c => c.label === "Not"), 7);
+//             dataMap[masterKey].rows.forEach(row => {
+//                 const partID = CommonService.getCellValue(row.c[0])?.toString().trim();
+//                 if (partID) materialNoteMap[partID] = CommonService.getCellValue(row.c[finalNoteIdx])?.toString().trim() || "";
+//             });
+//         }
+
+//         globalVVIP = vvipData;
+//         peaNameMapping = peaMapping;
+
+//         const processStart = performance.now();
+
+//         // สรุปยอดคำนวณคลังสินค้า (Stock)
+//         totalStockSummary = {};
+//         if (dataMap['Stock_Data']?.rows) {
+//             dataMap['Stock_Data'].rows.forEach(row => {
+//                 const partID = CommonService.getCellValue(row.c[0])?.toString().trim();
+//                 const quantity = parseFloat(CommonService.getCellValue(row.c[8])) || 0;
+//                 if (partID) totalStockSummary[partID] = (totalStockSummary[partID] || 0) + quantity;
+//             });
+//         }
+// // totalStockSummary = {};
+// // if (dataMap['Stock_Data']?.rows) {
+// //     dataMap['Stock_Data'].rows.forEach(row => {
+// //         const partID = CommonService.getCellValue(row.c[0])?.toString().trim();
+        
+// //         let rawQty = CommonService.getCellValue(row.c[8]);
+// //         let quantity = 0;
+        
+// //         if (rawQty !== null && rawQty !== undefined && rawQty !== "") {
+// //             // แปลงค่าเป็น Number โดยตัดเศษขยะตัวอักษรออก
+// //             quantity = Number(rawQty.toString().replace(/[^0-9.-]/g, ''));
+// //             if (isNaN(quantity)) quantity = 0;
+// //         }
+
+// //         if (partID && partID !== "") {
+// //             const currentVal = totalStockSummary[partID] || 0;
+// //             // ป้องกันปัญหาเศษทศนิยมเกินของ JS
+// //             totalStockSummary[partID] = Math.round((currentVal + quantity) * 100) / 100;
+// //         }
+// //     });
+// // }
+//         // คำนวณระบบจัดสรรพัสดุ
+//         rawRequirementDatabase = dataMap['Requirement_Data'];
+//         const alloc = AllocationService.calculateAllocation(
+//             rawRequirementDatabase, globalVVIP, totalStockSummary, materialTypeMap, budgetMapping
+//         );
+        
+//         const processedAllocData = updateProgressData(alloc.allocatedResults, materialTypeMap);
+//         // const wbsProgressMap = getWBSProgressMap(processedAllocData);
+//         // ต้องส่งข้อมูล stockData (ถ้ามี) เข้าไปด้วยเพื่อให้ฟังก์ชันนับได้ครบ
+// const stockDataForCount = dataMap['Stock_Data'] || { rows: [] }; 
+// updateDashboardCounts(
+//     alloc.allocatedResults, 
+//     rawRequirementDatabase, 
+//     stockDataForCount, 
+//     materialTypeMap
+// );
+//         const wbsProgressMap = getWBSProgressMap(alloc.allocatedResults);
+//         //   const globalRankMap = RankingService.calculateAllWbsRanks(
+//         //     dataMap['Requirement_Data'].rows, 
+//         //     budgetMapping, 
+//         //     alloc.finalWbsScores
+//         // );
+ 
+//         // // เอาไปแปะไว้ใน window หรือตัวแปร Global เพื่อให้ตารางต่างๆ ดึงไปใช้ได้ทันที
+//         // window.GLOBAL_RANK_MAP = globalRankMap;
+
+//         const globalRankMap = (alloc && alloc.finalWbsScores) 
+//     ? RankingService.calculateAllWbsRanks(
+//         dataMap['Requirement_Data'].rows, 
+//         budgetMapping, 
+//         alloc.finalWbsScores, 
+//         alloc.wbsStatusMap || new Map() // ถ้า wbsStatusMap เป็น undefined ให้ส่ง Map ว่างไปแทน
+//       ) 
+//     : {}; // ถ้า alloc พัง ให้เป็น Object ว่าง
+
+// window.GLOBAL_RANK_MAP = globalRankMap;
+//         // ================= วาดตาราง ================= //
+//         config.forEach(sheet => {
+//             const data = dataMap[sheet.name];
+//             if (!data) return;
+
+//             if (sheet.name === 'Requirement_Data') {
+//                 // parcelTable = TableRenderer.renderRequirementTable(
+//                 //     sheet.target, data, globalVVIP, peaNameMapping,
+//                 //     alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
+//                 // );
+
+//             // ตารางที่ 1: งานค้างเบิก
+// parcelTable = TableRenderer.renderRequirementTable(
+//     '#tableRequirement_Data', 
+//     rawRequirementDatabase, 
+//     globalVVIP, peaNameMapping, alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
+// );
+
+// // ตารางที่ 2: งานที่เบิกครบแล้ว
+// completedTableInstance = TableRenderer.renderCompletedOrderTable(
+//     '#tableCompletedOrder', 
+//     rawRequirementDatabase, 
+//     globalVVIP, peaNameMapping, alloc.finalWbsScores, alloc.wbsStatusMap, budgetMapping, wbsProgressMap
+// );
+//                 renderInitialStockMatch(processedAllocData, materialTypeMap);
+//                 updateDashboardCards(sheet.target); 
+
+//                 $(sheet.target).on('draw.dt search.dt', function(e) {
+//                     updateDashboardCardsDebounced(sheet.target);
+//                     if (e.type === 'search') updateGraph.updateDashboardCharts(sheet.target);
+//                 });                
+
+//                 noStockTableInstance = TableRenderer.renderNoStockTable(alloc.allocatedResults, materialTypeMap);
+//                 obsoleteTableInstance = TableRenderer.renderObsoleteTable(alloc.allocatedResults, materialTypeMap, materialNoteMap);
+//                 // แนะนำให้เปลี่ยนชื่อตัวแปรให้ตรงกับสถานะของข้อมูล
+//                  fulfilledTableInstance = TableRenderer.renderFulfilledTable(rawRequirementDatabase, materialTypeMap);
+//                 // 🎯 3. สั่ง Render ตาราง Warehouse (ส่งค่าผ่านตัวแปร)
+//                 if (typeof WarehouseService !== 'undefined') {
+//                     WarehouseService.renderNoStock_warehouse(processedAllocData, materialTypeMap);
+//                 }
+//                 // เพิ่มบรรทัดนี้ลงไปเพื่อให้ Sync ตลอดเวลาไม่ว่าจะกรองด้วยวิธีไหน
+//                 parcelTable.on('draw', function () {
+//                     syncAllTables(parcelTable);
+//                 });
+
+                   
+
+//                 FilterModule.setupFilterID_WBS(parcelTable, data);
+//                 FilterModule.setupFilterType_WBS(parcelTable, data);
+//                 FilterModule.setupFilterPEA_WBS(parcelTable, peaNameMapping);
+//                 FilterModule.setupFilterLight(parcelTable, data, alloc.wbsStatusMap);
+//                 FilterModule.setupFilterProjectGroup(parcelTable, data);
+//                 FilterModule.setupFilterBudgetCIP(parcelTable, data);
+//                 FilterModule.setupFilterBudgetProject(parcelTable, data);
+//                 updateGraph.updateDashboardCharts(sheet.target);
+
+//             } else if (sheet.name === 'Stock_Data') {
+//                 mb52Table = TableRenderer.renderStockTable(sheet.target, data, materialTypeMap, "stock");
+//             } else if (sheet.name !== 'Material_Master') {
+//                 TableRenderer.renderGenericTable(sheet.target, data);
+//             }
+//         });
+//         setTimeout(() => {
+//             updateDashboardCounts(); // เรียกครั้งแรกเพื่อให้แสดงยอดรวมทั้งหมด
+//         }, 500); 
+
+//         // และเพิ่ม Listener ให้ตารางย่อยด้วยเพื่อความแม่นยำ
+//         [stockMatchTableInstance, noStockTableInstance, obsoleteTableInstance, fulfilledTableInstance].forEach(table => {
+//             if (table) {
+//                 table.on('draw', () => updateDashboardCounts());
+//             }
+//         });
+//         if (upcomingData?.rows?.length > 0) {
+//              upcomingTableInstance = renderUpcomingTable(upcomingData);
+//              if (upcomingTableInstance) {
+//                 FilterModule.setupFilterUpcoming_MaterialID(upcomingTableInstance, upcomingData);
+//                 FilterModule.setupFilterUpcoming_MaterialName(upcomingTableInstance, upcomingData);
+//                 FilterModule.setupFilterUpcoming_PurchaseGroup(upcomingTableInstance, upcomingData);
+//              }
+//         }
+//    // ใน initDashboard()
+// // ใน initDashboard() หลังจบการ Render ตารางหลัก
+
+//         setupGlobalEvents();
+//         $('#main-page-loader').fadeOut(100, function() { $(this).remove(); });
+
+//         const processEnd = performance.now();
+//         console.log(`⏱️ 2. Processing & Rendering Time: ${((processEnd - processStart) / 1000).toFixed(2)} seconds`);
+//         console.log(`🚀 Total Execution Time: ${((processEnd - startTime) / 1000).toFixed(2)} seconds`);
+//         console.groupEnd();
+      
+//     } catch (err) {
+//         console.error("❌ Dashboard Initialization Error:", err);
+//         $('#main-page-loader').remove();
+//     }
+// }
+
+// $(document).ready(() => initDashboard());
+
+
 async function initDashboard() {
     const startTime = performance.now();
     
