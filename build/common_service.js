@@ -40,40 +40,40 @@ const CommonService = {
 //         }
 //     },
 
-    // fetchSheetData: async function(sheetName) {
-    //     // ถ้าเคยดึงมาแล้ว ให้คืนค่าเดิมทันที (ไม่ยิง API ซ้ำ)
-    //     if (this._cache[sheetName]) return this._cache[sheetName];
+    fetchSheetData: async function(sheetName) {
+        // ถ้าเคยดึงมาแล้ว ให้คืนค่าเดิมทันที (ไม่ยิง API ซ้ำ)
+        if (this._cache[sheetName]) return this._cache[sheetName];
 
-    //     const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
-    //     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
-    //      try {
-    //         const response = await fetch(url);
-    //         if (!response.ok) throw new Error(`Status: ${response.status}`);
-    //         const textData = await response.text();
-    //         const jsonStart = textData.indexOf('{');
-    //         const jsonEnd = textData.lastIndexOf('}');
-    //         const parsedData = JSON.parse(textData.substring(jsonStart, jsonEnd + 1));
-    //         const rawTable = parsedData.table;
-    //         if (!rawTable) return { cols: [], rows: [] };
+        const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
+        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
+         try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Status: ${response.status}`);
+            const textData = await response.text();
+            const jsonStart = textData.indexOf('{');
+            const jsonEnd = textData.lastIndexOf('}');
+            const parsedData = JSON.parse(textData.substring(jsonStart, jsonEnd + 1));
+            const rawTable = parsedData.table;
+            if (!rawTable) return { cols: [], rows: [] };
 
-    //         const formattedCols = (rawTable.cols || []).map(col => ({ label: col.label || "" }));
-    //         const formattedRows = (rawTable.rows || []).map(row => {
-    //             if (!row || !row.c) return { c: [] };
-    //             const formattedCells = row.c.map(cell => ({ v: cell?.v ?? "" }));
-    //             while (formattedCells.length < formattedCols.length) formattedCells.push({ v: "" });
-    //             return { c: formattedCells };
-    //         });
-    //         // return { cols: formattedCols, rows: formattedRows };
+            const formattedCols = (rawTable.cols || []).map(col => ({ label: col.label || "" }));
+            const formattedRows = (rawTable.rows || []).map(row => {
+                if (!row || !row.c) return { c: [] };
+                const formattedCells = row.c.map(cell => ({ v: cell?.v ?? "" }));
+                while (formattedCells.length < formattedCols.length) formattedCells.push({ v: "" });
+                return { c: formattedCells };
+            });
+            // return { cols: formattedCols, rows: formattedRows };
 
-    //         const result = { cols: formattedCols, rows: formattedRows };
+            const result = { cols: formattedCols, rows: formattedRows };
             
-    //         // เก็บลง Cache ไว้ใช้ครั้งต่อไป
-    //         this._cache[sheetName] = result;
-    //         return result;
-    //     } catch (err) {
-    //         return { cols: [], rows: [] };
-    //     }
-    // },
+            // เก็บลง Cache ไว้ใช้ครั้งต่อไป
+            this._cache[sheetName] = result;
+            return result;
+        } catch (err) {
+            return { cols: [], rows: [] };
+        }
+    },
 
     // async fetchSheetData(sheetName) {
     //     // 🚀 ถ้าเคยดึงข้อมูลตารางนี้มาแล้ว ให้ดึงจาก RAM Cache กลับไปใช้ทันที (ตอบสนองใน 0ms)
@@ -197,32 +197,32 @@ const CommonService = {
     // }
 
 
-    async fetchSheetData(sheetName) {
-        // Return Cache ทันทีหากเคยดึงแล้ว (0 ms)
-        if (this._cache[sheetName]) return this._cache[sheetName];
+    // async fetchSheetData(sheetName) {
+    //     // Return Cache ทันทีหากเคยดึงแล้ว (0 ms)
+    //     if (this._cache[sheetName]) return this._cache[sheetName];
 
-        const url = `/R2C/build/api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
+    //     const url = `/R2C/build/api/get_data.php?sheet=${encodeURIComponent(sheetName)}`;
 
-        try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' }
-            });
+    //     try {
+    //         const response = await fetch(url, {
+    //             method: 'GET',
+    //             headers: { 'Accept': 'application/json' }
+    //         });
 
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+    //         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-            const jsonData = await response.json();
-            const rawTable = jsonData?.table || { cols: [], rows: [] };
+    //         const jsonData = await response.json();
+    //         const rawTable = jsonData?.table || { cols: [], rows: [] };
             
-            // บันทึกลง Memory Cache
-            this._cache[sheetName] = rawTable;
-            return rawTable;
+    //         // บันทึกลง Memory Cache
+    //         this._cache[sheetName] = rawTable;
+    //         return rawTable;
 
-        } catch (err) {
-            console.error(`[MySQL Fetch Error] ${sheetName}:`, err);
-            return { cols: [], rows: [] };
-        }
-    },
+    //     } catch (err) {
+    //         console.error(`[MySQL Fetch Error] ${sheetName}:`, err);
+    //         return { cols: [], rows: [] };
+    //     }
+    // },
 
     /**
      * 🚀 [NEW] ยิงดึงข้อมูลหลาย Table พร้อมกันแบบ Parallel (Promise.all)

@@ -20,7 +20,7 @@ git push origin main --force
 
 # 5. push ไฟล์ที่แก้ไขขึ้น git
 git add .
-git commit -m "update filter"
+git commit -m "update from home"
 git push origin main
 
 
