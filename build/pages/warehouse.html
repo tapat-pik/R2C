@@ -316,12 +316,12 @@
         </div>
       </div>
 
-      <!-- Filters Section: เปลี่ยนจาก xl:grid-cols-6 เป็น xl:grid-cols-5 -->
+      <!-- Filters Section -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         
         <!-- 1. Range Picker -->
         <div class="xl:border-r border-gray-200 xl:pr-4">
-          <label class="block font-bold text-sm mb-3">Range Picker</label>
+          <label class="block font-bold text-sm mb-1">Range Picker</label>
           <div class="text-center text-xs text-gray-500 mb-2">Focus <span id="rank-display">0</span> งานแรก</div>
           
           <input type="range" id="rankSlider" min="0" max="1000" value="0" step="50" list="tickmarks"
@@ -333,52 +333,49 @@
             <option value="1000"></option>
           </datalist>
 
-          <div class="grid grid-cols-[1fr,auto] gap-2 mt-3">
-            <input type="number" id="rankInput" value="0" min="0" max="1000" step="50"
-                   class="w-full p-1 border rounded-md text-xs">
-            <button onclick="applyManualLimit()" 
-                    class="px-4 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 whitespace-nowrap">
-              ตกลง
-            </button>
+          <div class="flex justify-center mt-3 w-full">
+            <div class="flex items-center h-9 border border-gray-300 rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+              <input id="rankInput" type="number" value="0" min="0" max="1000" step="50"
+                     class="w-24 h-full px-3 text-sm text-center font-bold bg-transparent border-0 rounded-none shadow-none outline-none focus:outline-none focus:ring-0 text-slate-700 m-0">
+              <button onclick="applyManualLimit()" 
+                      class="h-full px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium whitespace-nowrap transition-colors flex items-center justify-center shrink-0 border-0 rounded-none outline-none">
+                ตกลง
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- 2. Material Group -->
-      <!-- 2. Material Group (2 แถว 2 คอลัมน์) -->
         <div class="xl:border-r border-gray-200 xl:pr-4">
-          <label class="block font-bold text-sm mb-2">Material Group</label>
-          <div class="grid grid-cols-2 gap-x-2 gap-y-2 text-xs">
-            
+          <label class="block font-bold text-sm mb-1">Material Group</label>
+          <div class="grid grid-cols-2 gap-x-2 gap-y-2 text-xs pt-1">
             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
               <input type="checkbox" class="filter-type rounded border-gray-300" value="พัสดุหลัก"> 
               <span class="truncate">พัสดุหลัก</span>
             </label>
-
             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
               <input type="checkbox" class="filter-type rounded border-gray-300" value="พัสดุรอง"> 
               <span class="truncate">พัสดุรอง</span>
             </label>
-
             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
               <input type="checkbox" class="filter-type rounded border-gray-300" value="ผลิตภัณฑ์คอนกรีต"> 
               <span class="truncate">ผลิตภัณฑ์คอนกรีต</span>
             </label>
-
             <label class="flex items-center gap-1.5 text-sm cursor-pointer">
               <input type="checkbox" class="filter-type rounded border-gray-300" value="พัสดุเคลื่อนไหวช้า"> 
               <span class="truncate">พัสดุเคลื่อนไหวช้า</span>
             </label>
-
           </div>
         </div>
-        <!-- 3. Project Filter -->
+
+        <!-- 3. Project Filter (ปรับตำแหน่งและขนาด h-16 เท่ากับ Material ID เป๊ะๆ) -->
         <div class="xl:border-r border-gray-200 xl:pr-4">
-          <label class="block font-bold text-sm mb-2">Project Filter</label>
-          <div class="border rounded-3 p-2 bg-white flex flex-col justify-center relative" style="min-height: 58px;">
-            <label class="mb-0 font-sans text-xs text-slate-500 leading-none ps-1 mb-1">การกำหนดโครงการ</label>
+          <label class="block font-bold text-sm mb-1">Project Filter</label>
+          <div class="border border-gray-300 rounded-md p-2 bg-white flex flex-col justify-center relative h-16">
+            <label class="mb-0 font-sans text-[11px] text-slate-400 leading-none ps-1 mb-0.5">การกำหนดโครงการ</label>
             
-            <button id="dropdownProjGroupButton" data-dropdown-toggle="dropdownSearchProjGroup" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-100 font-normal rounded-md text-sm px-2 py-1.5 focus:outline-none" type="button">
-                <span class="text-slate-500 text-sm truncate">ทั้งหมด (การกำหนดโครงการ)</span>
+            <button id="dropdownProjGroupButton" data-dropdown-toggle="dropdownSearchProjGroup" data-dropdown-placement="bottom-start" class="w-full inline-flex items-center justify-between text-slate-700 bg-white hover:bg-gray-50 font-normal rounded-md text-sm px-1 py-0.5 focus:outline-none" type="button">
+                <span class="text-slate-700 text-sm truncate">ทั้งหมด (การกำหนดโครงการ)</span>
                 <svg class="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
             </button>
 
@@ -401,7 +398,7 @@
         <!-- 4. Material ID -->
         <div class="xl:border-r border-gray-200 xl:pr-4">
           <label class="block font-bold text-sm mb-1">Material ID</label>
-          <textarea id="bulkMaterialInput" class="w-full p-2 border rounded-md text-sm h-16" placeholder="ระบุ Material ID..."></textarea>
+          <textarea id="bulkMaterialInput" class="w-full p-2 border border-gray-300 rounded-md text-sm h-16 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="ระบุ Material ID..."></textarea>
           <div class="flex gap-2">
               <button id="applyBulkFilter" class="flex-1 mt-2 bg-slate-800 text-white text-xs py-1 rounded hover:bg-slate-700 transition">บังคับประมวลผล</button>
               <button id="clearBulkFilter" class="mt-2 bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded hover:bg-gray-400 transition">Clear</button>
@@ -411,7 +408,7 @@
         <!-- 5. Exclude Material ID -->
         <div>
           <label class="block font-bold text-sm mb-1">Exclude Material ID</label>
-          <textarea id="excludeMaterialInput" class="w-full p-2 border rounded-md text-sm h-16" placeholder="ระบุ ID ที่ไม่ต้องการ..."></textarea>
+          <textarea id="excludeMaterialInput" class="w-full p-2 border border-gray-300 rounded-md text-sm h-16 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="ระบุ ID ที่ไม่ต้องการ..."></textarea>
           <div class="flex gap-2">
               <button id="btnExcludeFilter" class="flex-1 mt-2 bg-red-600 text-white text-xs py-1 rounded hover:bg-red-700 transition">ตั้งแผน/ตัดทิ้ง</button>
               <button id="clearExcludeFilter" class="mt-2 bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded hover:bg-gray-400 transition">Clear</button>
@@ -657,10 +654,10 @@
           </div> -->
         </h6>
         
-        <p class="mb-0 text-sm leading-normal mt-1">
+        <!-- <p class="mb-0 text-sm leading-normal mt-1">
           <i class="fa fa-check text-cyan-500"></i>
           <span class="ml-1 font-semibold">30 done</span> this month
-        </p>
+        </p> -->
 <div class="px-3">
          <!-- ส่วนหัว -->
   <div class="flex items-center justify-between mb-6">
@@ -675,7 +672,8 @@
       <p class="text-base text-gray-500 mb-1">จำนวนงานรวม</p>
       <div class="flex items-center gap-2">
         <h3 id="count-totalWork" class="text-2xl font-bold text-gray-900">0</h3>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">+2.5%</span>
+     <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">
+  <span id="val-totalWork">0</span> บาท
       </div>
     </div>
     
@@ -702,8 +700,12 @@
   
     <div class="flex items-center gap-2 ml-4">
         <h3 id="count-totalClose" class="text-2xl font-bold text-gray-900">0</h3>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">+9.5%</span>
-    </div>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-500">
+  <span id="val-totalClose">0</span> บาท
+</span>
+  
+</span>
+      </div>
 </div>
 <!--========= End สถานะได้ของบางส่วน============-->
 
@@ -732,7 +734,10 @@
 
       <div class="flex items-center gap-2 ml-4">
        <h3 id="count-totalGetSome" class="text-2xl font-bold text-gray-900">0</h3>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400">-1.6%</span>
+       
+    <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-400">
+  <span id="val-totalGetSome">0</span> บาท
+</span>
       </div>
     </div>
     
@@ -763,7 +768,9 @@
     </div>
       <div class="flex items-center gap-2 ml-4">
        <h3 id="count-totalWait" class="text-2xl font-bold text-gray-900">0</h3>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400">-1.6%</span>
+       <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400">
+  <span id="val-totalWait">0</span> บาท
+</span>
       </div>
     </div>
 

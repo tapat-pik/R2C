@@ -515,8 +515,8 @@ renderNoStockTable(allocatedData, materialTypeMap, newData = null) {
                 <i class="fas ${icon} text-[16px]"></i>
             </div>
             <div>
-                <div class="font-bold text-gray-900 text-[16px]">${docName || "ไม่มีชื่อเอกสาร"}</div>
-               
+                <div class="font-bold text-gray-900 text-[16px]">${partID}</div>
+                 <div class="text-[15px] text-gray-500 leading-tight font-bold">${docName || "ไม่มีชื่อเอกสาร"}</div>
                 <div class="text-[15px] text-gray-500 leading-tight font-bold">${groupName}</div>
                  <div class="text-[14px] text-gray-500 leading-tight">${text}</div>
             </div>
@@ -2532,36 +2532,82 @@ function updateDashboardCountsFromTable() {
     const table = $('#tableWorkSummary').DataTable();
     const data = table.rows({ filter: 'applied' }).data(); 
 
-    let counters = { total: data.length, closed: 0, partial: 0, waiting: 0 };
+    let counters = { 
+        total: data.length, 
+        closed: 0, 
+        partial: 0, 
+        waiting: 0,
+        // เพิ่มตัวแปรสำหรับเก็บผลรวมมูลค่า
+        closedValue: 0,
+        partialValue: 0,
+        waitingValue: 0,
+        totalValue: 0
+    };
 
     data.each(function(row) {
-        const status = row[6]; // ดู index ของคอลัมน์สถานะ (ต้องตรงกับที่สร้างไว้ใน DataTable)
-        if (status.includes("ปิดงานได้")) counters.closed++;
-        else if (status.includes("รอจัดสรรงบ")) counters.waiting++;
-        else if (status.includes("ได้ของบางส่วน")) counters.partial++;
+        const status = row[6]; // index คอลัมน์สถานะ
+        
+        // แปลง values (row[5]) ให้เป็นตัวเลข (ลบ Comma ออก ป้องกัน NaN)
+        const rawValue = row[5];
+        const val = parseFloat(String(rawValue).replace(/,/g, '')) || 0;
+
+        // บวกมูลค่างานรวมทั้งหมด
+        counters.totalValue += val;
+
+        if (status.includes("ปิดงานได้")) {
+            counters.closed++;
+            counters.closedValue += val; // บวกมูลค่าปิดงาน
+        } 
+        else if (status.includes("รอจัดสรรงบ")) {
+            counters.waiting++;
+            counters.waitingValue += val; // บวกมูลค่ารอจัดสรรงบ
+        } 
+        else if (status.includes("ได้ของบางส่วน")) {
+            counters.partial++;
+            counters.partialValue += val; // บวกมูลค่าได้ของบางส่วน
+        }
     });
 
-    // ส่งต่อไปให้ฟังก์ชันตัวล่าง
+    // ส่งต่อไปให้ฟังก์ชันตัวล่าง (ส่งไปทั้งจำนวนงานและมูลค่ารวม)
     updateWorkSummaryCounters(counters);
 }
 
 // 2. ฟังก์ชันแสดงผล (ทำงานรับค่าจากฟังก์ชันบน)
 function updateWorkSummaryCounters(counters) {
-    // กำหนด Mapping ระหว่าง ID กับค่า
+    // กำหนด Mapping ระหว่าง ID ใน DOM กับค่าจาก Object counters
     const updates = [
-        { id: 'count-totalWork', val: counters.total },
-        { id: 'count-totalClose', val: counters.closed },
-        { id: 'count-totalGetSome', val: counters.partial },
-        { id: 'count-totalWait', val: counters.waiting }
+        // --- จำนวนงาน (Counts) ---
+        { id: 'count-totalWork', val: counters.total, isCurrency: false },
+        { id: 'count-totalClose', val: counters.closed, isCurrency: false },
+        { id: 'count-totalGetSome', val: counters.partial, isCurrency: false },
+        { id: 'count-totalWait', val: counters.waiting, isCurrency: false },
+
+        // --- มูลค่างาน (Values) ---
+        { id: 'val-totalWork', val: counters.totalValue, isCurrency: true },
+        { id: 'val-totalClose', val: counters.closedValue, isCurrency: true },
+        { id: 'val-totalGetSome', val: counters.partialValue, isCurrency: true },
+        { id: 'val-totalWait', val: counters.waitingValue, isCurrency: true }
     ];
 
     // วนลูปอัปเดต โดยเช็กก่อนว่า ID นั้นมีอยู่จริงหรือไม่
     updates.forEach(item => {
         const el = document.getElementById(item.id);
         if (el) {
-            el.innerText = item.val.toLocaleString();
+            const safeVal = item.val || 0;
+
+            if (item.isCurrency) {
+                // จัดฟอร์แมตมูลค่าเงินให้มีคอมม่า และทศนิยม 2 ตำแหน่ง (เช่น 1,234,567.89)
+                el.innerText = safeVal.toLocaleString('th-TH', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            } else {
+                // จัดฟอร์แมตจำนวนงานให้มีคอมม่า (เช่น 1,234)
+                el.innerText = safeVal.toLocaleString();
+            }
         } else {
-            console.warn("ไม่พบ ID: " + item.id + " ในหน้าจอ");
+            // จะเตือนเฉพาะ ID ที่เป็นจำนวนงาน หรือจะเปิดดูเมื่อตรวจหา element ก็ได้ครับ
+            // console.warn("ไม่พบ ID: " + item.id + " ในหน้าจอ");
         }
     });
 }
