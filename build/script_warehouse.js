@@ -2244,8 +2244,8 @@ renderManageBudget(allocatedData, materialTypeMap) {
             <tr>
                 <th>รหัสพัสดุ</th>
                 <th>ชื่อพัสดุ</th>
-                 <th>ประะภท</th>
-                <th>ความต้องการสุทธิ</th>
+                 <th>ประเภท</th>
+                <th>ปริมาณที่แนะนำ</th>
                  <th>ราคากลาง</th>
                 <th>ราคารวม</th>
             </tr>
@@ -2285,7 +2285,7 @@ renderManageBudget(allocatedData, materialTypeMap) {
             { title: "รหัสพัสดุ" },
             { title: "ชื่อพัสดุ" },
              { title: "ประเภท" },
-            { title: "ความต้องการสุทธิ" },
+            { title: "ปริมาณที่แนะนำ" },
             { title: "ราคากลาง" },
             { title: "ราคารวม" }
         ],
@@ -2403,8 +2403,8 @@ renderManageDeficit(allocatedData, materialTypeMap) {
             <tr>
                 <th>รหัสพัสดุ</th>
                 <th>ชื่อพัสดุ</th>
-                 <th>ประะภท</th>
-                <th>ความต้องการสุทธิ</th>
+                 <th>ประเภท</th>
+                <th>ปริมาณพัสดุ</th>
                 <th>ราคากลาง</th>
                 <th>ราคารวม</th>
             </tr>
@@ -2437,7 +2437,7 @@ renderManageDeficit(allocatedData, materialTypeMap) {
             { title: "รหัสพัสดุ" },
             { title: "ชื่อพัสดุ" },
              { title: "ประเภท" },
-            { title: "ความต้องการสุทธิ" },
+            { title: "ปริมาณพัสดุ" },
              { title: "ราคากลาง" },
             { title: "ราคารวม" }
         ],

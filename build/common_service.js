@@ -40,41 +40,74 @@ const CommonService = {
 //         }
 //     },
 
-    fetchSheetData: async function(sheetName) {
-        // ถ้าเคยดึงมาแล้ว ให้คืนค่าเดิมทันที (ไม่ยิง API ซ้ำ)
-        if (this._cache[sheetName]) return this._cache[sheetName];
+    // fetchSheetData: async function(sheetName) {
+    //     // ถ้าเคยดึงมาแล้ว ให้คืนค่าเดิมทันที (ไม่ยิง API ซ้ำ)
+    //     if (this._cache[sheetName]) return this._cache[sheetName];
 
-        const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
-        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
-         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Status: ${response.status}`);
-            const textData = await response.text();
-            const jsonStart = textData.indexOf('{');
-            const jsonEnd = textData.lastIndexOf('}');
-            const parsedData = JSON.parse(textData.substring(jsonStart, jsonEnd + 1));
-            const rawTable = parsedData.table;
-            if (!rawTable) return { cols: [], rows: [] };
+    //     const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
+    //     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
+    //      try {
+    //         const response = await fetch(url);
+    //         if (!response.ok) throw new Error(`Status: ${response.status}`);
+    //         const textData = await response.text();
+    //         const jsonStart = textData.indexOf('{');
+    //         const jsonEnd = textData.lastIndexOf('}');
+    //         const parsedData = JSON.parse(textData.substring(jsonStart, jsonEnd + 1));
+    //         const rawTable = parsedData.table;
+    //         if (!rawTable) return { cols: [], rows: [] };
 
-            const formattedCols = (rawTable.cols || []).map(col => ({ label: col.label || "" }));
-            const formattedRows = (rawTable.rows || []).map(row => {
-                if (!row || !row.c) return { c: [] };
-                const formattedCells = row.c.map(cell => ({ v: cell?.v ?? "" }));
-                while (formattedCells.length < formattedCols.length) formattedCells.push({ v: "" });
-                return { c: formattedCells };
-            });
-            // return { cols: formattedCols, rows: formattedRows };
+    //         const formattedCols = (rawTable.cols || []).map(col => ({ label: col.label || "" }));
+    //         const formattedRows = (rawTable.rows || []).map(row => {
+    //             if (!row || !row.c) return { c: [] };
+    //             const formattedCells = row.c.map(cell => ({ v: cell?.v ?? "" }));
+    //             while (formattedCells.length < formattedCols.length) formattedCells.push({ v: "" });
+    //             return { c: formattedCells };
+    //         });
+    //         // return { cols: formattedCols, rows: formattedRows };
 
-            const result = { cols: formattedCols, rows: formattedRows };
+    //         const result = { cols: formattedCols, rows: formattedRows };
             
-            // เก็บลง Cache ไว้ใช้ครั้งต่อไป
-            this._cache[sheetName] = result;
-            return result;
-        } catch (err) {
-            return { cols: [], rows: [] };
-        }
-    },
+    //         // เก็บลง Cache ไว้ใช้ครั้งต่อไป
+    //         this._cache[sheetName] = result;
+    //         return result;
+    //     } catch (err) {
+    //         return { cols: [], rows: [] };
+    //     }
+    // },
+async fetchSheetData(sheetName) {
+    // Return Cache ทันทีหากเคยดึงแล้ว
+    if (this._cache && this._cache[sheetName]) {
+        return this._cache[sheetName];
+    }
 
+    const spreadsheetId = '1zhp1OMsuil2DhjttNGRpvi1SOPlbT5FLGRYqOMruIN4';
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+        const textData = await response.text();
+
+        // ตัดข้อความส่วนเกินจาก Google GViz API ออกเพื่อแปลงเป็น JSON
+        // ตอบกลับปกติจะมาในรูปแบบ: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+        const jsonString = textData.substring(textData.indexOf('{'), textData.lastIndexOf('}') + 1);
+        const jsonData = JSON.parse(jsonString);
+
+        // ดึงโครงสร้างข้อมูล table ({ cols: [...], rows: [...] })
+        const rawTable = jsonData?.table || { cols: [], rows: [] };
+
+        // บันทึกลง Memory Cache
+        if (!this._cache) this._cache = {};
+        this._cache[sheetName] = rawTable;
+
+        return rawTable;
+
+    } catch (err) {
+        console.error(`[Google Sheet Fetch Error] ${sheetName}:`, err);
+        return { cols: [], rows: [] };
+    }
+},
     // async fetchSheetData(sheetName) {
     //     // 🚀 ถ้าเคยดึงข้อมูลตารางนี้มาแล้ว ให้ดึงจาก RAM Cache กลับไปใช้ทันที (ตอบสนองใน 0ms)
     //     if (this._cache[sheetName]) {
