@@ -417,252 +417,94 @@ return upcomingTableInstance;
 
 // ==================== Allocation Service ====================
 // ==================== Allocation Service (เวอร์ชันพ่น Log สรุปอันดับคิว) ====================
-// const  updateGraph = {
+const  updateGraph = {
    
 
 
-// updateDashboardCharts: function(tableSelector) {
-//         // ตรวจสอบความปลอดภัย: หาก Element นั้นไม่ได้เป็นตาราง DataTables ให้เด้งออกทันที
-//         if (!$.fn.DataTable.isDataTable(tableSelector)) return;
-        
-//         const tableApi = $(tableSelector).DataTable();
-//         const allRowsData = [];
-
-//         // วนลูปสแกนข้อมูลแถวในตารางรอบเดียว (เอาเฉพาะหน้าจอที่กำลังแสดงผล 'applied')
-//         tableApi.rows({ search: 'applied' }).nodes().to$().each(function() {
-//             const $row = $(this);
-            
-//             // 📌 ดึงสถานะไฟสัญญาณจากคอลัมน์ที่ 2 (Index 1) และแปลงตัวอักษรให้เป็นพิมพ์เล็กทั้งหมด
-//             const tokenSpan = $row.find('td:eq(1) span').text();
-//             const currentStatus = tokenSpan.replace('status-', '').toLowerCase().trim();
-            
-//             // 📌 ดึงชื่อการไฟฟ้าจากคอลัมน์ที่ 5 (Index 4) หากไม่มีให้ใส่ค่าตั้งต้น
-//             const peaName = $row.find('td:eq(4)').text().trim() || "ไม่ระบุการไฟฟ้า";
-            
-//             // 📌 ดึงมูลค่างานดิบจากคอลัมน์ที่ 7 (Index 6) โดยอิงตาม data-order เพื่อความแม่นยำทางคณิตศาสตร์
-//             const rawMoney = parseFloat($row.find('td:eq(6)').attr('data-order')) || 0;
-
-//             // ยัดอ็อบเจกต์ที่สกัดเสร็จแล้วลงสู่อาเรย์หลัก
-//             allRowsData.push({ status: currentStatus, pea: peaName, money: rawMoney });
-//         });
-// // ====================================================================
-//     // 🔥 [จุดที่ต้องแปะเพิ่ม] ปล่อยพลัง Console Check ส่องข้อมูลก่อนวิ่งเข้ากราฟ
-//     // ====================================================================
-//         // 🚀 ส่งกองทัพข้อมูลก้อนเดียวกันนี้ แยกไปให้ฟังก์ชันย่อยของกราฟแต่ละตัวทำงานต่อ
-//         this.updatePieChart(allRowsData);
-//         this.updateBarChart(allRowsData);
-//     },
-
-//     /**
-//      * ==================================================================================
-//      * 🍕 [หัวข้อ 1.2] ฟังก์ชันย่อย: คำนวณสะสมและพ่นข้อมูลใส่กราฟวงกลม (Pie/Doughnut Chart)
-//      * ==================================================================================
-//      * ทำหน้าที่แยกนับจำนวนงาน (Count) และรวมเม็ดเงิน (Money) ของแต่ละสถานะแยกขาดจากกันเป็น 5 สาย
-//      */
-//     updatePieChart: function(cleanData) {
-//         // ประกาศตัวแปรนับจำนวนงานแยก 5 สถานะ
-//         let countGreen = 0; let countBlue = 0; let countYellow = 0; let countRed = 0; let countLock = 0;
-//         // ประกาศตัวแปรรวมมูลค่าเงินสะสมแยก 5 สถานะ
-//         let sumGreenMoney = 0; let sumBlueMoney = 0; let sumYellowMoney = 0; let sumRedMoney = 0; let sumLockMoney = 0;
-
-//         // วนลูปเช็คสถานะพัสดุรายชิ้นเพื่อสะสมค่าตัวเลข
-//         cleanData.forEach(item => {
-//             if (item.status === 'green' || item.status === 'match') { 
-//                 countGreen += 1; sumGreenMoney += item.money;       // 🟢 กลุ่มของครบ
-//             } else if (item.status === 'blue') { 
-//                 countBlue += 1; sumBlueMoney += item.money;         // 🔵 กลุ่มพัสดุหลักครบ
-//             } else if (item.status === 'yellow') { 
-//                 countYellow += 1; sumYellowMoney += item.money;     // 🟡 กลุ่มได้ของบางส่วน
-//             } else if (item.status === 'red' || item.status === 'shortage') { 
-//                 countRed += 1; sumRedMoney += item.money;           // 🔴 กลุ่มไม่ได้ของเลย
-//             } else if (item.status === 'lock'|| item.status.includes('lock')) {
-//                 countLock += 1; sumLockMoney += item.money;         // 🔒 กลุ่มงานโดนล็อก (ล้าสมัย/เปลี่ยนรหัส)
-//             }
-//         });
-
-//         // หากตัวอินสแตนซ์ของกราฟวงกลมพร้อมใช้งาน ให้ทำการอัปเดตข้อมูลพิกัดภายในทันที
-//         if (GraphRender.myPieChart) {
-//             // อัปเดตอาเรย์จำนวนงาน เรียงลำดับตาม Index ของป้ายชื่อ (Labels) ที่ตั้งไว้
-//             GraphRender.myPieChart.data.datasets[0].data = [countGreen, countBlue, countYellow, countRed, countLock];
-//             // อัปเดตอาเรย์เงินสะสมเพื่อซ่อนไว้ดึงใช้งานตอนเมาส์ชี้ (Tooltip)
-//             GraphRender.myPieChart.data.datasets[0].customMoney = [sumGreenMoney, sumBlueMoney, sumYellowMoney, sumRedMoney, sumLockMoney];
-            
-//             // สั่งให้กราฟวาดและเรนเดอร์ตัวเองใหม่แบบอนิเมชันเสี้ยววินาที
-//             GraphRender.myPieChart.update();
-//         }
-//     },
-
-//     /**
-//      * ==================================================================================
-//      * 📊 [หัวข้อ 1.3] ฟังก์ชันย่อย: คำนวณสะสมและพ่นข้อมูลใส่กราฟแท่ง (Bar Chart)
-//      * ==================================================================================
-//      * ทำหน้าที่จัดกลุ่มงานแยกตาม "รายชื่อการไฟฟ้า" ก่อน แล้วจึงแตกแขนงจำนวนชิ้นและเงินทุนในแต่ละสังกัด
-//      */
-//     updateBarChart: function(cleanData) {
-//         let peaGroup = {};
-
-//         // 📦 ขั้นตอนที่ 1: วนลูปจัดระเบียบข้อมูลดิบให้ไปกองอยู่ภายใต้ Key ของแต่ละการไฟฟ้า
-//         cleanData.forEach(item => {
-//             // ถ้าเป็นการไฟฟ้าใหม่ที่ระบบยังไม่เคยเจอ ให้สร้างโครงสร้างตรรกะว่างขึ้นมารองรับก่อน
-//             if (!peaGroup[item.pea]) {
-//                 peaGroup[item.pea] = {
-//                     greenCount: 0, greenMoney: 0,
-//                     blueCount: 0, blueMoney: 0,
-//                     yellowCount: 0, yellowMoney: 0,
-//                     redCount: 0, redMoney: 0,
-//                     lockCount: 0, lockMoney: 0,
-//                     totalCount: 0 // เก็บลำดับยอดงานรวมทุกสีในสังกัดนั้นๆ
-//                 };
-//             }
-
-//             // บวกรวมยอดงานรวมทั้งหมดของกฟฟ. นี้
-//             peaGroup[item.pea].totalCount += 1;
-
-//             // คัดแยกประเภทเพื่อสะสมจำนวนและเงินทุนลงสังกัดการไฟฟ้านั้น
-//             if (item.status === 'green' || item.status === 'match') { 
-//                 peaGroup[item.pea].greenCount += 1; peaGroup[item.pea].greenMoney += item.money;
-//             } else if (item.status === 'blue') { 
-//                 peaGroup[item.pea].blueCount += 1; peaGroup[item.pea].blueMoney += item.money;
-//             } else if (item.status === 'yellow') { 
-//                 peaGroup[item.pea].yellowCount += 1; peaGroup[item.pea].yellowMoney += item.money;
-//             } else if (item.status === 'red' || item.status === 'shortage') { 
-//                 peaGroup[item.pea].redCount += 1; peaGroup[item.pea].redMoney += item.money;
-//             } else if (item.status === 'lock'|| item.status.includes('lock')) {
-//                 peaGroup[item.pea].lockCount += 1; peaGroup[item.pea].lockMoney += item.money;
-//             }
-//         });
-
-//         // 📦 ขั้นตอนที่ 2: แปลงโครงสร้างแบบกลุ่ม ยัดกลับเข้าสู่อาเรย์แนวดิ่ง เพื่อป้อนให้ Chart.js
-//         if (GraphRender.myBarChart) {
-//             // ดึงชื่อการไฟฟ้าทั้งหมดออกมาทำแกน X พร้อมเรียงตัวอักษร ก-ฮ จากน้อยไปมาก
-//             const peaLabels = Object.keys(peaGroup).sort();
-            
-//             // เตรียมถังสำหรับสวมข้อมูล 5 สถานะ
-//             let barDataGreen = []; let barMoneyGreen = [];
-//             let barDataBlue = []; let barMoneyBlue = [];
-//             let barDataYellow = []; let barMoneyYellow = [];
-//             let barDataRed = []; let barMoneyRed = [];
-//             let barDataLock = []; let barMoneyLock = [];
-//             let barTotalCounts = []; // สำหรับโชว์ยอดรวมที่หัว Tooltip
-
-//             // แตกข้อมูลรายชื่อออกมาผลักลงอาเรย์ทีละตัว
-//             peaLabels.forEach(name => {
-//                 barDataGreen.push(peaGroup[name].greenCount); barMoneyGreen.push(peaGroup[name].greenMoney);
-//                 barDataBlue.push(peaGroup[name].blueCount); barMoneyBlue.push(peaGroup[name].blueMoney);
-//                 barDataYellow.push(peaGroup[name].yellowCount); barMoneyYellow.push(peaGroup[name].yellowMoney);
-//                 barDataRed.push(peaGroup[name].redCount); barMoneyRed.push(peaGroup[name].redMoney);
-//                 barDataLock.push(peaGroup[name].lockCount); barMoneyLock.push(peaGroup[name].lockMoney);
-//                 barTotalCounts.push(peaGroup[name].totalCount); 
-//             });
-
-//             // ดันป้ายแกน X และ ข้อมูลฝังซ่อนส่วนรวมเข้าสู่ชุด Config กราฟแท่ง
-//             GraphRender.myBarChart.data.labels = peaLabels;
-//             GraphRender.myBarChart.data.customTotalCounts = barTotalCounts;
-
-//             // ดันข้อมูลจำนวนและเงินทุนกลับสู่ตำแหน่ง Datasets แต่ละแท่ง (Index 0 ถึง 4)
-//             GraphRender.myBarChart.data.datasets[0].data = barDataGreen;
-//             GraphRender.myBarChart.data.datasets[0].customMoney = barMoneyGreen;
-            
-//             GraphRender.myBarChart.data.datasets[1].data = barDataBlue;
-//             GraphRender.myBarChart.data.datasets[1].customMoney = barMoneyBlue;
-            
-//             GraphRender.myBarChart.data.datasets[2].data = barDataYellow;
-//             GraphRender.myBarChart.data.datasets[2].customMoney = barMoneyYellow;
-            
-//             GraphRender.myBarChart.data.datasets[3].data = barDataRed;
-//             GraphRender.myBarChart.data.datasets[3].customMoney = barMoneyRed;
-            
-//             GraphRender.myBarChart.data.datasets[4].data = barDataLock;
-//             GraphRender.myBarChart.data.datasets[4].customMoney = barMoneyLock;
-            
-//             // สั่งคำนวณและวาดกราฟแท่งใหม่บนหน้าจอ
-//             GraphRender.myBarChart.update();
-//         }
-//     }
-// };
-// =========================================================================
-// 🎯 updateGraph (Hyper-Fast Memory Scan & Ultra-Smooth Instant Render)
-// =========================================================================
-const updateGraph = {
-    updateDashboardCharts: function(tableSelector) {
+updateDashboardCharts: function(tableSelector) {
+        // ตรวจสอบความปลอดภัย: หาก Element นั้นไม่ได้เป็นตาราง DataTables ให้เด้งออกทันที
         if (!$.fn.DataTable.isDataTable(tableSelector)) return;
+        
+        const tableApi = $(tableSelector).DataTable();
+        const allRowsData = [];
 
-        // ⚡ รอให้ DataTables วาดตารางเสร็จเรียบร้อยก่อนค่อยอ่านข้อมูล
-        setTimeout(() => {
-            requestAnimationFrame(() => {
-                const tableApi = $(tableSelector).DataTable();
-                
-                // ⚡ อ่านจาก Data Array ใน Memory โดยตรง
-                const rowsData = tableApi.rows({ search: 'applied' }).data().toArray();
-                const allRowsData = [];
+        // วนลูปสแกนข้อมูลแถวในตารางรอบเดียว (เอาเฉพาะหน้าจอที่กำลังแสดงผล 'applied')
+        tableApi.rows({ search: 'applied' }).nodes().to$().each(function() {
+            const $row = $(this);
+            
+            // 📌 ดึงสถานะไฟสัญญาณจากคอลัมน์ที่ 2 (Index 1) และแปลงตัวอักษรให้เป็นพิมพ์เล็กทั้งหมด
+            const tokenSpan = $row.find('td:eq(1) span').text();
+            const currentStatus = tokenSpan.replace('status-', '').toLowerCase().trim();
+            
+            // 📌 ดึงชื่อการไฟฟ้าจากคอลัมน์ที่ 5 (Index 4) หากไม่มีให้ใส่ค่าตั้งต้น
+            const peaName = $row.find('td:eq(4)').text().trim() || "ไม่ระบุการไฟฟ้า";
+            
+            // 📌 ดึงมูลค่างานดิบจากคอลัมน์ที่ 7 (Index 6) โดยอิงตาม data-order เพื่อความแม่นยำทางคณิตศาสตร์
+            const rawMoney = parseFloat($row.find('td:eq(6)').attr('data-order')) || 0;
 
-                for (let i = 0; i < rowsData.length; i++) {
-                    const row = rowsData[i];
-                    if (!row) continue;
-
-                    // 1. ดึงสถานะไฟจาก String คอลัมน์ Index 1
-                    const statusStr = String(row[1] || '').toLowerCase();
-                    let currentStatus = 'yellow';
-                    if (statusStr.includes('status-green')) currentStatus = 'green';
-                    else if (statusStr.includes('status-blue')) currentStatus = 'blue';
-                    else if (statusStr.includes('status-red')) currentStatus = 'red';
-                    else if (statusStr.includes('status-lock')) currentStatus = 'lock';
-
-                    // 2. ดึงชื่อการไฟฟ้าจาก คอลัมน์ Index 4 (ลบแท็ก HTML ออก)
-                    const rawPea = String(row[4] || '');
-                    const peaName = rawPea.replace(/<[^>]*>/g, '').trim() || "ไม่ระบุการไฟฟ้า";
-
-                    // 3. ดึงมูลค่างานจาก คอลัมน์ Index 6 (ลบแท็ก HTML และเครื่องหมายคอมม่า)
-                    const rawMoney = String(row[6] || '');
-                    const cleanMoneyStr = rawMoney.replace(/<[^>]*>/g, '').replace(/,/g, '').trim();
-                    const numericValue = parseFloat(cleanMoneyStr) || 0;
-
-                    allRowsData.push({ status: currentStatus, pea: peaName, money: numericValue });
-                }
-
-                // ส่งไปอัปเดตกราฟแบบทันทีทันใด
-                this.updatePieChart(allRowsData);
-                this.updateBarChart(allRowsData);
-            });
-        }, 80);
+            // ยัดอ็อบเจกต์ที่สกัดเสร็จแล้วลงสู่อาเรย์หลัก
+            allRowsData.push({ status: currentStatus, pea: peaName, money: rawMoney });
+        });
+// ====================================================================
+    // 🔥 [จุดที่ต้องแปะเพิ่ม] ปล่อยพลัง Console Check ส่องข้อมูลก่อนวิ่งเข้ากราฟ
+    // ====================================================================
+        // 🚀 ส่งกองทัพข้อมูลก้อนเดียวกันนี้ แยกไปให้ฟังก์ชันย่อยของกราฟแต่ละตัวทำงานต่อ
+        this.updatePieChart(allRowsData);
+        this.updateBarChart(allRowsData);
     },
 
+    /**
+     * ==================================================================================
+     * 🍕 [หัวข้อ 1.2] ฟังก์ชันย่อย: คำนวณสะสมและพ่นข้อมูลใส่กราฟวงกลม (Pie/Doughnut Chart)
+     * ==================================================================================
+     * ทำหน้าที่แยกนับจำนวนงาน (Count) และรวมเม็ดเงิน (Money) ของแต่ละสถานะแยกขาดจากกันเป็น 5 สาย
+     */
     updatePieChart: function(cleanData) {
-        let countGreen = 0, countBlue = 0, countYellow = 0, countRed = 0, countLock = 0;
-        let sumGreenMoney = 0, sumBlueMoney = 0, sumYellowMoney = 0, sumRedMoney = 0, sumLockMoney = 0;
+        // ประกาศตัวแปรนับจำนวนงานแยก 5 สถานะ
+        let countGreen = 0; let countBlue = 0; let countYellow = 0; let countRed = 0; let countLock = 0;
+        // ประกาศตัวแปรรวมมูลค่าเงินสะสมแยก 5 สถานะ
+        let sumGreenMoney = 0; let sumBlueMoney = 0; let sumYellowMoney = 0; let sumRedMoney = 0; let sumLockMoney = 0;
 
-        for (let i = 0; i < cleanData.length; i++) {
-            const item = cleanData[i];
+        // วนลูปเช็คสถานะพัสดุรายชิ้นเพื่อสะสมค่าตัวเลข
+        cleanData.forEach(item => {
             if (item.status === 'green' || item.status === 'match') { 
-                countGreen += 1; sumGreenMoney += item.money;
+                countGreen += 1; sumGreenMoney += item.money;       // 🟢 กลุ่มของครบ
             } else if (item.status === 'blue') { 
-                countBlue += 1; sumBlueMoney += item.money;
+                countBlue += 1; sumBlueMoney += item.money;         // 🔵 กลุ่มพัสดุหลักครบ
             } else if (item.status === 'yellow') { 
-                countYellow += 1; sumYellowMoney += item.money;
+                countYellow += 1; sumYellowMoney += item.money;     // 🟡 กลุ่มได้ของบางส่วน
             } else if (item.status === 'red' || item.status === 'shortage') { 
-                countRed += 1; sumRedMoney += item.money;
-            } else if (item.status === 'lock' || item.status.includes('lock')) {
-                countLock += 1; sumLockMoney += item.money;
+                countRed += 1; sumRedMoney += item.money;           // 🔴 กลุ่มไม่ได้ของเลย
+            } else if (item.status === 'lock'|| item.status.includes('lock')) {
+                countLock += 1; sumLockMoney += item.money;         // 🔒 กลุ่มงานโดนล็อก (ล้าสมัย/เปลี่ยนรหัส)
             }
-        }
+        });
 
+        // หากตัวอินสแตนซ์ของกราฟวงกลมพร้อมใช้งาน ให้ทำการอัปเดตข้อมูลพิกัดภายในทันที
         if (GraphRender.myPieChart) {
-            // อัปเดตจำนวนเคส
+            // อัปเดตอาเรย์จำนวนงาน เรียงลำดับตาม Index ของป้ายชื่อ (Labels) ที่ตั้งไว้
             GraphRender.myPieChart.data.datasets[0].data = [countGreen, countBlue, countYellow, countRed, countLock];
-            
-            // อัปเดตมูลค่าเงิน (customMoney) คืนมาให้ Tooltip ใช้งาน
+            // อัปเดตอาเรย์เงินสะสมเพื่อซ่อนไว้ดึงใช้งานตอนเมาส์ชี้ (Tooltip)
             GraphRender.myPieChart.data.datasets[0].customMoney = [sumGreenMoney, sumBlueMoney, sumYellowMoney, sumRedMoney, sumLockMoney];
             
-            // ✨ อัปเดตทันที ไม่เล่น Animation ตัดอาการกระตุก
+            // สั่งให้กราฟวาดและเรนเดอร์ตัวเองใหม่แบบอนิเมชันเสี้ยววินาที
+            // GraphRender.myPieChart.update();
             GraphRender.myPieChart.update('none');
         }
     },
 
+    /**
+     * ==================================================================================
+     * 📊 [หัวข้อ 1.3] ฟังก์ชันย่อย: คำนวณสะสมและพ่นข้อมูลใส่กราฟแท่ง (Bar Chart)
+     * ==================================================================================
+     * ทำหน้าที่จัดกลุ่มงานแยกตาม "รายชื่อการไฟฟ้า" ก่อน แล้วจึงแตกแขนงจำนวนชิ้นและเงินทุนในแต่ละสังกัด
+     */
     updateBarChart: function(cleanData) {
         let peaGroup = {};
 
-        for (let i = 0; i < cleanData.length; i++) {
-            const item = cleanData[i];
+        // 📦 ขั้นตอนที่ 1: วนลูปจัดระเบียบข้อมูลดิบให้ไปกองอยู่ภายใต้ Key ของแต่ละการไฟฟ้า
+        cleanData.forEach(item => {
+            // ถ้าเป็นการไฟฟ้าใหม่ที่ระบบยังไม่เคยเจอ ให้สร้างโครงสร้างตรรกะว่างขึ้นมารองรับก่อน
             if (!peaGroup[item.pea]) {
                 peaGroup[item.pea] = {
                     greenCount: 0, greenMoney: 0,
@@ -670,12 +512,14 @@ const updateGraph = {
                     yellowCount: 0, yellowMoney: 0,
                     redCount: 0, redMoney: 0,
                     lockCount: 0, lockMoney: 0,
-                    totalCount: 0
+                    totalCount: 0 // เก็บลำดับยอดงานรวมทุกสีในสังกัดนั้นๆ
                 };
             }
 
+            // บวกรวมยอดงานรวมทั้งหมดของกฟฟ. นี้
             peaGroup[item.pea].totalCount += 1;
 
+            // คัดแยกประเภทเพื่อสะสมจำนวนและเงินทุนลงสังกัดการไฟฟ้านั้น
             if (item.status === 'green' || item.status === 'match') { 
                 peaGroup[item.pea].greenCount += 1; peaGroup[item.pea].greenMoney += item.money;
             } else if (item.status === 'blue') { 
@@ -684,59 +528,219 @@ const updateGraph = {
                 peaGroup[item.pea].yellowCount += 1; peaGroup[item.pea].yellowMoney += item.money;
             } else if (item.status === 'red' || item.status === 'shortage') { 
                 peaGroup[item.pea].redCount += 1; peaGroup[item.pea].redMoney += item.money;
-            } else if (item.status === 'lock' || item.status.includes('lock')) {
+            } else if (item.status === 'lock'|| item.status.includes('lock')) {
                 peaGroup[item.pea].lockCount += 1; peaGroup[item.pea].lockMoney += item.money;
             }
-        }
+        });
 
+        // 📦 ขั้นตอนที่ 2: แปลงโครงสร้างแบบกลุ่ม ยัดกลับเข้าสู่อาเรย์แนวดิ่ง เพื่อป้อนให้ Chart.js
         if (GraphRender.myBarChart) {
+            // ดึงชื่อการไฟฟ้าทั้งหมดออกมาทำแกน X พร้อมเรียงตัวอักษร ก-ฮ จากน้อยไปมาก
             const peaLabels = Object.keys(peaGroup).sort();
             
-            let barDataGreen = [], barMoneyGreen = [];
-            let barDataBlue = [], barMoneyBlue = [];
-            let barDataYellow = [], barMoneyYellow = [];
-            let barDataRed = [], barMoneyRed = [];
-            let barDataLock = [], barMoneyLock = [];
-            let barTotalCounts = [];
+            // เตรียมถังสำหรับสวมข้อมูล 5 สถานะ
+            let barDataGreen = []; let barMoneyGreen = [];
+            let barDataBlue = []; let barMoneyBlue = [];
+            let barDataYellow = []; let barMoneyYellow = [];
+            let barDataRed = []; let barMoneyRed = [];
+            let barDataLock = []; let barMoneyLock = [];
+            let barTotalCounts = []; // สำหรับโชว์ยอดรวมที่หัว Tooltip
 
-            for (let i = 0; i < peaLabels.length; i++) {
-                const name = peaLabels[i];
+            // แตกข้อมูลรายชื่อออกมาผลักลงอาเรย์ทีละตัว
+            peaLabels.forEach(name => {
                 barDataGreen.push(peaGroup[name].greenCount); barMoneyGreen.push(peaGroup[name].greenMoney);
                 barDataBlue.push(peaGroup[name].blueCount); barMoneyBlue.push(peaGroup[name].blueMoney);
                 barDataYellow.push(peaGroup[name].yellowCount); barMoneyYellow.push(peaGroup[name].yellowMoney);
                 barDataRed.push(peaGroup[name].redCount); barMoneyRed.push(peaGroup[name].redMoney);
                 barDataLock.push(peaGroup[name].lockCount); barMoneyLock.push(peaGroup[name].lockMoney);
                 barTotalCounts.push(peaGroup[name].totalCount); 
-            }
+            });
 
+            // ดันป้ายแกน X และ ข้อมูลฝังซ่อนส่วนรวมเข้าสู่ชุด Config กราฟแท่ง
             GraphRender.myBarChart.data.labels = peaLabels;
             GraphRender.myBarChart.data.customTotalCounts = barTotalCounts;
 
-            // ชุดที่ 0: สีเขียว
+            // ดันข้อมูลจำนวนและเงินทุนกลับสู่ตำแหน่ง Datasets แต่ละแท่ง (Index 0 ถึง 4)
             GraphRender.myBarChart.data.datasets[0].data = barDataGreen;
             GraphRender.myBarChart.data.datasets[0].customMoney = barMoneyGreen;
             
-            // ชุดที่ 1: สีฟ้า
             GraphRender.myBarChart.data.datasets[1].data = barDataBlue;
             GraphRender.myBarChart.data.datasets[1].customMoney = barMoneyBlue;
             
-            // ชุดที่ 2: สีเหลือง
             GraphRender.myBarChart.data.datasets[2].data = barDataYellow;
             GraphRender.myBarChart.data.datasets[2].customMoney = barMoneyYellow;
             
-            // ชุดที่ 3: สีแดง
             GraphRender.myBarChart.data.datasets[3].data = barDataRed;
             GraphRender.myBarChart.data.datasets[3].customMoney = barMoneyRed;
             
-            // ชุดที่ 4: สีล็อค
             GraphRender.myBarChart.data.datasets[4].data = barDataLock;
             GraphRender.myBarChart.data.datasets[4].customMoney = barMoneyLock;
             
-            // ✨ อัปเดตทันที ไม่เล่น Animation ตัดอาการกระตุก
-            GraphRender.myBarChart.update('none');
+            // สั่งคำนวณและวาดกราฟแท่งใหม่บนหน้าจอ
+            // GraphRender.myBarChart.update();
+             
+              GraphRender.myBarChart.update('none');
+            
         }
     }
 };
+// =========================================================================
+// 🎯 updateGraph (Hyper-Fast Memory Scan & Ultra-Smooth Instant Render)
+// =========================================================================
+// const updateGraph = {
+//     updateDashboardCharts: function(tableSelector) {
+//         if (!$.fn.DataTable.isDataTable(tableSelector)) return;
+
+//         // ⚡ รอให้ DataTables วาดตารางเสร็จเรียบร้อยก่อนค่อยอ่านข้อมูล
+//         setTimeout(() => {
+//             requestAnimationFrame(() => {
+//                 const tableApi = $(tableSelector).DataTable();
+                
+//                 // ⚡ อ่านจาก Data Array ใน Memory โดยตรง
+//                 const rowsData = tableApi.rows({ search: 'applied' }).data().toArray();
+//                 const allRowsData = [];
+
+//                 for (let i = 0; i < rowsData.length; i++) {
+//                     const row = rowsData[i];
+//                     if (!row) continue;
+
+//                     // 1. ดึงสถานะไฟจาก String คอลัมน์ Index 1
+//                     const statusStr = String(row[1] || '').toLowerCase();
+//                     let currentStatus = 'yellow';
+//                     if (statusStr.includes('status-green')) currentStatus = 'green';
+//                     else if (statusStr.includes('status-blue')) currentStatus = 'blue';
+//                     else if (statusStr.includes('status-red')) currentStatus = 'red';
+//                     else if (statusStr.includes('status-lock')) currentStatus = 'lock';
+
+//                     // 2. ดึงชื่อการไฟฟ้าจาก คอลัมน์ Index 4 (ลบแท็ก HTML ออก)
+//                     const rawPea = String(row[4] || '');
+//                     const peaName = rawPea.replace(/<[^>]*>/g, '').trim() || "ไม่ระบุการไฟฟ้า";
+
+//                     // 3. ดึงมูลค่างานจาก คอลัมน์ Index 6 (ลบแท็ก HTML และเครื่องหมายคอมม่า)
+//                     const rawMoney = String(row[6] || '');
+//                     const cleanMoneyStr = rawMoney.replace(/<[^>]*>/g, '').replace(/,/g, '').trim();
+//                     const numericValue = parseFloat(cleanMoneyStr) || 0;
+
+//                     allRowsData.push({ status: currentStatus, pea: peaName, money: numericValue });
+//                 }
+
+//                 // ส่งไปอัปเดตกราฟแบบทันทีทันใด
+//                 this.updatePieChart(allRowsData);
+//                 this.updateBarChart(allRowsData);
+//             });
+//         }, 80);
+//     },
+
+//     updatePieChart: function(cleanData) {
+//         let countGreen = 0, countBlue = 0, countYellow = 0, countRed = 0, countLock = 0;
+//         let sumGreenMoney = 0, sumBlueMoney = 0, sumYellowMoney = 0, sumRedMoney = 0, sumLockMoney = 0;
+
+//         for (let i = 0; i < cleanData.length; i++) {
+//             const item = cleanData[i];
+//             if (item.status === 'green' || item.status === 'match') { 
+//                 countGreen += 1; sumGreenMoney += item.money;
+//             } else if (item.status === 'blue') { 
+//                 countBlue += 1; sumBlueMoney += item.money;
+//             } else if (item.status === 'yellow') { 
+//                 countYellow += 1; sumYellowMoney += item.money;
+//             } else if (item.status === 'red' || item.status === 'shortage') { 
+//                 countRed += 1; sumRedMoney += item.money;
+//             } else if (item.status === 'lock' || item.status.includes('lock')) {
+//                 countLock += 1; sumLockMoney += item.money;
+//             }
+//         }
+
+//         if (GraphRender.myPieChart) {
+//             // อัปเดตจำนวนเคส
+//             GraphRender.myPieChart.data.datasets[0].data = [countGreen, countBlue, countYellow, countRed, countLock];
+            
+//             // อัปเดตมูลค่าเงิน (customMoney) คืนมาให้ Tooltip ใช้งาน
+//             GraphRender.myPieChart.data.datasets[0].customMoney = [sumGreenMoney, sumBlueMoney, sumYellowMoney, sumRedMoney, sumLockMoney];
+            
+//             // ✨ อัปเดตทันที ไม่เล่น Animation ตัดอาการกระตุก
+//             GraphRender.myPieChart.update('none');
+//         }
+//     },
+
+//     updateBarChart: function(cleanData) {
+//         let peaGroup = {};
+
+//         for (let i = 0; i < cleanData.length; i++) {
+//             const item = cleanData[i];
+//             if (!peaGroup[item.pea]) {
+//                 peaGroup[item.pea] = {
+//                     greenCount: 0, greenMoney: 0,
+//                     blueCount: 0, blueMoney: 0,
+//                     yellowCount: 0, yellowMoney: 0,
+//                     redCount: 0, redMoney: 0,
+//                     lockCount: 0, lockMoney: 0,
+//                     totalCount: 0
+//                 };
+//             }
+
+//             peaGroup[item.pea].totalCount += 1;
+
+//             if (item.status === 'green' || item.status === 'match') { 
+//                 peaGroup[item.pea].greenCount += 1; peaGroup[item.pea].greenMoney += item.money;
+//             } else if (item.status === 'blue') { 
+//                 peaGroup[item.pea].blueCount += 1; peaGroup[item.pea].blueMoney += item.money;
+//             } else if (item.status === 'yellow') { 
+//                 peaGroup[item.pea].yellowCount += 1; peaGroup[item.pea].yellowMoney += item.money;
+//             } else if (item.status === 'red' || item.status === 'shortage') { 
+//                 peaGroup[item.pea].redCount += 1; peaGroup[item.pea].redMoney += item.money;
+//             } else if (item.status === 'lock' || item.status.includes('lock')) {
+//                 peaGroup[item.pea].lockCount += 1; peaGroup[item.pea].lockMoney += item.money;
+//             }
+//         }
+
+//         if (GraphRender.myBarChart) {
+//             const peaLabels = Object.keys(peaGroup).sort();
+            
+//             let barDataGreen = [], barMoneyGreen = [];
+//             let barDataBlue = [], barMoneyBlue = [];
+//             let barDataYellow = [], barMoneyYellow = [];
+//             let barDataRed = [], barMoneyRed = [];
+//             let barDataLock = [], barMoneyLock = [];
+//             let barTotalCounts = [];
+
+//             for (let i = 0; i < peaLabels.length; i++) {
+//                 const name = peaLabels[i];
+//                 barDataGreen.push(peaGroup[name].greenCount); barMoneyGreen.push(peaGroup[name].greenMoney);
+//                 barDataBlue.push(peaGroup[name].blueCount); barMoneyBlue.push(peaGroup[name].blueMoney);
+//                 barDataYellow.push(peaGroup[name].yellowCount); barMoneyYellow.push(peaGroup[name].yellowMoney);
+//                 barDataRed.push(peaGroup[name].redCount); barMoneyRed.push(peaGroup[name].redMoney);
+//                 barDataLock.push(peaGroup[name].lockCount); barMoneyLock.push(peaGroup[name].lockMoney);
+//                 barTotalCounts.push(peaGroup[name].totalCount); 
+//             }
+
+//             GraphRender.myBarChart.data.labels = peaLabels;
+//             GraphRender.myBarChart.data.customTotalCounts = barTotalCounts;
+
+//             // ชุดที่ 0: สีเขียว
+//             GraphRender.myBarChart.data.datasets[0].data = barDataGreen;
+//             GraphRender.myBarChart.data.datasets[0].customMoney = barMoneyGreen;
+            
+//             // ชุดที่ 1: สีฟ้า
+//             GraphRender.myBarChart.data.datasets[1].data = barDataBlue;
+//             GraphRender.myBarChart.data.datasets[1].customMoney = barMoneyBlue;
+            
+//             // ชุดที่ 2: สีเหลือง
+//             GraphRender.myBarChart.data.datasets[2].data = barDataYellow;
+//             GraphRender.myBarChart.data.datasets[2].customMoney = barMoneyYellow;
+            
+//             // ชุดที่ 3: สีแดง
+//             GraphRender.myBarChart.data.datasets[3].data = barDataRed;
+//             GraphRender.myBarChart.data.datasets[3].customMoney = barMoneyRed;
+            
+//             // ชุดที่ 4: สีล็อค
+//             GraphRender.myBarChart.data.datasets[4].data = barDataLock;
+//             GraphRender.myBarChart.data.datasets[4].customMoney = barMoneyLock;
+            
+//             // ✨ อัปเดตทันที ไม่เล่น Animation ตัดอาการกระตุก
+//             GraphRender.myBarChart.update('none');
+//         }
+//     }
+// };
 const GraphRender = {
   // สแตนบายตัวแปรสำหรับเก็บสถานะอินสแตนซ์กราฟ ป้องกันขยะหน่วยความจำ (Memory Leak)
   myPieChart: null,
