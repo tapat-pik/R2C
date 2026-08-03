@@ -1212,7 +1212,7 @@ function renderInitialStockMatch(allocatedData, materialTypeMap) {
             { label: "ที่ได้/ค้างเบิก" },
             { label: "ค้างเบิก" },
             { label: "จำนวนที่ได้" },
-            { label: "สต็อก<br>คงเหลือ" },
+            { label: "สต็อก<br>คงเหลือ" }
             
         ],
         rows: allocatedData.map(res => {
@@ -1373,7 +1373,7 @@ const matchTable = $el.DataTable({
             return data; // ถ้าเป็นค่าที่ใช้ Sort หรือ Filter ให้คืนค่าเดิม
         }
         },
-        { "targets": [6, 7], "visible": false },
+        { "targets": [6, 7, 8], "visible": false },
         { 
         "targets": [ 8], 
         "render": function(data, type, row) {
@@ -1559,7 +1559,13 @@ return RequirementTable;
                 }
             }
         });
-
+        const vvipSet = new Set();
+        if (vvipData && Array.isArray(vvipData)) {
+            vvipData.forEach(row => {
+                const vvipVal = (row && row.c && row.c[1] && row.c[1].v) ? row.c[1].v.toString().trim() : "";
+                if (vvipVal) vvipSet.add(vvipVal);
+            });
+        }
         // ================================================================================================
         // 🏆 [ขั้นตอนเพิ่มเพื่อการเรียงลำดับ] ดึงข้อมูลมาคำนวณและเก็บลง Array เพื่อเตรียม Sort ตามเกณฑ์ 3 ชั้น
         // ================================================================================================
@@ -1657,6 +1663,14 @@ return RequirementTable;
             let budgetDisplay = (rawBudget !== undefined) ? rawBudget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "-";
             let budgetOrderValue = (rawBudget !== undefined) ? rawBudget : 0;
 
+            const numericRank = rankMap[wbsKey] !== undefined ? rankMap[wbsKey] : (index + 1);
+            
+            // 🌟 ตรวจสอบ VVIP เพื่อใส่รูปดาว ⭐
+            const isVVIP = vvipSet.has(wbsKey);
+            const rankDisplay = isVVIP 
+                ? `<span class="text-amber-500 me-1" title="งาน VVIP">⭐</span>${numericRank}` 
+                : `${numericRank}`;
+                
             const progress = wbsProgressMap[item.valA] || 0;
             let displayProgress = progress;
             // ถ้าสถานะเป็นเขียว (Green) ให้แสดง 100% เพราะถือว่าพัสดุที่ต้องจัดสรรได้รับครบแล้ว
@@ -1692,7 +1706,8 @@ return RequirementTable;
 
             // พ่น HTML พร้อมทั้งใส่ช่องอันดับ `${rank}` เพิ่มไว้ที่คอลัมน์แรกสุด
             html += `<tr class="clickable-requirement" data-wbs="${valA}" style="cursor: pointer;">
-                <td class="${TABLE_STYLES.cellClass} text-center fw-bold" style="background-color: #f8f9fa;">${rank}</td>
+               
+                <td class="${TABLE_STYLES.cellClass} text-center fw-bold" data-order="${rank}" data-sort="${rank}" style="background-color: #f8f9fa;">${rankDisplay}</td>
                 <td class="${TABLE_STYLES.cellClass} text-center "><span style="display: none;">${searchToken}</span>${lightHTML}</td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><div class="px-3 py-1"><h6 class="mb-0 text-sm leading-normal" ${headerStyle}>${valA}</h6></div></td>
                 <td class="${TABLE_STYLES.cellClass} text-center"><p ${textStyle}>${valT}</p></td>
