@@ -1791,7 +1791,10 @@ return RequirementTable;
 
 renderCompletedOrderTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
     const $el = $(selector);
-    
+    if ($.fn.DataTable.isDataTable($el)) {
+        $el.DataTable().destroy();
+        $el.empty(); // ล้าง HTML ด้านในออกด้วย
+    }
     // หา WBS ที่ยังไม่เสร็จ (ที่มี pending > 0)
     const incompleteWBS = new Set();
     data.rows.forEach(r => { if(parseFloat(getCellValue(r.c[14])) > 0) incompleteWBS.add(getCellValue(r.c[0]).toString().trim()); });
@@ -1810,6 +1813,12 @@ renderCompletedOrderTable(selector, data, vvipData, peaNameMapping, finalScores,
         "scrollX": true,
         "order": [[0, "asc"]],
         "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+        "columnDefs": [
+            {
+                "targets": [9], // ตัวอย่าง: ซ่อน คะแนนสะสม ฯลฯ
+                "visible": false
+            }
+        ],
         "initComplete": function() {
             this.api().columns.adjust();
             const $wrapper = $el.parent().css({ 'overflow-x': 'auto' });
