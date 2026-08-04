@@ -1364,8 +1364,9 @@ const matchTable = $el.DataTable({
             if (type === 'display') {
                 const parts = data.split('/');
                 return `<div class="text-center whitespace-nowrap">
-                        <span lass="font-bold" style="color: rgb(76, 199, 68); font-weight: bold; margin-right: 8px; font-size: 16px;">✓</span>
-                            <span class="text-green font-bold">${parts[0]}</span>
+                        
+                       <span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i></span>
+                        <span class="text-green font-bold">${parts[0]}</span>
                             <span class="text-gray-400">/</span>
                             <span class="text-green-600 font-bold">${parts[1]}</span>
                         </div>`;
@@ -1972,7 +1973,7 @@ const NoStockTable = $el.DataTable({
                     const pendingFormated = data.pending.toLocaleString();
                     
                     // แสดงผลในสไตล์: จำนวนที่ได้ (สีเขียวหรือสีปกติ) / ค้างเบิก (สีแดงโดดเด่น)
-                    return ` <span class="font-bold text-red-600" style=" font-weight: bold; margin-right: 5px; font-size: 16px;">✗</span>
+                    return ` <span class="text-red-600 font-bold"><i class="fas fa-times-circle mr-1"></i></span>
                     <span class="font-bold text-red-600 ">${assignedFormated}</span> 
                             <span class="text-slate-700">/</span> 
                             <span class="font-bold text-slate-700">${pendingFormated}</span>`;
