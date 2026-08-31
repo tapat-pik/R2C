@@ -213,6 +213,8 @@ h1, h2, h3, h4, h5 {
     border-right: none !important;
 }
 
+
+
 /* --- 3. เนื้อหาตาราง --- */
 #tableStockMatch tbody td, 
 #tableFulfilled tbody td {
@@ -253,10 +255,11 @@ h1, h2, h3, h4, h5 {
 #tableStockMatch_wrapper .dataTables_length select,
 #tableFulfilled_wrapper .dataTables_filter input,
 #tableFulfilled_wrapper .dataTables_length select {
-    height: 28px !important;
-    padding: 2px 8px !important;
+  height: 38px !important;               /* 🟢 ปรับเพิ่มจาก 28px เป็น 38px ให้สูงเท่าปุ่ม */
+    padding: 6px 12px !important;          /* 🟢 ปรับระยะห่างข้างในให้สมดุลกับความสูงใหม่ */
     border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
+    border-radius: 8px !important;         /* 🟢 ปรับความโค้งมนเป็น 8px เท่ากับคลาส rounded-lg ของปุ่ม */
+    font-size: 14px !important;            /* 🟢 ปรับขนาดฟอนต์เป็น 14px ให้เท่ากับ text-sm ของปุ่ม */
 }
 
 #tableStockMatch_wrapper .dataTables_paginate .paginate_button,
@@ -362,7 +365,14 @@ table.dataTable.display tbody tr.even {
     margin: 0 !important;
     padding: 0 !important;
 }
-
+#tableNoStock_wrapper .dataTables_filter input,
+#tableNoStock_wrapper .dataTables_length select {
+    height: 38px !important;               /* 🟢 ปรับเพิ่มจาก 28px เป็น 38px ให้สูงเท่าปุ่ม */
+    padding: 6px 12px !important;          /* 🟢 ปรับระยะห่างข้างในให้สมดุลกับความสูงใหม่ */
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;         /* 🟢 ปรับความโค้งมนเป็น 8px เท่ากับคลาส rounded-lg ของปุ่ม */
+    font-size: 14px !important;            /* 🟢 ปรับขนาดฟอนต์เป็น 14px ให้เท่ากับ text-sm ของปุ่ม */
+}
 /* ป้องกันเส้นขอบ DataTable ปกติมาทับ */
 .dataTables_wrapper .dataTables_scrollDiv {
     border: none !important;
@@ -434,11 +444,11 @@ background-color: transparent !important;
 /* --- 5. ช่อง Search และ Length Menu --- */
 #tableObsolete_wrapper .dataTables_filter input,
 #tableObsolete_wrapper .dataTables_length select {
-    height: 28px !important;
-    padding: 2px 8px !important;
+    height: 38px !important;               /* 🟢 ปรับเพิ่มจาก 28px เป็น 38px ให้สูงเท่าปุ่ม */
+    padding: 6px 12px !important;          /* 🟢 ปรับระยะห่างข้างในให้สมดุลกับความสูงใหม่ */
     border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-    font-size: 13px !important;
+    border-radius: 8px !important;         /* 🟢 ปรับความโค้งมนเป็น 8px เท่ากับคลาส rounded-lg ของปุ่ม */
+    font-size: 16px !important;            /* 🟢 ปรับขนาดฟอนต์เป็น 14px ให้เท่ากับ text-sm ของปุ่ม */
 }
 
 /* --- 6. Pagination (ปุ่มเปลี่ยนหน้า) --- */
@@ -684,10 +694,12 @@ body {
 
   /* NoStocktable */
 /* บังคับให้ตารางยืดหยุ่น ห้ามดัน Container */
+/* 🟢 1. คืนค่าตัวกลางไว้ ไม่ให้กระทบตารางอื่น */
 .dataTables_wrapper {
     width: 100% !important;
     overflow-x: hidden !important; 
 }
+
 
 /* Info PO Table */
 /* ปรับขนาด Input ในตารางให้ดูสะอาดตา */
@@ -1088,3 +1100,10 @@ input[type="number"].budget-input
     [x-cloak] { display: none !important; }
     /* ปรับความกว้างตารางให้เต็ม container */
     .dataTables_wrapper { width: 100% !important; }
+/* 🟢 2. เจาะจงเปิด Scrollbar เฉพาะตารางที่ต้องการเท่านั้น */
+#tableStockMatch_wrapper,
+#tableFulfilled_wrapper,
+#tableNoStock_wrapper,
+#tableObsolete_wrapper {
+    overflow-x: auto !important;
+}

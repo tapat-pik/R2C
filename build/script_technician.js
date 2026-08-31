@@ -942,17 +942,13 @@ function updateDashboardCardsDebounced(tableSelector) {
 // }
 
 function ShowTotalJobs(tableInstance) {
-    // ✨ แก้จุดที่ 1: นับจำนวนเฉพาะงานที่ผ่านการฟิลเตอร์แล้วเท่านั้น ({ search: 'applied' })
+    // 1. นับจำนวนเฉพาะงานที่ผ่านการฟิลเตอร์แล้ว ({ search: 'applied' })
     const totalCount = tableInstance.rows({ search: 'applied' }).count();
     $('#total-jobs-count').text(totalCount.toLocaleString());
 
-    // --- ส่วนที่เพิ่มเข้ามาใหม่ต่อท้ายฟังก์ชัน ShowTotalJobs เดิมของคุณ ---
-
-   
-       // 1. ดึงจำนวนจากตารางที่สอง (Completed) มาด้วย
-    const completedTable = $('#tableCompletedOrder').DataTable(); // เปลี่ยน ID ให้ตรงกับตารางของคุณ
+    // 2. ดึงตารางที่สอง (Completed)
+    const completedTable = $('#tableCompletedOrder').DataTable();
     const completedCount = completedTable.rows({ search: 'applied' }).count();
-    const completedTotal = completedTable.rows({ search: 'applied' }).count();
 
     let totalCIPCount = 0;
     let total022Count = 0;
@@ -970,8 +966,9 @@ function ShowTotalJobs(tableInstance) {
     let totalCBlue_count = 0; 
     let totalIBlue_count = 0; 
     let totaPBlue_count = 0; 
+    let completedValueSum = 0; // เก็บเงินเฉพาะตาราง Completed
 
-    // ✨ แก้จุดที่ 2: เปลี่ยนมาลูปเฉพาะแถวที่โชว์อยู่หลังฟิลเตอร์สำเร็จด้วย { search: 'applied' }
+    // 3. ลูปเฉพาะแถวตารางที่ 1 ที่ผ่านฟิลเตอร์
     tableInstance.rows({ search: 'applied' }).nodes().each(function(rowNode) {
         const $tds = $(rowNode).find('td');
         
@@ -979,79 +976,64 @@ function ShowTotalJobs(tableInstance) {
         const rawValue = $tds.eq(6).text().trim();     // มูลค่างาน (Index 6)
         const statusHTML = $tds.eq(1).html() || "";    // สัญญาณไฟ (Index 1)
         
-        // แปลงค่าเงินเป็นตัวเลข
         const numericValue = parseFloat(rawValue.replace(/,/g, '')) || 0;
         totalValueAllSum += numericValue;
-         
-        // เช็คสัญญาณไฟสีเขียว
+          
+        // เช็คสัญญาณไฟสีเขียว (รายการรอเบิก)
         const isGreen = statusHTML.includes('status-green');
         const projectUpper = cellProject.toUpperCase();
         if (isGreen) {
             totalGreenCount++;
             totalValueGreenSum += numericValue; 
             
-            if (projectUpper.includes('C-')) {
-               totalCgreen_count++;
-            }
-            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) {
-                totalIgreen_count++;
-            }
-            if (projectUpper.includes('P-')) {
-                totaPgreen_count++;
-            }
-            if (projectUpper.includes('งาน 02.2')) {
-                total022green_count++;
-            }
+            if (projectUpper.includes('C-')) totalCgreen_count++;
+            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) totalIgreen_count++;
+            if (projectUpper.includes('P-')) totaPgreen_count++;
+            if (projectUpper.includes('งาน 02.2')) total022green_count++;
         }
       
-        // เช็คสัญญาณไฟสีน้ำเงิน
+        // เช็คสัญญาณไฟสีน้ำเงิน (Ready-to-Work)
         const isBlue = statusHTML.includes('status-blue');
         if (isBlue) {
             totalBlueCount++;
             totalValueBlueSum += numericValue; 
-            if (projectUpper.includes('C-')) {
-               totalCBlue_count++;
-            }
-            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) {
-                totalIBlue_count++;
-            }
-            if (projectUpper.includes('P-')) {
-                totaPBlue_count++;
-            }
-            if (projectUpper.includes('งาน 02.2')) {
-                total022Blue_count++;
-            }
+            if (projectUpper.includes('C-')) totalCBlue_count++;
+            if (projectUpper.includes('I-') || projectUpper.includes('งานปรับปรุงมิเตอร์') || projectUpper.includes('งานภัยธรรมชาติ')) totalIBlue_count++;
+            if (projectUpper.includes('P-')) totaPBlue_count++;
+            if (projectUpper.includes('งาน 02.2')) total022Blue_count++;
         }
 
-        // แยกนับจำนวนและมูลค่าตามเงื่อนไขการกำหนดโครงการ
         if (!cellProject.includes('งาน 02.2')) {
             totalCIPCount++;
-        
             totalValueCIPSum += numericValue;
         } else {
             total022Count++;
         }
     });
-   // --- ⚡ ส่วนที่เพิ่ม: ลูปตารางที่สอง (Completed) เพื่อรวมเงิน ---
+
+    // 4. ลูปตารางที่สอง (Completed) เพื่อรวมเงิน
     completedTable.rows({ search: 'applied' }).nodes().each(function(rowNode) {
         const $tds = $(rowNode).find('td');
-        const rawValue = $tds.eq(6).text().trim(); // ดึงคอลัมน์ Index 6 เหมือนกัน
-        totalValueAllSum += parseFloat(rawValue.replace(/,/g, '')) || 0;
+        const rawValue = $tds.eq(6).text().trim();
+        const numericValue = parseFloat(rawValue.replace(/,/g, '')) || 0;
         
+        totalValueAllSum += numericValue;
+        completedValueSum += numericValue;
     });
+
+    // 5. คำนวณยอดรวมของ Ready-to-Close
+    const grandTotalCount = totalGreenCount + completedCount;           // งานรอเบิก + งานเบิกครบแล้ว
+    const grandTotalValue = totalValueGreenSum + completedValueSum;      // เงินรอเบิก + เงินเบิกครบแล้ว
+
     const valueInMillions = totalValueAllSum / 1000000;
-    
-    // ฟอร์แมตทศนิยม 0 ตำแหน่ง
     const formattedAll = valueInMillions.toLocaleString(undefined, {
         minimumFractionDigits: 0, 
         maximumFractionDigits: 0
     });  
   
-    // อัปเดตตัวเลขลง HTML
+    // 6. อัปเดตตัวเลขลง HTML
     $('#total-CIP-count').text(totalCIPCount.toLocaleString());
     $('#total-022-count').text(total022Count.toLocaleString());
-    $('#total-green-count').text(totalGreenCount.toLocaleString());
-    $('#total-blue-count').text(totalBlueCount.toLocaleString());
     
     $('#total-022Green-count').text(total022green_count.toLocaleString());
     $('#total-Cgreen-count').text(totalCgreen_count.toLocaleString());
@@ -1063,37 +1045,28 @@ function ShowTotalJobs(tableInstance) {
     $('#total-IBlue-count').text(totalIBlue_count.toLocaleString());
     $('#total-PBlue-count').text(totaPBlue_count.toLocaleString());
 
-    // อัปเดตมูลค่ารวมทั้งหมด (ล้านบาท)
+    // Card 1: งานรวมทั้งหมด (ตาราง 1 + ตาราง 2)
+    const grandTotalAllProjects = totalCount + completedCount;
+    $('#grand-total-count').text(grandTotalAllProjects.toLocaleString());
+
+    // Card 2: มูลค่างาน
     $('#total-valueAll-count').text(formattedAll);
+    $('#total-valueCIP-count').text(totalValueAllSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
-    // อัปเดตมูลค่ารวม CIP
-    $('#total-valueCIP-count').text(totalValueAllSum.toLocaleString(undefined, {
-        minimumFractionDigits: 2, maximumFractionDigits: 2
-    }));
-
-    // อัปเดตมูลค่ารวมงานสีเขียว
-    $('#total-valueGreen-count').text(totalValueGreenSum.toLocaleString(undefined, {
-        minimumFractionDigits: 2, maximumFractionDigits: 2
-    }));
-
-    // อัปเดตมูลค่ารวมงานสีน้ำเงิน
-    $('#total-valueBlue-count').text(totalValueBlueSum.toLocaleString(undefined, {
-        minimumFractionDigits: 2, maximumFractionDigits: 2
-    }));
-
-  
-
-    // 2. อัปเดตช่องจำนวนของตารางที่ 2 ที่หน้าจอ (ถ้ามี)
+    // Card 3: Ready-to-Close (แก้ไข ID ให้ตรงกับ HTML Card 3)
+    $('#total-green-all-count').text(grandTotalCount.toLocaleString());
+    $('#total-valueGreenAll-count').text(grandTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    
+    $('#total-green-count').text(totalGreenCount.toLocaleString());
+    $('#total-valueGreen-count').text(totalValueGreenSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    
     $('#total-completed-count').text(completedCount.toLocaleString());
+    $('#val-completedWork').text(completedValueSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
-    // 3. รวมยอด (จำนวนงานค้าง + จำนวนงานเสร็จ)
-    const grandTotal = totalCount + completedCount;
-    // 4. แสดงผลรวมในจุดที่คุณต้องการ (สร้าง Span หรือ Div มารับค่านี้)
-    $('#grand-total-count').text(grandTotal.toLocaleString());
+    // Card 4: Ready-to-Work
+    $('#total-blue-count').text(totalBlueCount.toLocaleString());
+    $('#total-valueBlue-count').text(totalValueBlueSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 }
-
-
-
 
 // ============== คำนวณความพร้อมพัสดุและงาน ==============//
 
@@ -1306,27 +1279,26 @@ const matchTable = $el.DataTable({
     "data": dataSet,
     "columns": colHeaders,
     "deferRender": true,
-    "pageLength":20,
-    "autoWidth": true, // ให้ปิดอันนี้เพื่อให้ตารางกางเต็ม 100%
-    "responsive": true, // ปิด responsive ของ DT ไปเลย
-    "scrollX": false,
+    "pageLength": 20,
+    "autoWidth": false,
+    "responsive": false, // 🟢 ปิด Responsive เพื่อไม่ให้ DT ซ่อนคอลัมน์
+    "scrollX": false,    // 🟢 ปิด scrollX ของ DT เพื่อให้ HTML เลื่อน Scrollbar แทน (หัวไม่เบี้ยว)
     
     "order": [[0, "asc"]],
     "buttons": [
         {
             extend: 'excel',
-            text: '<i class="fas fa-file-excel mr-1"></i> Export',
-            filename: 'R2C_InStock_Report',
-            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85',
-             exportOptions: {
-                    columns: [0, 1, 2, 3, 4, 6,7,8]
-                }
+           text: '<i class="fa-solid fa-file-excel sm:mr-1"></i> <span class="hidden sm:inline">Export</span>',
+            filename: 'Matched_materials_Report',
+className: 'block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer',
+            exportOptions: {
+                columns: [0, 1, 2, 3, 4, 6, 7, 8]
+            }
         }
     ],
-    "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-    
-    "columnDefs": [
-        { "targets": "_all", "className": "py-3 px-3 border-r border-l border-gray-200 text-centertext-slate-600 font-normal" },
+"dom": '<"flex justify-end items-center mb-4 gap-3"<"flex items-center"f><"flex items-center"B>>rt<"flex justify-between items-center mt-4"<"flex items-center gap-6 text-sm text-gray-500 font-medium"<"flex items-center"l><"flex items-center"i>><"pagination-sm"p>>',
+"columnDefs": [
+        { "targets": "_all", "className": "py-3 px-3 border-r border-l border-gray-200 text-slate-600 font-normal" },
         { "targets": [0, 1], "className": "font-bold text-violet-800 whitespace-nowrap border-l border-gray-200" },
         { 
             "targets": 3, 
@@ -1343,56 +1315,51 @@ const matchTable = $el.DataTable({
             },
             "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
         },
-         { 
-        "targets": [4], 
-        "render": function(data, type, row) {
-            if (type === 'display' && typeof data === 'number') {
-                // ใช้ toLocaleString เพื่อใส่คอมม่าและทศนิยม 2 ตำแหน่ง
-                return data.toLocaleString(undefined, { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                });
-            }
-            return data; 
-        },
-        "className": "py-3 px-3 border-r border-l border-gray-200 text-right text-slate-600 font-normal"
-    },
         { 
-        "targets": 5, // คอลัมน์ที่รวมร่างไว้
-        "render": function(data, type, row) {
-            // ถ้าเป็นการแสดงผล (display) ให้โชว์แบบสวยงาม
-            if (type === 'display') {
-                const parts = data.split('/');
-                return `<div class="text-center whitespace-nowrap">
-                        
-                       <span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i></span>
-                        <span class="text-green font-bold">${parts[0]}</span>
+            "targets": [4], 
+            "render": function(data, type, row) {
+                if (type === 'display' && typeof data === 'number') {
+                    return data.toLocaleString(undefined, { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                    });
+                }
+                return data; 
+            },
+            "className": "py-3 px-3 border-r border-l border-gray-200 text-right text-slate-600 font-normal"
+        },
+        { 
+            "targets": 5, 
+            "render": function(data, type, row) {
+                if (type === 'display') {
+                    const parts = data.split('/');
+                    return `<div class="text-center whitespace-nowrap">
+                            <span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i></span>
+                            <span class="text-green font-bold">${parts[0]}</span>
                             <span class="text-gray-400">/</span>
                             <span class="text-green-600 font-bold">${parts[1]}</span>
-                        </div>`;
+                            </div>`;
+                }
+                return data; 
             }
-            return data; // ถ้าเป็นค่าที่ใช้ Sort หรือ Filter ให้คืนค่าเดิม
-        }
         },
         { "targets": [6, 7, 8], "visible": false },
         { 
-        "targets": [ 8], 
-        "render": function(data, type, row) {
-            if (type === 'display' && typeof data === 'number') {
-                // ใช้ toLocaleString เพื่อใส่คอมม่าและทศนิยม 2 ตำแหน่ง
-                return data.toLocaleString(undefined, { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                });
-            }
-            return data; 
+            "targets": [8], 
+            "render": function(data, type, row) {
+                if (type === 'display' && typeof data === 'number') {
+                    return data.toLocaleString(undefined, { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                    });
+                }
+                return data; 
+            },
+            "className": "py-3 px-3 border-r border-l border-gray-200 text-right font-semibold text-slate-600 font-normal"
         },
-        "className": "py-3 px-3 border-r border-l border-gray-200 text-right font-semibold text-slate-600 font-normal"
-    },
         { "targets": [-1], "className": "text-right whitespace-nowrap border-r border-gray-200" } 
     ],
     
-    // ตั้งค่าหัวตารางเป็นโปร่งใส
     "headerCallback": function (thead) {
         $(thead).find('th')
             .removeClass()
@@ -1429,20 +1396,19 @@ return matchTable;
 const RequirementTable = $el.DataTable({
     "deferRender": true,
     "pageLength": 10,
-    "responsive": true,
-    "scrollX": true,
-    "scrollX": true,
+    "autoWidth": false, // 🟢 1. ปิด autoWidth ป้องกันความกว้างคอลัมน์ค้าง
+    "scrollX": true,    // 🟢 2. เปิด scrollX บรรทัดเดียวพอ (ตัด responsive และ scrollX ที่ซ้ำออก)
     "order": [[0, "asc"]],
-    "buttons": [
-        {
-            extend: 'excel',
-            text: '<i class="fas fa-file-excel mr-1"></i> Export',
-            filename: 'R2C_Report',
-            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85'
-        }
-    ],
-    "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-    
+    "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fB>rt<"row mt-3 items-center"<"col-md-6 d-flex align-items-center gap-3"l i><"col-md-6 d-flex justify-content-end"p>>',    
+
+  "buttons": [
+    {
+        extend: 'excel',
+        text: '<i class="fa-solid fa-file-excel sm:mr-1"></i> <span class="hidden sm:inline">Export</span>',
+        filename: 'R2C_Awaiting-Issue_Job_Report',
+        className: 'block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer'
+    }
+],
     "columnDefs": [
         {
             "targets": 0,
@@ -1452,24 +1418,21 @@ const RequirementTable = $el.DataTable({
         { "targets": 5, "type": "num" },
         {
             "targets": 10,
-            // "visible": false,
-            "searchable": true // สำคัญ: ตั้งเป็น true เพื่อให้ช่อง Search ของตารางค้นหาข้อมูลจากช่องนี้ได้
+            "searchable": true
         },
         { 
-        "targets": 11, // คอลัมน์ % ความพร้อม
-        "type": "num", 
-        "render": function(data, type, row) {
-            // เพื่อให้ Sort ได้ถูกต้อง ต้องดึงค่าตัวเลขออกมาจาก HTML
-            return type === 'sort' ? parseFloat(data) : data;
+            "targets": 11,
+            "type": "num", 
+            "render": function(data, type, row) {
+                return type === 'sort' ? parseFloat(data) : data;
+            }
         }
-    }
     ],
     
-    // 🎯 แก้ไขฟังก์ชันตอนท้ายให้สั้นลงและซ่อนสกรอลบาร์สนิท
     "initComplete": function() {
+        // 🟢 3. สั่ง Re-align หัวตารางทันทีที่สร้างเสร็จ
         this.api().columns.adjust();
         
-        // เปิดให้เลื่อนขวาได้เมื่อจอเล็ก + ยิงสไตล์สั้นๆ ไปซ่อนแถบสกรอลบาร์ไม่ให้เห็นในจอคอม
         const $wrapper = $('#tableRequirement_Data').parent().css({ 'overflow-x': 'auto' });
         
         $('<style>').text(`
@@ -1478,12 +1441,16 @@ const RequirementTable = $el.DataTable({
         `).appendTo('head');
     }
 });
-// 🎯 2. สั่งย้ายก้อนปุ่มจากตาราง วาร์ปไปลงที่ช่อง ID ของคุณบิ๊กทันที (สั้นๆ แค่นี้เลย)
-RequirementTable.buttons().container().appendTo('#export-Require');
 
-// 🎯 3. รีเทิร์นตัวแปรตารางออกไปใช้งานตามปกติ จบงาน!
+// 🟢 4. ปรับขนาดคอลัมน์ให้อัตโนมัติเวลาผู้ใช้ Zoom หรือย่อ-ขยายหน้าจอ
+$(window).off('resize.dt_req').on('resize.dt_req', function() {
+    if ($.fn.DataTable.isDataTable('#tableRequirement_Data')) {
+        RequirementTable.columns.adjust();
+    }
+});
+
 return RequirementTable;
-},
+    },
 
     renderGenericTable(selector, data) {
         const $el = $(selector);
@@ -1737,110 +1704,64 @@ return RequirementTable;
  * @param {Array} allocatedData - ข้อมูลการจัดสรร
  * @param {Object} materialTypeMap - ประเภทพัสดุ
  */
- // ให้เอาฟังก์ชันนี้ไปวางไว้ใน Object TableRenderer ของคุณครับ
-// renderCompletedOrderTable: function(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
-//     const $el = $(selector);
-    
-//     // 1. สร้าง Set ของงานที่ยังไม่เสร็จ (ค้างเบิก > 0)
-//     const incompleteWBS = new Set();
-//     data.rows.forEach(row => {
-//         let pending = parseFloat(getCellValue(row.c[14])) || 0;
-//         if (pending > 0) {
-//             let valA = getCellValue(row.c[0]).toString().trim();
-//             incompleteWBS.add(valA);
-//         }
-//     });
 
-//     // 2. กรองข้อมูล: เก็บเฉพาะงานที่ "ไม่อยู่ใน" Set งานที่ค้างเบิก
-//     // สำคัญ: วิธีนี้จะได้เฉพาะงานที่ทุกรายการ pending = 0
-//     const completedRows = data.rows.filter(row => {
-//         let valA = getCellValue(row.c[0]).toString().trim();
-//         return !incompleteWBS.has(valA) && valA !== ""; 
-//     });
-
-//     // 3. ตรวจสอบว่ามีข้อมูลเหลือไหม?
-//     if (completedRows.length === 0) {
-//         console.warn("⚠️ CompletedOrderTable: ไม่พบงานที่เสร็จสมบูรณ์");
-//     }
-//     const completedData = {
-//         ...data,
-//         rows: completedRows
-//     };
-
-//     // 3. ทำลายตารางเก่า
-//     if ($.fn.DataTable.isDataTable(selector)) {
-//         $el.DataTable().destroy();
-//         $el.empty();
-//     }
-
-//     // 4. วาดตารางด้วยข้อมูลที่กรองมาแล้ว
-//     let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
-//     $el.html(html);
-// renderCompletedOrderTable: function(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
-//     const $el = $(selector);
-
-//     // 1. หา WBS ที่ยังมีรายการค้าง (Pending > 0)
-//     const incompleteWBS = new Set();
-//     data.rows.forEach(row => {
-//         let valA = getCellValue(row.c[0]).toString().trim();
-//         let pending = parseFloat(getCellValue(row.c[14])) || 0;
-//         if (pending > 0) incompleteWBS.add(valA);
-//     });
-
-//     // 2. กรอง: เอาเฉพาะแถวที่ WBS นั้น "ไม่อยู่ในกลุ่มค้างเบิก"
-//     const completedRows = data.rows.filter(row => {
-//         let valA = getCellValue(row.c[0]).toString().trim();
-//         return valA !== "" && !incompleteWBS.has(valA);
-//     });
-
-//     // 3. เตรียมข้อมูล (ระวัง: ถ้า completedRows ว่างเปล่า ให้ส่ง Array ว่าง)
-//     const completedData = { ...data, rows: completedRows };
-
-//     // 4. วาดตาราง (ใช้ _buildTableHTML ชุดเดิม)
-//     if ($.fn.DataTable.isDataTable(selector)) {
-//         $el.DataTable().destroy();
-//         $el.empty();
-//     }
-
-//     let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
-//     $el.html(html);
 
 renderCompletedOrderTable(selector, data, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap) {
     const $el = $(selector);
     if ($.fn.DataTable.isDataTable($el)) {
         $el.DataTable().destroy();
-        $el.empty(); // ล้าง HTML ด้านในออกด้วย
+        $el.empty();
     }
-    // หา WBS ที่ยังไม่เสร็จ (ที่มี pending > 0)
+
     const incompleteWBS = new Set();
     data.rows.forEach(r => { if(parseFloat(getCellValue(r.c[14])) > 0) incompleteWBS.add(getCellValue(r.c[0]).toString().trim()); });
 
-    // กรองเอาเฉพาะ WBS ที่ "ไม่อยู่" ในกลุ่มงานค้าง (คือเสร็จแล้ว)
     const completedRows = data.rows.filter(r => !incompleteWBS.has(getCellValue(r.c[0]).toString().trim()));
     const completedData = { ...data, rows: completedRows };
 
     let html = this._buildTableHTML(completedData, vvipData, peaNameMapping, finalScores, wbsStatusMap, budgetMapping, wbsProgressMap);
     $el.html(html);
-    // 5. สร้าง DataTable
-    return $el.DataTable({
+
+    // สร้าง DataTable
+    const dt = $el.DataTable({
         "deferRender": true,
         "pageLength": 10,
-        "responsive": true,
-        "scrollX": true,
+        "autoWidth": false, // ปิด autoWidth ป้องกันการล็อกความกว้างคอลัมน์เดิมไว้
+        "scrollX": true,    // ใช้ scrollX เพื่อให้มี Scrollbar ตอนซูมเข้ามากๆ
         "order": [[0, "asc"]],
-        "dom": '<"d-flex justify-content-end align-items-center gap-2 mb-3"fl>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-        "columnDefs": [
+     
+
+        "buttons": [
+    {
+        extend: 'excel',
+        text: '<i class="fa-solid fa-file-excel sm:mr-1"></i> <span class="hidden sm:inline">Export</span>',
+        filename: 'R2C_Fully-Issue_Job_Report',
+        className: 'block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer'
+    }
+],
+"dom": '<"flex justify-end items-center mb-4 gap-3"<"flex items-center"f><"flex items-center"B>>rt<"flex justify-between items-center mt-4"<"flex items-center gap-6 text-sm text-gray-500 font-medium"<"flex items-center"l><"flex items-center"i>><"pagination-sm"p>>',        "columnDefs": [
             {
-                "targets": [9], // ตัวอย่าง: ซ่อน คะแนนสะสม ฯลฯ
+                "targets": [9],
                 "visible": false
             }
         ],
         "initComplete": function() {
+            // ปรับขนาดคอลัมน์ให้ตรงกันทันทีที่โหลดตารางเสร็จ
             this.api().columns.adjust();
+            
             const $wrapper = $el.parent().css({ 'overflow-x': 'auto' });
             $('<style>').text(`#${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }`).appendTo('head');
         }
     });
+
+    // ⚡ เพิ่มคำสั่งนี้: จัดหัวตารางกับเนื้อหาให้ตรงกันทุกครั้งที่มีการย่อ/ขยาย หรือซูมหน้าจอ
+    $(window).off('resize.dt_' + $el.attr('id')).on('resize.dt_' + $el.attr('id'), function() {
+        if ($.fn.DataTable.isDataTable($el)) {
+            dt.columns.adjust();
+        }
+    });
+
+    return dt;
 },
     renderNoStockTable(allocatedData, materialTypeMap) {
     if (!allocatedData || !Array.isArray(allocatedData)) return null;
@@ -1904,26 +1825,28 @@ const NoStockTable = $el.DataTable({
     "columns": colHeaders,
     "deferRender": true,
     "pageLength": 10,
-    "responsive": true,
+    "autoWidth": false,   // 🟢 1. ปิด autoWidth
+    "responsive": false,  // 🟢 2. ปิด responsive ไม่ให้ซ่อนคอลัมน์ลงมาข้างล่าง
+    "scrollX": false,     // 🟢 3. ปิด scrollX ของ DataTables (ให้ Div นอกเลื่อนแทน)
+    
     "order": [[0, "asc"]], // เรียงตามรหัสพัสดุ (col 1) จากน้อยไปมาก
     
     "buttons": [
         {
             extend: 'excel',
-            text: '<i class="fas fa-file-excel mr-1"></i> Export',
-            filename: 'R2C_NoStock_report',
-            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85',
-            
+            text: '<i class="fa-solid fa-file-excel sm:mr-1"></i> <span class="hidden sm:inline">Export</span>',
+            filename: 'Shortage_materials_Report',
+            className: 'block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer',
             exportOptions: {
-                    columns: [0, 1, 2, 3, 5, 6]
-                }
+                columns: [0, 1, 2, 3, 5, 6]
+            }
         }
+
+        
     ],
-    
-    "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-          
+  
+"dom": '<"flex justify-end items-center mb-4 gap-3"<"flex items-center"f><"flex items-center"B>>rt<"flex justify-between items-center mt-4"<"flex items-center gap-6 text-sm text-gray-500 font-medium"<"flex items-center"l><"flex items-center"i>><"pagination-sm"p>>',          
     "columnDefs": [
-        // col 0, 1: หมายเลขงาน, รหัสพัสดุ - บังคับแถวเดียว ไม่ตัดบรรทัด
         {
             "targets": [0, 1],
             "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
@@ -1932,20 +1855,7 @@ const NoStockTable = $el.DataTable({
             }
         },
         { "targets": 0, "className": "font-bold text-blue-700" },
- 
-        // col 2: ชื่อพัสดุ
         { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal" },
- 
-        // col 3: ประเภท (เพิ่มใหม่) - badge สีเทาเหมือนตาราง StockMatch
-        // {
-        //     "targets": 3,
-        //     "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
-        //     "render": function(data) {
-        //         if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-        //         const color = data === "พัสดุหลัก" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600";
-        //         return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${color}">${data}</span>`;
-        //     }
-        // },
         { 
             "targets": 3, 
             "render": function(data, type, row) {
@@ -1961,64 +1871,46 @@ const NoStockTable = $el.DataTable({
             },
             "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
         },
-        // col 4: ค้างเบิก
         {
-                "targets": 4,
-                "className": "py-3 px-3 border-b border-gray-100 text-center whitespace-nowrap text-base",
-                "render": function(data, type, row) {
-                    // ป้องกันความผิดพลาดของข้อมูล
-                    if (!data || typeof data !== 'object') return '0 / 0';
-                    
-                    const assignedFormated = data.assigned.toLocaleString();
-                    const pendingFormated = data.pending.toLocaleString();
-                    
-                    // แสดงผลในสไตล์: จำนวนที่ได้ (สีเขียวหรือสีปกติ) / ค้างเบิก (สีแดงโดดเด่น)
-                    return ` <span class="text-red-600 font-bold"><i class="fas fa-times-circle mr-1"></i></span>
-                    <span class="font-bold text-red-600 ">${assignedFormated}</span> 
-                            <span class="text-slate-700">/</span> 
-                            <span class="font-bold text-slate-700">${pendingFormated}</span>`;
-
-
-                        //     `<div class="text-center whitespace-nowrap">
-                        // <span lass="font-bold" style="color: rgb(199, 68, 68); font-weight: bold; margin-right: 5px; font-size: 16px;">✗</span>
-                        //     <span class="text-red-600 font-bold">${assignedFormated}</span>
-                        //     <span class="text-slate-700">/</span>
-                        //     <span class="text-slate-700 font-bold">${pendingFormated}</span>
-                        // </div>`;
-                }
-            },
-            { "targets": [5, 6], "visible": false },
-        
+            "targets": 4,
+            "className": "py-3 px-3 border-b border-gray-100 text-center whitespace-nowrap text-base",
+            "render": function(data, type, row) {
+                if (!data || typeof data !== 'object') return '0 / 0';
+                
+                const assignedFormated = data.assigned.toLocaleString();
+                const pendingFormated = data.pending.toLocaleString();
+                
+                return `<span class="text-red-600 font-bold"><i class="fas fa-times-circle mr-1"></i></span>
+                <span class="font-bold text-red-600">${assignedFormated}</span> 
+                <span class="text-slate-700">/</span> 
+                <span class="font-bold text-slate-700">${pendingFormated}</span>`;
+            }
+        },
+        { "targets": [5, 6], "visible": false },
     ],
-   "headerCallback": function (thead) {
-    $(thead).find('th')
-        .removeClass() // ล้างคลาสสีเดิมออก
-        .addClass('font-bold py-3 px-4 text-left') // ใส่คลาสที่จำเป็น
-        .css({
-            'background-color': 'transparent', // ทำให้หัวตารางโปร่งใส
-            'border-bottom': '2px solid #e9d5ff', // ใช้สีเส้นคั่นที่คุณชอบ
-            'white-space': 'nowrap'
-        });
-},
+
+    "headerCallback": function (thead) {
+        $(thead).find('th')
+            .removeClass()
+            .addClass('font-bold py-3 px-4 text-left')
+            .css({
+                'background-color': 'transparent',
+                'border-bottom': '2px solid #e9d5ff',
+                'white-space': 'nowrap'
+            });
+    },
     
-    // 🎯 3. สั่งครอบตัวอุ้มตาราง คัดสไตล์สกรอลบาร์ออก (ในคอมไม่มีแถบวิ่ง แต่ในมือถือปัดขวาได้สวยๆ)
     "initComplete": function() {
         this.api().columns.adjust();
         updateDashboardCounts();
-        // เจาะจงที่ parent wrapper ของตารางนี้โดยตรง
-        const $wrapper = $('#tableNoStock').parent().css({ 'overflow-x': 'auto' });
-        
-        $('<style>').text(`
-            #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
-            #${$wrapper.attr('id')} { scrollbar-width: none !important; }
-        `).appendTo('head');
+        // 🟢 4. ลบส่วนสั่งซ่อน webkit-scrollbar ทิ้ง เพื่อให้เห็นแถบสกรอลบาร์แนวนอน
     }
 });
  
  
  
 // 🎯 4. [บรรทัดเด็ด] สั่งย้ายปุ่มวาร์ปไปที่กล่อง ID ขวาสุดบนแถวหัวข้อสีเขียวทันที
-NoStockTable.buttons().container().appendTo('#export-NoStock');
+// NoStockTable.buttons().container().appendTo('#export-NoStock');
  noStockTableInstance = NoStockTable;
 // 🎯 5. รีเทิร์นตัวแปรตารางออกไปใช้งานต่อตามปกติ
 return NoStockTable;
@@ -2073,33 +1965,52 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
     });
 
     const ObsoleteTable = $el.DataTable({
-        "data": dataSet,
-        "columns": colHeaders,
-        "deferRender": true,
-        "pageLength": 10,
-        "responsive": true,
-        "autoWidth": false, 
-        
-        "order": [[0, "asc"]], 
-        "buttons": [
-            {
-                extend: 'excel',
-                text: '<i class="fas fa-file-excel mr-1"></i> Export',
-                filename: 'R2C_Obsolete_report',
-            className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85',
+    "data": dataSet,
+    "columns": colHeaders,
+    "deferRender": true,
+    "pageLength": 10,
+    "autoWidth": false,
+    "responsive": false, // 🟢 1. ปิด responsive เพื่อไม่ให้พับคอลัมน์ซ่อนลงล่าง
+    "scrollX": false,    // 🟢 2. ปิด scrollX ของ DataTables (ให้ Div ตัวนอกเลื่อนแทน)
+    
+    "order": [[0, "asc"]], 
+    "buttons": [
+        {
+            extend: 'excel',
+            text: '<i class="fa-solid fa-file-excel sm:mr-1"></i> <span class="hidden sm:inline">Export</span>',
+            filename: 'Constraint_materials_Report',
+            className: 'block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer'        }
+    ],
+"dom": '<"flex justify-end items-center mb-4 gap-3"<"flex items-center"f><"flex items-center"B>>rt<"flex justify-between items-center mt-4"<"flex items-center gap-6 text-sm text-gray-500 font-medium"<"flex items-center"l><"flex items-center"i>><"pagination-sm"p>>',    "columnDefs": [
+        {
+            "targets": [0, 1],
+            "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal whitespace-nowrap",
+            "createdCell": function(td) {
+                $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
             }
-        ],
-        "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-        "columnDefs": [
-            // col 0, 1: หมายเลขงาน และ รหัสพัสดุ
-            {
-                "targets": [0, 1],
-                "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal whitespace-nowrap",
-                "createdCell": function(td) {
-                    $(td).css({ 'white-space': 'nowrap', 'word-break': 'keep-all' });
+        },
+        { "targets": 0, "className": "font-bold text-blue-700 whitespace-nowrap" },
+
+        // col 2: ชื่อพัสดุ
+        { 
+            "targets": 2, 
+            "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
+            "render": function(data) {
+                if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                
+                if (data.length > 20) {
+                    const firstLine = data.substring(0, 20);
+                    const secondLine = data.substring(20);
+                    
+                    return `<span style="font-size: inherit !important; white-space: nowrap !important; word-break: keep-all !important;">${firstLine}</span><br><span style="font-size: inherit !important; display: inline-block; max-width: 100%; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;" title="${data}">${secondLine}</span>`;
                 }
-            },
-            { 
+                
+                return `<span style="font-size: inherit !important; white-space: nowrap !important; word-break: keep-all !important;">${data}</span>`;
+            }
+        },
+
+        // 🟢 3. col 3: ประเภท (รวมสไตล์ไว้จุดเดียว ไม่ให้ประกาศซ้ำ)
+        { 
             "targets": 3, 
             "render": function(data, type, row) {
                 let bgColor = "#e5e7eb";
@@ -2112,71 +2023,36 @@ renderObsoleteTable(allocatedData, materialTypeMap, materialNoteMap) {
                         ${data || '-'}
                         </span>`;
             },
-            "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
+            "className": "py-3 px-3 border-r border-l border-gray-200 text-center whitespace-nowrap" 
         },
-            { "targets": 0, "className": "font-bold text-blue-700 whitespace-nowrap" },
 
-// 🎯 col 2: ชื่อพัสดุ -> ตัดเอาแค่ 60 ตัวอักษรดื้อๆ (เท่ากับ 2 บรรทัดพอดี) ห้ามงอกบรรทัด 3
-{ 
-    "targets": 2, 
-    "className": "py-3 px-3 border-b border-gray-100 text-slate-600 font-normal",
-    "render": function(data) {
-        if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-        
-        // ✂️ นับตัวอักษรรวม ถ้าเกิน 25 ตัว ค่อยสั่งหักข้อความลงบรรทัดที่สอง
-        if (data.length > 20) {
-            const firstLine = data.substring(0, 20);
-            const secondLine = data.substring(20);
-            
-            // 🌟 บังคับใส่ font-size: inherit !important เพื่อให้ขนาดตัวหนังสือเท่าตัวอื่นเป๊ะๆ
-            return `<span style="font-size: inherit !important; white-space: nowrap !important; word-break: keep-all !important;">${firstLine}</span><br><span style="font-size: inherit !important; display: inline-block; max-width: 100%; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;" title="${data}">${secondLine}</span>`;
+        // col 4: ค้างเบิก
+        {
+            "targets": 4,
+            "className": "text-red-600 text-base text-end whitespace-nowrap",
+            "render": $.fn.dataTable.render.number(',', '.', 0)
+        },
+
+        // col 5: Note
+        {
+            "targets": 5,
+            "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm",
+            "render": function(data) {
+                if (!data || data === "-") return '<span class="text-gray-400">-</span>';
+                return `<span>${data}</span>`;
+            }
         }
-        
-        // 🌟 บังคับใส่ font-size: inherit !important ตรงนี้ด้วย
-        return `<span style="font-size: inherit !important; white-space: nowrap !important; word-break: keep-all !important;">${data}</span>`;
+    ],
+    "headerCallback": function(thead) {
+        $(thead).find('th').addClass('bg-orange-50 text-orange-700 font-bold py-3 px-4 text-left border-b-2 border-orange-200').css('white-space', 'nowrap');
+    },
+    "initComplete": function() {
+        this.api().columns.adjust();
+        // 🟢 4. ลบส่วนสั่งซ่อน webkit-scrollbar ออก เพื่อเปิดให้ Scrollbar เลื่อนได้ปกติ
     }
-},
-            // col 3: ประเภท - badge สีแดงเสมอ
-            {
-                "targets": 3,
-                "className": "py-3 px-3 border-b border-gray-100 font-normal text-center whitespace-nowrap",
-                "render": function(data) {
-                    if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-                    return `<span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">${data}</span>`;
-                }
-            },
+});
 
-            // col 4: ค้างเบิก
-            {
-                "targets": 4,
-                "className": "text-red-600 text-base text-end whitespace-nowrap",
-                "render": $.fn.dataTable.render.number(',', '.', 0)
-            },
-
-            // 🎯 col 5: Note -> ล็อกความสูงไว้ไม่เกิน 2 บรรทัดด้วย line-clamp-2
-         {
-    "targets": 5,
-    "className": "py-3 px-3 border-b border-gray-100 text-slate-500 text-sm",
-    "render": function(data) {
-                    if (!data || data === "-") return '<span class="text-gray-400">-</span>';
-                    return `<span >${data}</span>`;
-                }
-}
-        ],
-        "headerCallback": function(thead) {
-            $(thead).find('th').addClass('bg-orange-50 text-orange-700 font-bold py-3 px-4 text-left border-b-2 border-orange-200').css('white-space', 'nowrap');
-        },
-        "initComplete": function() {
-            this.api().columns.adjust();
-            const $wrapper = $('#tableObsolete').parent().css({ 'overflow-x': 'auto' });
-            $('<style>').text(`
-                #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
-                #${$wrapper.attr('id')} { scrollbar-width: none !important; }
-            `).appendTo('head');
-        }
-    });
-
-    ObsoleteTable.buttons().container().appendTo('#export-Obsolete');
+    // ObsoleteTable.buttons().container().appendTo('#export-Obsolete');
     obsoleteTableInstance = ObsoleteTable;
     return ObsoleteTable;
 }, // <--- จบฟังก์ชันพอดีเป๊ะ โครงสร้างไม่พังแน่นอนครับ,
@@ -2224,28 +2100,25 @@ renderFulfilledTable(rawDatabase, materialTypeMap) {
     });
 
     const FulfilledTable = $el.DataTable({
-        "data": dataSet,
-        "columns": colHeaders,
-        "deferRender": true,
-        "pageLength": 20,
-        "responsive": true,
-        // "scrollX": true,
-        "order": [[0, "asc"]],
-        "buttons": [
-            {
-                extend: 'excel',
-                text: '<i class="fas fa-file-excel mr-1"></i> Export',
-                filename: 'R2C_Fulfilled_report',
-                className: 'border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500 bg-white rounded-lg cursor-pointer hover:scale-102 active:opacity-85'
-                
-            }
-        ],
-        "dom": '<"flex justify-between items-center mb-4"<"flex items-center gap-2"fB><"flex items-center"l>>rt<"flex justify-between items-center mt-4"<"text-sm text-gray-500 font-medium"i><"pagination-sm"p>>',
-        "columnDefs": [
-            { "targets": [0, 1], "className": "py-3 px-3 border-b border-gray-100  text-blue-700 whitespace-nowrap" },
-            
-            { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600 " },
-             { 
+    "data": dataSet,
+    "columns": colHeaders,
+    "deferRender": true,
+    "pageLength": 20,
+    "autoWidth": false,    // 🟢 1. ปิด autoWidth
+    "responsive": false,   // 🟢 2. ปิด responsive เพื่อไม่ให้พับคอลัมน์ลงมา
+    "scrollX": false,      // 🟢 3. ปิด scrollX ของ DataTables (ให้ HTML Div เลื่อนแทน หัวจะไม่เบี้ยว)
+    "order": [[0, "asc"]],
+    "buttons": [
+        {
+            extend: 'excel',
+            text: '<i class="fa-solid fa-file-excel sm:mr-1"></i> <span class="hidden sm:inline">Export</span>',      
+            filename: 'Issue_materials_Report',
+            className: 'block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer'        }
+    ],
+"dom": '<"flex justify-end items-center mb-4 gap-3"<"flex items-center"f><"flex items-center"B>>rt<"flex justify-between items-center mt-4"<"flex items-center gap-6 text-sm text-gray-500 font-medium"<"flex items-center"l><"flex items-center"i>><"pagination-sm"p>>',    "columnDefs": [
+        { "targets": [0, 1], "className": "py-3 px-3 border-b border-gray-100 text-blue-700 whitespace-nowrap" },
+        { "targets": 2, "className": "py-3 px-3 border-b border-gray-100 text-slate-600" },
+        { 
             "targets": 3, 
             "render": function(data, type, row) {
                 let bgColor = "#e5e7eb";
@@ -2260,25 +2133,22 @@ renderFulfilledTable(rawDatabase, materialTypeMap) {
             },
             "className": "py-3 px-3 border-r border-l border-gray-200 text-center" 
         },
-            {
-                "targets": 4,
-                "className": "text-center whitespace-nowrap",
-                "render": function() {
-                    return `<span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i> ไม่มีความต้องการ</span>`;
-                }
+        {
+            "targets": 4,
+            "className": "text-center whitespace-nowrap",
+            "render": function() {
+                return `<span class="text-green-600 font-bold"><i class="fas fa-check-circle mr-1"></i> ไม่มีความต้องการ</span>`;
             }
-        ],
-        "initComplete": function() {
-            const $wrapper = $('#tableFulfilled').parent().css({ 'overflow-x': 'auto' });
-            $('<style>').text(`
-                #${$wrapper.attr('id')}::-webkit-scrollbar { display: none !important; }
-                #${$wrapper.attr('id')} { scrollbar-width: none !important; }
-            `).appendTo('head');
         }
-    });
+    ],
+    "initComplete": function() {
+        // 🟢 4. ลบโค้ดซ่อน scrollbar ทิ้ง ปล่อยให้ div ตัวนอกเลื่อนได้ปกติ
+        this.api().columns.adjust();
+    }
+});
 
-    FulfilledTable.buttons().container().appendTo('#export-Fulfilled');
-    return FulfilledTable;
+// FulfilledTable.buttons().container().appendTo('#export-Fulfilled');
+return FulfilledTable;
 }
 
 };
@@ -3866,47 +3736,49 @@ function setupGlobalEvents() {
 }
 
 // === Info Card Pop-up Ready-to-close Functions === //
+// === Info Card Pop-up Ready-to-Close Functions === //
 function showR2CCardInfo() {
     Swal.fire({
         title: 'Ready-to-Close คืออะไร?',
-        html: `<div style="text-align: left; font-size: 15px; color: #475569; line-height: 1.6;">
-                <p>การ์ดนี้ใช้แสดงข้อมูลสรุปของงานที่อยู่ในสถานะ <b>"พร้อมปิดงาน"</b> โดยระบบจะคำนวณและแสดงผลแยกตามกลุ่มงานย่อยดังนี้:</p>
-                <ul style="margin-top: 8px; padding-left: 20px;">
-                    <li><b>C :</b> จำนวนงานประเภทคอมพิวเตอร์/ระบบ</li>
-                    <li><b>I :</b> จำนวนงานประเภทโครงสร้างพื้นฐาน</li>
-                    <li><b>P :</b> จำนวนงานประเภทจัดซื้อจัดจ้างทั่วไป</li>
-                    <li><b>C02.2 :</b> จำนวนงานในส่วนรหัสพิเศษเดี่ยว</li>
-                </ul>
-                <p style="margin-top: 10px; font-size: 13px; color: #94a3b8;">*แถวมูลค่าด้านล่างจะไม่ถูกนำไปคำนวณรวมกับงาน C02.2</p>
+        html: `<div style="text-align: left; font-size: 14px; color: #475569; line-height: 1.6;">
+                <p class="mb-2">แสดง <b>จำนวนงานและมูลค่างาน</b> ที่มีความพร้อมด้านพัสดุครบถ้วน โดยแบ่งออกเป็น 2 สถานะดังนี้:</p>
+                
+                <div style="background-color: #f8fafc; padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #a855f7;">
+                    <b style="color: #6b21a8;">1. รายการรอเบิก :</b>
+                    <p style="margin: 2px 0 0 0; font-size: 13px;">งานที่มีพัสดุครบถ้วนตามความต้องการ ช่างสามารถวางแผนเข้าเบิกพัสดุได้ทันที</p>
+                </div>
+
+                <div style="background-color: #ecfdf5; padding: 10px 12px; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <b style="color: #065f46;">2. รายการเบิกครบแล้ว :</b>
+                    <p style="margin: 2px 0 0 0; font-size: 13px;">เบิกพัสดุครบตามความต้องการแล้ว ควรติดตามความก้าวหน้าเพื่อเร่งรัดเข้าสู่การปิดงาน</p>
+                </div>
                </div>`,
         icon: 'info',
         confirmButtonText: 'รับทราบ',
-        confirmButtonColor: '#8a73cd', // ใช้โทนสีม่วงให้เข้ากับ Card ของคุณ
+        confirmButtonColor: '#8a73cd',
         customClass: {
-             popup: 'rounded-2xl', // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
+            popup: 'rounded-2xl',
             confirmButton: 'swal-purple-btn'
         }
     });
 }
 
-// === Info Card Pop-up Ready-to-work Functions === //
+// === Info Card Pop-up Ready-to-Work Functions === //
 function showR2WCardInfo() {
     Swal.fire({
         title: 'Ready-to-Work คืออะไร?',
-        html: `<div style="text-align: left; font-size: 15px; color: #475569; line-height: 1.6;">
-                <p>การ์ดนี้ใช้แสดงข้อมูลสรุปของงานที่อยู่ในสถานะ <b>"พร้อมทำงาน"</b> โดยระบบจะคำนวณและแสดงผลแยกตามกลุ่มงานย่อยดังนี้:</p>
-                <ul style="margin-top: 8px; padding-left: 20px;">
-                    <li><b>C :</b> จำนวนงานประเภทคอมพิวเตอร์/ระบบ</li>
-                    <li><b>I :</b> จำนวนงานประเภทโครงสร้างพื้นฐาน</li>
-                    <li><b>P :</b> จำนวนงานประเภทจัดซื้อจัดจ้างทั่วไป</li>
-                    <li><b>C02.2 :</b> จำนวนงานในส่วนรหัสพิเศษเดี่ยว</li>
-                </ul>
+        html: `<div style="text-align: left; font-size: 14px; color: #475569; line-height: 1.6;">
+                <p>แสดง <b>จำนวนงานและมูลค่างาน</b> ที่มีพัสดุหลักครบถ้วน เช่น:</p>
+                <div style="background-color: #f0f9ff; padding: 10px 12px; border-radius: 8px; margin: 8px 0; border-left: 4px solid #0284c7;">
+                    <p style="margin: 0; font-weight: 600; color: #0369a1; font-size: 13px;">หม้อแปลง, สายไฟ, ลูกถ้วย และผลิตภัณฑ์คอนกรีต</p>
+                </div>
+                <p style="font-size: 13px; color: #64748b;">*แม้พัสดุบางรายการยังไม่ครบจนเป็น Ready-to-Close แต่สามารถ <b>เบิกพัสดุหลักและเริ่มดำเนินงานก่อสร้างก่อนได้</b> ระหว่างรอพัสดุส่วนที่เหลือ</p>
                </div>`,
         icon: 'info',
         confirmButtonText: 'รับทราบ',
-        confirmButtonColor: '#8a73cd', // ใช้โทนสีม่วงให้เข้ากับ Card ของคุณ
+        confirmButtonColor: '#8a73cd',
         customClass: {
-            popup: 'rounded-2xl', // ทำมุมกล่องให้มนเข้ากับดีไซน์เดิม
+            popup: 'rounded-2xl',
             confirmButton: 'swal-purple-btn'
         }
     });

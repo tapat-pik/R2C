@@ -296,263 +296,164 @@
       <!-- cards -->
       <div class="w-full px-6 py-6 mx-auto">
         <!-- row 1 -->
-  <div class="flex flex-wrap -mx-3">
-  <!-- <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex">
+  <div class="flex flex-wrap -mx-1.5">
+  
+  <!-- Card 1: จำนวนงานรวม -->
+  <div class="w-full max-w-full px-1.5 mb-6 sm:w-1/2 xl:w-1/4 flex">
     <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2  rounded-t-2xl">
+      <div class="p-3.5 pb-1 rounded-t-2xl">
         <div class="flex flex-row justify-between">
           <div class="flex-none max-w-full">
-              <p class="mb-0 font-sans text-xl font-semibold leading-normal text-slate-800">จำนวนงานรวม</p>
-              <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(Total Projects)</p>
+            <p class="mb-0 font-sans text-lg font-semibold leading-tight text-slate-800">จำนวนงานรวม</p>
+            <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(Total Projects)</p>
           </div>
           <div class="text-right flex items-center justify-center">
-              <i class="fa-solid fa-folder-open" style="color: rgb(138, 115, 205); font-size: 40px;"></i>
+            <i class="fa-solid fa-file-circle-check" style="color: rgb(138, 115, 205); font-size: 32px;"></i>
           </div>
         </div>
       </div>
-      <div class="flex-auto p-4 pt-2 flex flex-col">
-      <h5 class="mb-4 font-bold  text-slate-800" style="font-size: 40px; line-height: 1.2;">
-          <span id="total-jobs-count">0</span> 
-          <span class="text-sm font-normal text-slate-500">งาน</span>
-      </h5> -->
+      <div class="flex-auto p-3.5 pt-2 flex flex-col justify-center">
+        <h5 class="mb-0 font-bold text-slate-800 flex items-baseline gap-2">
+          <span id="grand-total-count" class="text-4xl leading-none">0</span> 
+          <span class="text-base font-normal text-slate-500">งาน</span>
+        </h5>
+      </div>
+    </div>
+  </div>
 
-      
-        <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex" >
+  <!-- Card 2: มูลค่างาน (ปรับสไตล์ให้เหมือน Ready-to-Work) -->
+<div class="w-full max-w-full px-1.5 mb-6 sm:w-1/2 xl:w-1/4 flex">
+  <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
     
+    <!-- Card Header -->
+    <div class="p-3.5 pb-1 rounded-t-2xl">
+      <div class="flex flex-row justify-between">
+        <div class="flex-none max-w-full">
+          <p class="mb-0 font-sans text-lg font-semibold leading-tight text-slate-800">มูลค่างาน</p>
+          <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(Accumulated Value)</p>
+        </div>
+        <div class="text-right flex items-center justify-center">
+          <i class="fa-solid fa-file-circle-check" style="color: rgb(138, 115, 205); font-size: 32px;"></i>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card Body -->
+    <div class="flex-auto p-3.5 pt-1 flex flex-col justify-center">
+      <div class="flex items-baseline gap-2">
+        <h3 id="total-valueAll-count" class="text-4xl font-bold text-slate-800 leading-none">0</h3>
+        <span class="text-base font-medium text-slate-500 mr-1">ล้านบาท</span>
+        
+        <!-- ป้ายแท็กแคปซูลแสดงรายละเอียดเพิ่มเติม -->
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100/80 text-purple-800 backdrop-blur-sm border border-white/40">
+           <span id="total-valueCIP-count">0.00</span> บาท
+        </span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+  <!-- Card 3: Ready-to-Close -->
+  <!-- Card 3: Ready-to-Close -->
+  <div class="w-full max-w-full px-1.5 mb-6 sm:w-1/2 xl:w-1/4 flex">
     <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2  rounded-t-2xl">
+      <div class="p-3.5 pb-1 rounded-t-2xl">
         <div class="flex flex-row justify-between">
           <div class="flex-none max-w-full">
-                      <p class="mb-0 font-sans text-xl font-semibold leading-normal text-slate-800">จำนวนงานรวม</p>
-              <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(Total Projects)</p>
+            <p class="mb-0 font-sans text-lg font-semibold leading-tight text-lime-500">
+              Ready-to-Close 
+              <i class="fa-solid fa-circle-info text-slate-500 hover:text-slate-700 text-xs cursor-pointer" 
+                 onclick="showR2CCardInfo()" 
+                 title="คลิกเพื่อดูรายละเอียด"></i>
+            </p>
+            <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(จำนวนงานรวม)</p>
           </div>
           <div class="text-right flex items-center justify-center">
-              <i class="fa-solid fa-file-circle-check" style="color: rgb(138, 115, 205); font-size: 40px;"></i>
+            <i class="fa-solid fa-file-circle-check" style="color: rgb(138, 115, 205); font-size: 32px;"></i>
           </div>
         </div>
       </div>
-      <div class="flex-auto p-4 pt-3 flex flex-col">
-         <h5 class="mb-4 font-bold  text-slate-800" style="font-size: 60px; line-height: 1.2;">
-          <span id="grand-total-count">0</span> 
-          <span class="text-sm font-normal text-slate-500 "  style="font-size: 30px;">งาน</span>
-      </h5>
 
+      <div class="flex-auto p-3.5 pt-1 flex flex-col justify-between gap-2">
+        <div class="flex items-baseline gap-2">
+          <h3 id="total-green-all-count" class="text-2xl font-bold text-slate-800 leading-none">0</h3>
+          <span class="text-xs font-medium text-slate-500 mr-1">งาน</span>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100/80 text-purple-800 backdrop-blur-sm border border-white/40">
+            <span id="total-valueGreenAll-count">0.00</span> บาท
+          </span>
+        </div>
 
-        <!-- <div class="info-box-container w-full mt-auto">
-            <div class="info-row highlight-row flex justify-between px-3 py-2">
-                <span class="label font-medium text-sm text-slate-800">C,I,P</span>
-              
-                 <span class="value font-bold text-sm text-slate-800">
-                  <span id="total-CIP-count">0</span>
-                  <span class="text-sm font-normal text-slate-500">งาน</span>
+        <div class="grid grid-cols-2 gap-2 w-full mt-auto">
+          <div class="flex flex-col gap-1 p-2 rounded-lg bg-white/60 backdrop-blur-sm border border-white/40 justify-between">
+            <span class="text-[11px] font-semibold text-slate-700 leading-tight truncate">รอเบิก</span>
+            <div class="flex items-center justify-between gap-1 flex-wrap">
+              <div class="flex items-baseline gap-0.5">
+                <h3 id="total-green-count" class="text-sm font-bold text-slate-800 leading-none">0</h3>
+                <span class="text-[12px] font-medium text-slate-600">งาน</span>
+              </div>
+              <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-100/80 text-purple-800 truncate">
+                <span id="total-valueGreen-count">0.00</span> ฿
               </span>
             </div>
-            <div class="info-row flex justify-between px-3 py-2">
-                <span class="label font-medium text-sm text-slate-800">C02.2</span>
-                <span class="value font-bold text-sm text-slate-800">
-                  <span id="total-022-count">0</span>
-                  <span class="text-sm font-normal text-slate-500">งาน</span>
+          </div>
+
+          <div class="flex flex-col gap-1 p-2 rounded-lg bg-emerald-50/70 backdrop-blur-sm border border-emerald-100/50 justify-between">
+            <span class="text-[11px] font-semibold text-emerald-800 leading-tight truncate">เบิกครบ</span>
+            <div class="flex items-center justify-between gap-1 flex-wrap">
+              <div class="flex items-baseline gap-0.5">
+                <h3 id="total-completed-count" class="text-sm font-bold text-slate-800 leading-none">0</h3>
+                <span class="text-[12px] font-medium text-slate-600">งาน</span>
+              </div>
+              <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 truncate">
+                <span id="val-completedWork">0.00</span> ฿
               </span>
             </div>
-        </div> -->
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
-<!-- card 2-->
- 
-        <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex" >
+
+ <!-- Card 4: Ready-to-Work -->
+<div class="w-full max-w-full px-1.5 mb-6 sm:w-1/2 xl:w-1/4 flex">
+  <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
     
-    <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2  rounded-t-2xl">
-        <div class="flex flex-row justify-between">
-          <div class="flex-none max-w-full">
-                 <p class="mb-0 font-sans text-xl font-semibold leading-normal text-slate-800">มูลค่างาน</p>
-              <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(Accumulated Value)</p>
-          </div>
-          <div class="text-right flex items-center justify-center">
-              <i class="fa-solid fa-file-circle-check" style="color: rgb(138, 115, 205); font-size: 40px;"></i>
-          </div>
+    <!-- Card Header -->
+    <div class="p-3.5 pb-1 rounded-t-2xl">
+      <div class="flex flex-row justify-between">
+        <div class="flex-none max-w-full">
+          <p class="mb-0 font-sans text-lg font-semibold leading-tight text-sky-600">Ready-to-Work
+            <i class="fa-solid fa-circle-info text-slate-500 hover:text-slate-700 text-xs cursor-pointer" 
+               onclick="showR2WCardInfo()" 
+               title="คลิกเพื่อดูรายละเอียด"></i>
+          </p>
+          <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(จำนวนงานรวม)</p>
         </div>
-      </div>
-      <div class="flex-auto p-4 pt-3 flex flex-col">
-         <h5 class="mb-4 font-bold  text-slate-800" style="font-size: 40px; line-height: 1.2;">
-          <span id="total-valueAll-count">0</span> 
-          <span class="text-sm font-normal text-slate-500">ล้านบาท</span>
-      </h5>
-      
-        <div class="info-box-container w-full mt-auto">
-            <div class="info-row highlight-row flex justify-between px-3 py-2">
-                <span class="label font-medium text-sm">C,I,P</span>
-                <span class="value font-bold text-sm text-slate-800">
-                   <span id="total-valueCIP-count" class="value font-bold text-sm">0.00</span>
-                  <span class="text-sm font-normal text-slate-500">บาท</span>
-                   </span>
-            </div>
-            <div class="info-row flex justify-between px-3 py-2">
-                <span class="label font-medium text-sm">C02.2</span>
-                 <span class="value font-bold text-sm text-slate-800">
-                   <span id="total-value022-count" class="value font-bold text-sm">0.00</span>
-                  <span class="text-sm font-normal text-slate-500">บาท</span>
-                   </span>
-            </div>
+        <div class="text-right flex items-center justify-center">
+          <i class="fa-solid fa-screwdriver-wrench" style="color: rgb(138, 115, 205); font-size: 32px;"></i>
         </div>
       </div>
     </div>
-  </div>
-<!-- card 3 -->
-  <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex" >
     
-    <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2  rounded-t-2xl">
-        <div class="flex flex-row justify-between">
-          <div class="flex-none max-w-full">
-              <p class="mb-0 font-sans text-xl font-semibold leading-normal text-lime-500">Ready-to-Close 
-                <i class="fa-solid fa-circle-info text-slate-500 hover:text-slate-700 text-sm cursor-pointer" 
-                   onclick="showR2CCardInfo()" 
-                   title="คลิกเพื่อดูรายละเอียด"></i></p>
-              <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(จำนวนงานรวม)</p>
-          </div>
-          <div class="text-right flex items-center justify-center">
-              <i class="fa-solid fa-file-circle-check" style="color: rgb(138, 115, 205); font-size: 40px;"></i>
-          </div>
-        </div>
-      </div>
-      <div class="flex-auto p-4 pt-3 flex flex-col">
-         <h5 class="mb-4 font-bold  text-slate-800" style="font-size: 40px; line-height: 1.2;">
-          <span id="total-green-count">0</span> 
-          <span class="text-sm font-normal text-slate-500">งาน</span>
-      </h5>
-      
-
-
-<div class="info-box-container w-full mt-auto">
-    <div class="info-row highlight-row flex justify-around items-center px-2 py-2.5">
+    <!-- Card Body -->
+    <div class="flex-auto p-3.5 pt-1 flex flex-col justify-center">
+      <!-- ใช้ items-baseline เพื่อให้คำว่า "งาน" และป้ายเงิน ชิดฐานล่างเท่ากับตัวเลข -->
+      <div class="flex items-baseline gap-2">
+        <h3 id="total-blue-count" class="text-4xl font-bold text-slate-800 leading-none">0</h3>
+        <span class="text-base font-medium text-slate-500 mr-1">งาน</span>
         
-        <div class="flex items-center gap-1 text-sky-900 font-bold text-sm whitespace-nowrap">
-            <span>C :</span>
-            <span id="total-Cgreen-count">0</span>
-            <span>งาน</span>
-        </div>
-
-        <div class="self-center h-3.5 w-[1px] bg-gray-600/30 shrink-0"></div>
-               
-        <div class="flex items-center gap-1 text-purple-900 font-bold text-sm whitespace-nowrap">
-            <span>I :</span>
-            <span id="total-Igreen-count">0</span>
-            <span>งาน</span>
-        </div>
-
-        <div class="self-center h-3.5 w-[1px] bg-gray-600/30 shrink-0"></div>
-
-        <div class="flex items-center gap-1 text-sky-900 font-bold text-sm whitespace-nowrap">
-            <span>P :</span>
-            <span id="total-Pgreen-count">0</span>
-            <span>งาน</span>
-        </div>
-
-        <!-- <div class="self-center h-3.5 w-[1px] bg-gray-600/30 shrink-0"></div>
-
-        <div class="flex items-center gap-1 text-purple-900 font-bold text-sm whitespace-nowrap">
-            <span>C02.2 :</span>
-            <span id="total-022Green-count">0</span>
-            <span>งาน</span>
-        </div> -->
-                  
-    </div>
-
-    <div class="info-row flex justify-between px-3 py-2 border-t border-white/20">
-        <span class="label font-medium text-sm text-slate-800">มูลค่า <span class="text-xs text-slate-500">(*ไม่รวมงาน C.02.2)</span></span>
-        <span class="value font-bold text-sm text-slate-800">
-            <span id="total-valueGreen-count" class="value font-bold text-sm">0.00</span>
-            <span class="text-sm font-normal text-slate-500">บาท</span>
+        <!-- ป้ายแท็กแสดงจำนวนเงิน -->
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100/80 text-purple-800 backdrop-blur-sm border border-white/40">
+          <span id="total-valueBlue-count">0.00</span> บาท
         </span>
-    </div>
-</div>
       </div>
     </div>
+
   </div>
-
-
-<!-- card 4 -->
-  <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 xl:w-1/4 flex">
-    <div class="relative flex flex-col h-full w-full min-w-0 break-words bg-purple-gradient shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
-      <div class="p-4 pb-2  rounded-t-2xl">
-        <div class="flex flex-row justify-between">
-          <div class="flex-none max-w-full">
-              <p class="mb-0 font-sans text-xl font-semibold leading-normal text-sky-600">Ready-to-Work
-                <i class="fa-solid fa-circle-info text-slate-500 hover:text-slate-700 text-sm cursor-pointer" 
-                   onclick="showR2WCardInfo()" 
-                   title="คลิกเพื่อดูรายละเอียด"></i>
-              </p>
-              <p class="mb-0 font-sans text-xs leading-normal text-slate-600">(จำนวนงานรวม)</p>
-          </div>
-          <div class="text-right flex items-center justify-center">
-       
-              <i class="fa-solid fa-screwdriver-wrench" style="color: rgb(138, 115, 205); font-size: 40px;"></i>
-          </div>
-        </div>
-      </div>
-      <div class="flex-auto p-4 pt-3 flex flex-col">
-         <h5 class="mb-4 font-bold  text-slate-800" style="font-size: 40px; line-height: 1.2;">
-          <span id="total-blue-count">0</span> 
-          <span class="text-sm font-normal text-slate-500">งาน</span>
-      </h5>
-        <!-- <div class="info-white-box-bottom w-full mt-auto border-t border-slate-200 pt-3">
-            <div class="flex justify-between px-1 py-1">
-    <span class="label font-medium text-sm text-slate-800">มูลค่า <span class="text-xs text-slate-500">(*ไม่รวมงาน C.02.2)</span></span>
-    <span class="value font-bold text-sm text-slate-800">
-                   <span id="total-valueBlue-count" class="value font-bold text-sm">0.00</span>
-                  <span class="text-sm font-normal text-slate-500">บาท</span>
-      </span>
-</div>
-        </div> -->
-
-        <div class="info-box-container w-full mt-auto">
-    <div class="info-row highlight-row flex justify-around items-center px-2 py-2.5">
-        
-        <div class="flex items-center gap-1 text-sky-900 font-bold text-sm whitespace-nowrap">
-            <span>C :</span>
-            <span id="total-CBlue-count">0</span>
-            <span>งาน</span>
-        </div>
-
-        <div class="self-center h-3.5 w-[1px] bg-gray-600/30 shrink-0"></div>
-        <div class="flex items-center gap-1 text-purple-900 font-bold text-sm whitespace-nowrap">
-            <span>I :</span>
-            <span id="total-IBlue-count">0</span>
-            <span>งาน</span>
-        </div>
-
-       <div class="self-center h-3.5 w-[1px] bg-gray-600/30 shrink-0"></div>
-
-        <div class="flex items-center gap-1 text-sky-900 font-bold text-sm whitespace-nowrap">
-            <span>P :</span>
-            <span id="total-PBlue-count">0</span>
-            <span>งาน</span>
-        </div>
-
-         <!-- <div class="self-center h-3.5 w-[1px] bg-gray-600/30 shrink-0"></div>
-        <div class="flex items-center gap-1 text-purple-900 font-bold text-sm whitespace-nowrap">
-            <span>C02.2 :</span>
-            <span id="total-022Blue-count">0</span>
-            <span>งาน</span>
-        </div> -->
-                  
-    </div>
-
-    <div class="info-row flex justify-between px-3 py-2 border-t border-white/20">
-        <span class="label font-medium text-sm text-slate-800">มูลค่า <span class="text-xs text-slate-500">(*ไม่รวมงาน C.02.2)</span></span>
-        <span class="value font-bold text-sm text-slate-800">
-            <span id="total-valueBlue-count" class="value font-bold text-sm">0.00</span>
-            <span class="text-sm font-normal text-slate-500">บาท</span>
-        </span>
-    </div>
 </div>
 
-
-      </div>
-    </div>
-  </div>
 </div>
  <!------------------ cards row 2 ---------------------------->
 
@@ -608,14 +509,18 @@
        <div class="relative flex flex-col h-full w-full min-w-0 break-words border border-gray-200  bg-white shadow-soft-xl rounded-2xl bg-clip-border transition-all duration-300">
             
             <div class="p-4 pb-2  rounded-t-2xl d-flex justify-content-between align-items-center">
-                <h6 class="mb-1 font-sans font-bold leading-normal text-slate-700">
-                    ข้อมูลพัสดุหลัก (Material Master)
-                </h6>
+                <h5 class="mb-1 font-sans font-bold leading-normal text-slate-700">
+                   ตารางจัดอันดับความสำคัญของงาน (Job Priority Ranking)  
+                </h5>
                 <div class="d-flex align-items-center gap-2">
-                    <button id="resetMB52" class="border px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-center text-slate-500  bg-white rounded-lg cursor-pointer  hover:scale-102 active:opacity-85">
-                        <i class="fas fa-sync"></i> Reset Filters
-                    </button>
-                    <div id="export-Require"></div>
+                    
+                    <button id="resetMB52" class="block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer">
+  <i class="fa-solid fa-sync sm:mr-1"></i> <span class="hidden sm:inline">Reset Filters</span>
+</button>
+                    <button id="Add_VVIP" class="block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer">
+  <i class="fa-solid fa-star sm:mr-1"></i> <span class="hidden sm:inline">VVIP</span>
+</button>
+                    <!-- <div id="export-Require"></div> -->
                 </div>
             </div>
 
@@ -784,26 +689,29 @@
                 <button @click="activeBudgetTab = 'InfoPendingOrder'; toggleInfoOrderTab('InfoPendingOrder')" 
                         class="py-2 text-sm font-medium transition-all relative border-b-2"
                         :class="activeBudgetTab === 'InfoPendingOrder' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-                    รายการงานที่รอเบิกพัสดุ
+                    หมายเลขงานที่รอเบิกพัสดุ
                     <!-- <span id="count-ManageBudget" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span> -->
                 </button>
                 <button @click="activeBudgetTab = 'InfoCompletedOrder'; toggleInfoOrderTab('InfoCompletedOrder')" 
                         class="py-2 text-sm font-medium transition-all relative border-b-2"
                         :class="activeBudgetTab === 'InfoCompletedOrder' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-                    รายการงานที่เบิกครบ
+                    หมายเลขงานที่เบิกพัสดุครบ
                     <!-- <span id="count-ManageDeficit" class="ml-2 px-2 py-0.5 text-[14px] rounded-full bg-gray-100 text-gray-600">0</span> -->
                 </button>
             </div>
 
             <div class="p-4 w-full">
                 <div x-show="activeBudgetTab === 'InfoPendingOrder'" class="overflow-x-auto w-full">
-                       <table id="tableRequirement_Data" class="table table-hover align-middle mb-0 text-sm leading-normal break-words whitespace-normal" style="width: 100%;">
-                        </table>
+                       <table id="tableRequirement_Data" class="table table-hover align-middle mb-0 text-sm leading-normal nowrap" style="width: 100%;">
+</table>
                 </div>
                 <div x-show="activeBudgetTab === 'InfoCompletedOrder'" class="overflow-x-auto w-full">
                     <!-- โค้ดเดิมคุณใช้ตาราง ID นี้อยู่ อย่าลืมตรวจสอบ ID ใน JS ให้ตรงกัน -->
-                   <table id="tableCompletedOrder" class="table table-hover align-middle mb-0 text-sm leading-normal break-words whitespace-normal" style="width: 100%;">
-                        </table>
+                   <!-- <table id="tableCompletedOrder" class="table table-hover align-middle mb-0 text-sm leading-normal break-words whitespace-normal" style="width: 100%;"> -->
+                        
+                  <!-- </table> -->
+
+                  <table id="tableCompletedOrder" class="table table-hover align-middle mb-0 text-sm leading-normal nowrap" style="width: 100%;"></table>
                 </div>
             </div>
 
@@ -901,10 +809,10 @@
                 margin-right: 15px;
                 filter: drop-shadow(0 0 6px rgba(14, 189, 95, 0.5));">
       </i>
-        รายการพัสดุที่ Match แล้ว (เบิกได้ทันที)
+        รายการพัสดุที่พร้อมเบิก (Matched Materials)
       </h6>
       
-      <div id="my-export-space"></div>
+      <!-- <div id="my-export-space"></div> -->
     </div>
    
     <!-- HTML โครงสร้าง -->
@@ -914,14 +822,14 @@
             <button @click="activeTab = 'MatchStock'; toggleInfoTab('MatchStock')" 
                     class="py-2 text-[16px] font-medium transition-all relative border-b-2"
                     :class="activeTab === 'MatchStock' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-                รายการพัสดุรอเบิก
+                รายการพัสดุที่พร้อมเบิก
                 
             </button>
 
             <button @click="activeTab = 'Fulfilled'; toggleInfoTab('Fulfilled')" 
                     class="py-2 text-[16px] font-medium transition-all relative border-b-2"
                     :class="activeTab === 'Fulfilled' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
-                รายการพัสดุเบิกครบ
+                รายการพัสดุที่เบิกครบ
                 
             </button>
            
@@ -959,9 +867,9 @@
               font-size: 24px; 
               filter: drop-shadow(0 0 6px rgba(251, 37, 37, 0.5));">
     </i>
-    รายการพัสดุที่ขาด (Shortage Items)
+    รายการพัสดุขาดแคลน (Shortage Materials)
 </h6>
-    <div id="export-NoStock"></div>
+    <!-- <div id="export-NoStock"></div> -->
   </div>
   <div class="p-4">
     <div class="overflow-x-auto w-full">
@@ -981,9 +889,9 @@
     <h6 class="mb-0 flex items-center font-bold text-slate-700 block truncate">
       <i class="fa-solid fa-lock me-3" style="color: rgb(132, 132, 131); font-size: 24px;  filter: drop-shadow(0 0 6px rgba(146, 146, 146, 0.5));"></i>
 <!-- <i class="fa-duotone fa-solid fa-lock-keyhole" style="--fa-primary-color: rgb(132, 132, 131); --fa-secondary-color: rgb(132, 132, 131);"></i> -->
-      รายการพัสดุล้าสมัย / เปลี่ยนแปลงรหัสพัสดุ / พัสดุไม่ต้องเบิกจากคลัง
+      รายการพัสดุติดข้อจำกัด (Constraint Materials)
     </h6>
-    <div id="export-Obsolete"></div>
+    <!-- <div id="export-Obsolete"></div> -->
   </div>
   <div class="p-4">
     <div class="overflow-x-auto w-full">
@@ -1017,16 +925,15 @@
           </span>
 
           <div class="flex items-center gap-2 ml-4">
-            <button id="resetUpcoming" class="px-3 py-2 mb-0 text-center text-slate-500 uppercase align-middle bg-white/60 rounded-lg cursor-pointer text-xs shadow-soft-md hover:scale-102 active:opacity-85 whitespace-nowrap">
-              <i class="fas fa-sync mr-1"></i> Reset Filters
-            </button>
-            <div id="export-Require" class="flex items-center"></div>
+           
+            <button id="resetUpcoming" class="block px-3 py-2 text-sm font-semibold transition-all ease-nav-brand text-slate-500 border border-transparent rounded-lg hover:border-slate-400 hover:bg-slate-100 hover:text-slate-800 cursor-pointer">
+  <i class="fa-solid fa-sync sm:mr-1"></i> <span class="hidden sm:inline">Reset Filters</span>
           </div>
         </h6>
         
         <p class="mb-0 text-sm leading-normal mt-1">
-          <i class="fa fa-check text-cyan-500"></i>
-          <span class="ml-1 font-semibold">30 done</span> this month
+          <!-- <i class="fa fa-check text-cyan-500"></i> -->
+          <span class="ml-1 font-semibold"></span> 
         </p>
       </div>
 
