@@ -1107,3 +1107,64 @@ input[type="number"].budget-input
 #tableObsolete_wrapper {
     overflow-x: auto !important;
 }
+
+/* =========================================================
+   Modern Corporate Table Row Selection Styles
+   ========================================================= */
+
+/* กำหนด Transition ให้เวลาคลิกแล้วสีเปลี่ยนอย่างนุ่มนวล */
+#tableRequirement_Data tbody tr.clickable-requirement {
+    transition: all 0.2s ease-in-out;
+}
+
+/* เอฟเฟกต์ Hover เมื่อเม้าส์ชี้ผ่านแถว */
+#tableRequirement_Data tbody tr.clickable-requirement:hover {
+    background-color: #f1f5f9 !important; /* Slate-100 */
+}
+
+/* 🌟 สไตล์แถวที่ถูกคลิกเลือก (Selected Row) */
+#tableRequirement_Data tbody tr.selected-row {
+    background-color: #eff6ff !important; /* Blue-50 ให้ความรู้สึกซอฟต์นุ่มตา */
+    position: relative;
+    box-shadow: inset 4px 0 0 0 #2563eb !important; /* เส้นแถบไฮไลท์สีฟ้าเข้มด้านซ้ายสุด (Royal Blue) */
+}
+
+/* ไฮไลท์คอลัมน์แรก (อันดับ) ให้รับกับแถวที่เลือก */
+#tableRequirement_Data tbody tr.selected-row td:first-child {
+    background-color: #dbeafe !important; /* Blue-100 */
+    color: #1e40af !important; /* Blue-800 */
+    font-weight: 700;
+}
+
+/* ตัวอักษรของทั้งแถวเมื่อถูกเลือก */
+#tableRequirement_Data tbody tr.selected-row td {
+    color: #0f172a !important; /* Slate-900 */
+}
+
+
+/* จัดตำแหน่ง Processing Box ของ DataTables ให้อยู่ตรงกลางหน้าจอ */
+div.dataTables_wrapper div.dataTables_processing {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    z-index: 100 !important;
+}
+
+/* วงกลมหมุน Minimal */
+.table-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid #cbd5e1;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spinner-rotate 0.6s linear infinite;
+}
+
+@keyframes spinner-rotate {
+    to { transform: rotate(360deg); }
+}
